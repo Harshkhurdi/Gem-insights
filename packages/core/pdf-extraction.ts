@@ -1,11 +1,12 @@
 import { createHash } from "node:crypto";
 import { classify, Rule, STATES, unitName } from "./domain";
-export const PARSER_VERSION = "gem-pdf-1";
+export const PARSER_VERSION = "gem-pdf-2";
 export interface ExtractedPage {
   page: number;
   text: string;
   method: "embedded" | "tesseract";
   readable: boolean;
+  rows?: { cells: string[] }[];
 }
 export interface FieldEvidence {
   page: number;
@@ -22,6 +23,8 @@ export interface ExtractionDraft {
 }
 const clean = (s: string) =>
   s
+    .normalize("NFKC")
+    .replace(/[०-९]/g, (d) => String("०१२३४५६७८९".indexOf(d)))
     .replace(/\u0000/g, "")
     .replace(/[\t ]+/g, " ")
     .trim();
@@ -29,7 +32,7 @@ const normalized = (s: string) =>
   s
     .toLowerCase()
     .replace(/\((?:v|q)\d+\)/gi, "")
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^\p{L}\p{N}\p{M}]+/gu, " ")
     .trim();
 export function stableItemKey(name: string) {
   return (
@@ -96,27 +99,36 @@ export function extractTender(
     }
     return null;
   }
-  const bidText = field("bidNumber", /Bid (?:Number|No\.?)[\s:.-]*(.*)$/i);
+  const bidText = field(
+    "bidNumber",
+    /(?:Bid (?:Number|No\.?)|बोली (?:संख्या|क्रमांक))[\s:.-]*(.*)$/i,
+  );
   const bidNumber =
     bidText
       ?.match(/GEM\s*\/\s*\d{4}\s*\/\s*[BR]\s*\/\s*\d+/i)?.[0]
       .replace(/\s/g, "")
       .toUpperCase() || null;
   const pub =
-    field("publishedAt", /(?:^|\/)Dated\s*[:\s]*(.*)$/i) ||
+    field("publishedAt", /(?:^|\/)(?:Dated|दिनांक)\s*[:\s]*(.*)$/i) ||
     field(
       "publishedAt",
       /(?:Publication Date|Bid Start Date(?:\/Time)?)\s*[:\s]*(.*)$/i,
     );
-  const closing = field("closesAt", /Bid End Date(?:\/Time)?\s*[:\s]*(.*)$/i);
-  const category = field("items", /Item Category\s*[:\s]*(.*)$/i);
+  const closing = field(
+    "closesAt",
+    /(?:Bid End Date(?:\/Time)?|बोली समाप्ति दिनांक)\s*[:\s]*(.*)$/i,
+  );
+  const category = field(
+    "items",
+    /(?:Item Category|वस्तु श्रेणी)\s*[:\s]*(.*)$/i,
+  );
   const explicitTitle = field(
     "title",
-    /(?:Tender Title|Bid Title|Subject)\s*[:\s]+(.*)$/i,
+    /(?:Tender Title|Bid Title|Subject|निविदा शीर्षक)\s*[:\s]+(.*)$/i,
   );
   const organization = field(
       "buyer.name",
-      /(?:Organisation|Organization|Buyer Institution) Name\s*[:\s]*(.*)$/i,
+      /(?:(?:Organisation|Organization|Buyer Institution) Name|संगठन का नाम)\s*[:\s]*(.*)$/i,
     ),
     office = field("buyer.office", /Office Name\s*[:\s]*(.*)$/i);
   const buyerName = organization
@@ -146,7 +158,92 @@ export function extractTender(
     name: string;
     quantity: string | null;
     unit: string;
+    sourceIndices?: number[];
+    fromTotal?: boolean;
   }> = [];
+  // Only explicitly labelled quantity columns/fields are procurement quantities.
+  // Numbers in technical specifications never form a requested line by themselves.
+  let table = false,
+    pending: { name: string; index: number } | null = null;
+  for (let i = 0; i < lines.length; i++) {
+    const text = lines[i].text;
+    if (
+      /(?:Item Description|Product Name|वस्तु विवरण).*(?:Quantity|मात्रा)/i.test(
+        text,
+      )
+    ) {
+      if (!table) pending = null;
+      table = true;
+      continue;
+    }
+    if (
+      /^(?:Technical Specifications|Specifications?|Specification Name|Consignees|Delivery Destination|Buyer Added|Additional Terms|GeMARPTS)/i.test(
+        text,
+      )
+    ) {
+      table = false;
+      pending = null;
+    }
+    const explicit = text.match(
+      /^(.{3,240}?)\s*(?:[—–|:-]\s*)?(?:Quantity|Qty\.?|मात्रा)\s*[:=]\s*([\d,]+(?:\.\d+)?)(?:\s*(pieces?|units?|nos?\.?|numbers?|sets?|kits?|each|नग))?\s*$/i,
+    );
+    if (
+      explicit &&
+      !/^(?:Total|Allocated|Delivery|Consignee|Specification)|\b(?:supporting|concentration|capacity|resolution)\b/i.test(
+        explicit[1],
+      )
+    )
+      itemHeads.push({
+        index: i,
+        name: clean(explicit[1].replace(/[—–|:\-\s]+$/, "")),
+        quantity: decimal(explicit[2]),
+        unit: explicit[3] ? unitName(explicit[3]) : "unknown",
+      });
+    if (!table) continue;
+    // A numbered row may continue on the next line/page. Repeated headers and
+    // page numbers are ignored; arbitrary prose is never attached as a number.
+    if (/^(?:Page\s+)?\d+\s*(?:\/|of)\s*\d+$/i.test(text)) continue;
+    const row = text
+      .replace(/\s*\|\s*/g, " ")
+      .match(
+        /^\d+[.)]?\s+(.{3,240}?)\s+([\d,]+(?:\.\d+)?)(?:\s+(pieces?|units?|nos?\.?|numbers?|sets?|kits?|each|नग))?\s*$/i,
+      );
+    if (row) {
+      itemHeads.push({
+        index: i,
+        name: clean(row[1]),
+        quantity: decimal(row[2]),
+        unit: row[3] ? unitName(row[3]) : "unknown",
+      });
+      pending = null;
+      continue;
+    }
+    const start = text.match(/^\d+[.)]?\s+([^\d].{2,240})$/);
+    if (start) {
+      pending = { name: start[1], index: i };
+      continue;
+    }
+    if (pending) {
+      const tail = text
+        .replace(/\s*\|\s*/g, " ")
+        .match(
+          /^(?:(.{2,200}?)\s+)?([\d,]+(?:\.\d+)?)\s*(pieces?|units?|nos?\.?|numbers?|sets?|kits?|each|नग)\s*$/i,
+        );
+      if (tail) {
+        itemHeads.push({
+          index: pending.index,
+          sourceIndices: [pending.index, i],
+          name: clean(pending.name + " " + (tail[1] || "")),
+          quantity: decimal(tail[2]),
+          unit: unitName(tail[3]),
+        });
+        add("tableRow", lines[i]);
+        pending = null;
+      } else if (!/:|\d/.test(text) && pending.name.length + text.length < 240)
+        pending.name += " " + text;
+      else pending = null;
+    }
+  }
   for (let i = 0; i < lines.length; i++) {
     const m = lines[i].text.match(
       /^(.{3,240}?)\s*\(\s*([\d,]+(?:\.\d+)?)\s*(pieces?|units?|nos?\.?|numbers?|sets?|kits?|each)\s*\)\s*$/i,
@@ -159,6 +256,74 @@ export function extractTender(
         unit: unitName(m[3]),
       });
   }
+  // Positioned cells allow Quantity/Unit columns in different orders. Only an
+  // explicit description+quantity header activates this mode; not spec tables.
+  let columns: { name: number; quantity: number; unit: number } | null = null;
+  let carry: { name: string; index: number } | null = null;
+  for (const p of pages)
+    for (const row of p.rows || []) {
+      const cells = row.cells.map(clean),
+        joined = cells.join(" ");
+      const name = cells.findIndex((s) =>
+        /^(?:Item Description|Product Name|वस्तु विवरण)$/i.test(s),
+      );
+      const quantity = cells.findIndex((s) =>
+        /^(?:Quantity|Qty\.?|मात्रा)$/i.test(s),
+      );
+      if (name >= 0 && quantity >= 0) {
+        columns = {
+          name,
+          quantity,
+          unit: cells.findIndex((s) => /^(?:Unit|UOM|इकाई)$/i.test(s)),
+        };
+        continue;
+      }
+      if (
+        /^(?:Technical Specifications|Specifications?|Specification Name|Consignees|Buyer Added|Additional Terms|GeMARPTS)/i.test(
+          joined,
+        )
+      ) {
+        columns = null;
+        carry = null;
+        continue;
+      }
+      if (!columns || /^(?:Page\s+)?\d+\s*(?:\/|of)\s*\d+$/i.test(joined))
+        continue;
+      const product = cells[columns.name] || "",
+        q = decimal(cells[columns.quantity] || "");
+      if (!product || /^[\d,.]+$/.test(product)) continue;
+      if (q === null) {
+        if (!/:|\d/.test(product))
+          carry = {
+            name: product,
+            index: lines.findIndex(
+              (l) => l.page === p.page && l.text === clean(joined),
+            ),
+          };
+        continue;
+      }
+      const itemName = carry ? carry.name + " " + product : product;
+      const index = lines.findIndex(
+        (l) => l.page === p.page && l.text === clean(joined),
+      );
+      if (index < 0) continue;
+      // Prefer the positioned interpretation of this source row over whitespace parsing.
+      for (let h = itemHeads.length - 1; h >= 0; h--)
+        if (itemHeads[h].index === index) itemHeads.splice(h, 1);
+      itemHeads.push({
+        index,
+        sourceIndices:
+          carry && carry.index >= 0 ? [carry.index, index] : [index],
+        name: itemName,
+        quantity: q,
+        unit:
+          columns.unit >= 0 && cells[columns.unit]
+            ? unitName(cells[columns.unit])
+            : "unknown",
+      });
+      carry = null;
+    }
+  itemHeads.sort((a, b) => a.index - b.index);
   if (!itemHeads.length && category) {
     const value = total?.match(
       /^([\d,.]+)\s*(pieces?|units?|nos?\.?|sets?|kits?)?\b/i,
@@ -170,6 +335,7 @@ export function extractTender(
         lines.findIndex((l) => l.text.includes(category)),
       ),
       name: category,
+      fromTotal: true,
       quantity: multi ? null : decimal(value?.[1] || ""),
       unit: value?.[2] ? unitName(value[2]) : "unknown",
     });
@@ -217,14 +383,40 @@ export function extractTender(
             .join("\n")
             .slice(0, 4000)
         : null,
-      evidence:
-        `p. ${lines[head.index]?.page || 1}: ${lines[head.index]?.text || head.name}`.slice(
-          0,
-          1800,
-        ),
+      evidence: (head.sourceIndices || [head.index])
+        .map(
+          (index) =>
+            `p. ${lines[index]?.page || 1}: ${lines[index]?.text || head.name}`,
+        )
+        .join("; ")
+        .slice(0, 1800),
       destinations: [] as any[],
     };
-    add("items." + finalKey, lines[head.index]);
+    for (const index of head.sourceIndices || [head.index]) {
+      add("items." + finalKey, lines[index]);
+      for (const f of [
+        "name",
+        ...(head.quantity === null ? [] : ["quantity"]),
+        ...(head.unit === "unknown" ? [] : ["unit"]),
+      ])
+        add("items." + finalKey + "." + f, lines[index]);
+    }
+    if (head.fromTotal && evidence.totalQuantity) {
+      // Category/total fallback: the quantity is supported by the explicit total,
+      // not by a category label that happens to contain digits.
+      if (head.quantity !== null)
+        evidence["items." + finalKey + ".quantity"] = [
+          ...evidence.totalQuantity,
+        ];
+      if (head.unit !== "unknown")
+        evidence["items." + finalKey + ".unit"] = [...evidence.totalQuantity];
+    }
+    if (item.specifications)
+      add(
+        "items." + finalKey + ".specifications",
+        specLines[0] || lines[head.index],
+        item.specifications,
+      );
     if (consigneeIndex >= 0) {
       const delivery = section.slice(consigneeIndex);
       const stop = delivery.findIndex((l) =>

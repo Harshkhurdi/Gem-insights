@@ -1,5 +1,6 @@
 "use client";
 import DocumentAdmin from "./components/document-admin";
+import { EvaluationMetrics } from "./components/corpus-admin";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   QueryClient,
@@ -1080,6 +1081,19 @@ function Dashboard() {
                     ))}
                 </TextField>
                 <TextField
+                  select
+                  label="GeM acquisition source"
+                  value={f.source || ""}
+                  onChange={(e) => change("source", e.target.value)}
+                >
+                  <MenuItem value="">All GeM records</MenuItem>
+                  {coverage.data?.sources.map((s: any) => (
+                    <MenuItem key={s.id} value={s.id}>
+                      {s.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
                   label="Published from"
                   type="date"
                   slotProps={{ inputLabel: { shrink: true } }}
@@ -1938,6 +1952,69 @@ function Coverage({ data }: { data: any }) {
   if (!data) return <CircularProgress size={22} />;
   return (
     <>
+      {data.dataQuality && (
+        <Panel
+          title="Document processing and data quality"
+          sub="Our stored GeM dataset; national publication totals are unknown."
+        >
+          <Alert severity="warning">
+            {data.dataQuality.warning}{" "}
+            {data.total.tenders < 25
+              ? "Very small sample: demand rankings and trends are descriptive only."
+              : "Coverage completeness remains unverified."}
+          </Alert>
+          <div className="stat-pair">
+            {Object.entries(data.dataQuality.documents).map(
+              ([key, value]: any) => (
+                <div key={key}>
+                  <strong>{value}</strong>
+                  <small>Documents: {key.replaceAll("_", " ")}</small>
+                </div>
+              ),
+            )}
+          </div>
+          <Table
+            heads={["Completeness measure", "Known / denominator", "Percent"]}
+          >
+            {Object.entries(data.dataQuality.percentages).map(
+              ([key, v]: any) => (
+                <tr key={key}>
+                  <td>{key.replace(/([A-Z])/g, " $1")}</td>
+                  <td>
+                    {v.known} / {v.total}
+                  </td>
+                  <td>
+                    {v.percent === null
+                      ? "Not yet measured"
+                      : v.percent.toFixed(1) + "%"}
+                  </td>
+                </tr>
+              ),
+            )}
+          </Table>
+          <EvaluationMetrics report={data.dataQuality.evaluation} />
+          {Object.entries(data.dataQuality.breakdowns).map(
+            ([key, rows]: any) => (
+              <details key={key}>
+                <summary>Collected coverage by {key}</summary>
+                <Table heads={[key, "Stored tenders"]}>
+                  {rows.map((r: any, i: number) => (
+                    <tr key={i}>
+                      <td>
+                        {r.name ||
+                          r.state ||
+                          r.month ||
+                          "Unknown / unclassified"}
+                      </td>
+                      <td>{r.tenders}</td>
+                    </tr>
+                  ))}
+                </Table>
+              </details>
+            ),
+          )}
+        </Panel>
+      )}
       <div className="kpis">
         <div className="kpi">
           <span>Dataset coverage</span>

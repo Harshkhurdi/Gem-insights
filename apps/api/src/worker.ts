@@ -25,6 +25,8 @@ async function collect() {
   let cursor =
     (await db.query("SELECT checkpoint FROM source WHERE id='import'"))[0]
       ?.checkpoint || "";
+  const seenCursors = new Set<string>();
+  if (cursor) seenCursors.add(cursor);
   for (let page = 0; page < 100 && !stopping; page++) {
     const u = new URL(base);
     if (cursor) u.searchParams.set("cursor", cursor);
@@ -50,12 +52,14 @@ async function collect() {
     const data = JSON.parse(Buffer.concat(chunks).toString());
     if (!Array.isArray(data.records))
       throw new Error("Feed records array missing");
+    const next = data.nextCursor;
+    if (next != null && (typeof next !== "string" || next.length > 2048))
+      throw new Error("Invalid cursor");
+    if (next && seenCursors.has(next))
+      throw new Error("Non-advancing or cyclic cursor");
+    if (next) seenCursors.add(next);
     if (data.records.length)
       await ingest.import(data.records, "Authorized feed " + base.origin);
-    const next = data.nextCursor;
-    if (next != null && typeof next !== "string")
-      throw new Error("Invalid cursor");
-    if (next === cursor && next) throw new Error("Non-advancing cursor");
     cursor = next || "";
     await db.query("UPDATE source SET checkpoint=$1 WHERE id='import'", [
       cursor || null,
@@ -97,6 +101,9 @@ async function start() {
       await lock.query("SELECT pg_try_advisory_lock(17924002) AS locked")
     )[0].locked;
     if (!ownsLock) throw new Error("Another worker owns the scheduler lock");
+    await db.query(
+      "UPDATE document_attempt SET status='interrupted',finished_at=now(),processing_ms=LEAST(2147483647,EXTRACT(EPOCH FROM(now()-started_at))*1000)::integer,error='Worker interrupted before extraction completed' WHERE status='running'",
+    );
     await db.query(
       "UPDATE job SET status=CASE WHEN attempts>=3 THEN 'failed' ELSE 'pending' END,available_at=now() WHERE status='running'",
     );

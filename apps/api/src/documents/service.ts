@@ -27,6 +27,7 @@ export const batchSchema = z
     retainContent: z.boolean(),
     retainEvidence: z.literal(true),
     allowOcr: z.boolean().default(false),
+    maxFiles: z.number().int().min(1).max(500).default(20),
   })
   .strict();
 export const reviewSchema = z
@@ -67,7 +68,7 @@ export class Documents {
     const b = batchSchema.parse(body);
     const id = randomUUID();
     await this.db.query(
-      "INSERT INTO document_batch(id,provenance,source_name,permission_notes,authorized_processing,retain_content,retain_evidence,allow_ocr) VALUES($1,$2,$3,$4,true,$5,true,$6)",
+      "INSERT INTO document_batch(id,provenance,source_name,permission_notes,authorized_processing,retain_content,retain_evidence,allow_ocr,max_files,max_bytes) VALUES($1,$2,$3,$4,true,$5,true,$6,$7,$8)",
       [
         id,
         b.provenance,
@@ -75,13 +76,15 @@ export class Documents {
         b.permissionNotes,
         b.retainContent,
         b.allowOcr,
+        b.maxFiles,
+        b.maxFiles > 20 ? 2 * 1024 ** 3 : MAX_BATCH_BYTES,
       ],
     );
     return {
       id,
-      maxFiles: 20,
+      maxFiles: b.maxFiles,
       maxFileBytes: MAX_PDF_BYTES,
-      maxBatchBytes: MAX_BATCH_BYTES,
+      maxBatchBytes: b.maxFiles > 20 ? 2 * 1024 ** 3 : MAX_BATCH_BYTES,
     };
   }
   async upload(
@@ -135,17 +138,17 @@ export class Documents {
             )
           )[0];
           if (
-            usage.files >= 20 ||
-            Number(usage.bytes) + file.buffer.length > MAX_BATCH_BYTES
+            usage.files >= b.max_files ||
+            Number(usage.bytes) + file.buffer.length > Number(b.max_bytes)
           )
             fail(
-              "Batch exceeds 20 files or 100 MiB; create another batch",
+              `Batch exceeds ${b.max_files} files or ${Math.round(Number(b.max_bytes) / 1048576)} MiB; create another batch`,
               413,
             );
         }
         const id = old?.id || randomUUID();
         if (!old || reprocess) {
-          if (old && !["failed", "needs_ocr"].includes(old.status))
+          if (old && !["failed", "needs_ocr", "cancelled"].includes(old.status))
             fail(
               "Only failed or OCR-needed documents can be reuploaded for reprocessing",
               409,
@@ -160,6 +163,18 @@ export class Documents {
             ).length;
           if (active)
             fail("Document already has a pending processing job", 409);
+          const pending = Number(
+            (
+              await m.query(
+                "SELECT count(*) AS n FROM job WHERE kind='pdf' AND status IN ('pending','running')",
+              )
+            )[0].n,
+          );
+          if (pending >= 1000)
+            fail(
+              "PDF queue capacity reached (1,000). Wait for processing before uploading more.",
+              429,
+            );
           await fs.writeFile(this.path(id), file.buffer, {
             mode: 0o600,
             flag: old ? "w" : "wx",
@@ -237,6 +252,7 @@ export class Documents {
             "deferred",
             "rejected",
             "approved",
+            "cancelled",
           ])
           .parse(query.status),
       );
@@ -244,7 +260,7 @@ export class Documents {
     }
     const where = clauses.length ? "WHERE " + clauses.join(" AND ") : "";
     const data = await this.db.query(
-      `SELECT d.*,x.version,x.warnings,count(*) OVER()::int AS total FROM upload_document d LEFT JOIN extraction_draft x ON x.document_id=d.id ${where} ORDER BY d.created_at DESC,d.id LIMIT 30 OFFSET $${args.length + 1}`,
+      `SELECT d.*,x.version,x.warnings,x.approval_ready,count(*) OVER()::int AS total FROM upload_document d LEFT JOIN extraction_draft x ON x.document_id=d.id ${where} ORDER BY d.created_at DESC,d.id LIMIT 30 OFFSET $${args.length + 1}`,
       [...args, (page - 1) * 30],
     );
     const summary = (
@@ -284,7 +300,7 @@ export class Documents {
         [id],
       ),
       reviews: await this.db.query(
-        "SELECT action,reason,draft_version,created_at FROM extraction_review WHERE document_id=$1 ORDER BY created_at DESC LIMIT 50",
+        "SELECT action,reason,draft_version,record,classifications,created_at FROM extraction_review WHERE document_id=$1 ORDER BY created_at DESC LIMIT 50",
         [id],
       ),
     };
@@ -305,7 +321,11 @@ export class Documents {
   }
   async process(id: string) {
     const d = await this.detail(id);
-    if (["approved", "rejected", "review", "deferred"].includes(d.status))
+    if (
+      ["approved", "rejected", "review", "deferred", "cancelled"].includes(
+        d.status,
+      )
+    )
       return;
     if (!d.content_present)
       fail(
@@ -313,6 +333,14 @@ export class Documents {
         409,
       );
     const output = this.path(id, "extracted.json");
+    const attemptId = randomUUID(),
+      started = Date.now();
+    let attemptStatus = "failed",
+      attemptError: string | null = null;
+    await this.db.query(
+      "INSERT INTO document_attempt(id,document_id) VALUES($1,$2)",
+      [attemptId, id],
+    );
     await this.db.query(
       "UPDATE upload_document SET status='extracting',error=NULL WHERE id=$1",
       [id],
@@ -389,13 +417,17 @@ export class Documents {
       }
       await this.db.transaction(async (m) => {
         await m.query(
-          "INSERT INTO extraction_observation(id,document_id,parser_version,record,evidence) VALUES($1,$2,$3,$4,$5)",
+          "INSERT INTO extraction_observation(id,document_id,parser_version,record,evidence,classifications,processing_ms,page_methods,attempt_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)",
           [
             randomUUID(),
             id,
             draft.parserVersion,
             JSON.stringify(draft.record),
             JSON.stringify(draft.evidence),
+            JSON.stringify(draft.classifications),
+            Date.now() - started,
+            JSON.stringify([...new Set(extracted.pages.map((p) => p.method))]),
+            attemptId,
           ],
         );
         await m.query("DELETE FROM document_page WHERE document_id=$1", [id]);
@@ -420,6 +452,7 @@ export class Documents {
           ],
         );
         const unreadable = extracted.pages.some((p) => !p.readable);
+        attemptStatus = unreadable ? "needs_ocr" : "succeeded";
         await m.query(
           "UPDATE upload_document SET status=$2,pages=$3,extraction_method=$4,extracted_at=now(),error=$5 WHERE id=$1",
           [
@@ -437,12 +470,19 @@ export class Documents {
       });
     } catch (e) {
       const error = (e as any).stderr?.trim() || (e as Error).message;
+      attemptError = String(error)
+        .replace(/[\u0000-\u0008\u001b]/g, "")
+        .slice(0, 2000);
       await this.db.query(
         "UPDATE upload_document SET status='failed',error=$2 WHERE id=$1",
         [id, String(error).slice(0, 2000)],
       );
       throw new Error(String(error).slice(0, 2000));
     } finally {
+      await this.db.query(
+        "UPDATE document_attempt SET status=$2,finished_at=now(),processing_ms=$3,error=$4 WHERE id=$1",
+        [attemptId, attemptStatus, Date.now() - started, attemptError],
+      );
       await fs.rm(output, { force: true });
       if (!d.retain_content) {
         await fs.rm(this.path(id), { force: true });
@@ -455,7 +495,7 @@ export class Documents {
   }
   async review(
     id: string,
-    action: "save" | "approve" | "reject" | "defer",
+    action: "save" | "stage" | "approve" | "reject" | "defer",
     body: unknown,
   ) {
     z.string().uuid().parse(id);
@@ -485,7 +525,7 @@ export class Documents {
       let record = b.record as any,
         importResult: any = null,
         tenderId: string | null = null;
-      if (action === "approve") {
+      if (action === "approve" || action === "stage") {
         if (!b.completeSnapshot || !b.reviewedAllPages)
           fail(
             "Explicitly confirm every source page and the complete tender snapshot",
@@ -504,6 +544,8 @@ export class Documents {
             "Production tender changed since review opened. Reload and reconcile the complete snapshot.",
             409,
           );
+      }
+      if (action === "approve") {
         record.documents = [
           ...(record.documents || []).filter(
             (v: any) => v.url !== record.sourceUrl,
@@ -555,19 +597,33 @@ export class Documents {
           "UPDATE upload_document SET status='approved',approved_at=now(),tender_id=$2,import_run_id=$3,source_url=$4 WHERE id=$1",
           [id, tenderId, importResult.runId, record.sourceUrl],
         );
-      } else if (action !== "save") {
+      } else if (!["save", "stage"].includes(action)) {
         await m.query("UPDATE upload_document SET status=$2 WHERE id=$1", [
           id,
           action === "reject" ? "rejected" : "deferred",
         ]);
       }
       await m.query(
-        "UPDATE extraction_draft SET record=$2,manual_classifications=$3,version=version+1,updated_at=now() WHERE document_id=$1",
-        [id, JSON.stringify(record), JSON.stringify(b.classifications)],
+        "UPDATE extraction_draft SET record=$2,manual_classifications=$3,version=version+1,updated_at=now(),approval_ready=$4,expected_tender_hash=$5 WHERE document_id=$1",
+        [
+          id,
+          JSON.stringify(record),
+          JSON.stringify(b.classifications),
+          action === "stage",
+          action === "stage" ? b.expectedTenderHash : null,
+        ],
       );
       await m.query(
-        "INSERT INTO extraction_review(id,document_id,action,reason,draft_version,record) VALUES($1,$2,$3,$4,$5,$6)",
-        [randomUUID(), id, action, b.reason, b.version, JSON.stringify(record)],
+        "INSERT INTO extraction_review(id,document_id,action,reason,draft_version,record,classifications) VALUES($1,$2,$3,$4,$5,$6,$7)",
+        [
+          randomUUID(),
+          id,
+          action,
+          b.reason,
+          b.version,
+          JSON.stringify(record),
+          JSON.stringify(b.classifications),
+        ],
       );
       return {
         status:
@@ -591,10 +647,31 @@ export class Documents {
         "Source PDF was purged. Reupload the same PDF with retry enabled and the appropriate processing permission.",
         409,
       );
-    if (!["failed", "needs_ocr"].includes(d.status))
+    if (!["failed", "needs_ocr", "cancelled"].includes(d.status))
       fail("Only failed or OCR-needed documents can be retried", 409);
     return this.db.transaction(async (m) => {
       await m.query("SELECT pg_advisory_xact_lock(17924003)");
+      const latest = (
+        await m.query(
+          "SELECT status,content_present FROM upload_document WHERE id=$1 FOR UPDATE",
+          [id],
+        )
+      )[0];
+      if (
+        !latest?.content_present ||
+        !["failed", "needs_ocr", "cancelled"].includes(latest.status)
+      )
+        fail("Document state changed; reload before retrying", 409);
+      if (
+        Number(
+          (
+            await m.query(
+              "SELECT count(*) AS n FROM job WHERE kind='pdf' AND status IN ('pending','running')",
+            )
+          )[0].n,
+        ) >= 1000
+      )
+        fail("PDF queue capacity reached (1,000)", 429);
       const active = (
         await m.query(
           "SELECT 1 FROM job WHERE kind='pdf' AND payload->>'documentId'=$1 AND status IN ('pending','running')",
@@ -613,6 +690,74 @@ export class Documents {
       ]);
       return { jobId };
     });
+  }
+  async batches() {
+    return this.db.query(
+      "SELECT b.id,b.source_name,b.created_at,b.max_files,b.max_bytes,count(d.id)::int AS documents,count(*) FILTER(WHERE d.status IN ('queued','extracting'))::int AS pending,count(*) FILTER(WHERE d.status='approved')::int AS approved,count(*) FILTER(WHERE d.status IN ('failed','needs_ocr'))::int AS failed,count(*) FILTER(WHERE x.approval_ready)::int AS ready FROM document_batch b LEFT JOIN batch_document l ON l.batch_id=b.id LEFT JOIN upload_document d ON d.id=l.document_id LEFT JOIN extraction_draft x ON x.document_id=d.id GROUP BY b.id ORDER BY b.created_at DESC LIMIT 100",
+    );
+  }
+  async approveBatch(id: string) {
+    z.string().uuid().parse(id);
+    const rows = await this.db.query(
+      "SELECT d.id,x.version,x.record,x.manual_classifications,x.expected_tender_hash FROM batch_document b JOIN upload_document d ON d.id=b.document_id JOIN extraction_draft x ON x.document_id=d.id WHERE b.batch_id=$1 AND x.approval_ready AND d.status IN ('review','deferred','needs_ocr') ORDER BY d.id LIMIT 500",
+      [id],
+    );
+    const outcomes = [];
+    for (const r of rows)
+      try {
+        await this.review(r.id, "approve", {
+          version: r.version,
+          record: r.record,
+          classifications: r.manual_classifications,
+          expectedTenderHash: r.expected_tender_hash,
+          reason:
+            "Batch approval of individually reviewed and staged complete snapshot",
+          completeSnapshot: true,
+          reviewedAllPages: true,
+        });
+        outcomes.push({ id: r.id, status: "approved" });
+      } catch (e) {
+        outcomes.push({
+          id: r.id,
+          status: "blocked",
+          error: (e as Error).message,
+        });
+      }
+    return {
+      attempted: rows.length,
+      approved: outcomes.filter((o) => o.status === "approved").length,
+      outcomes,
+    };
+  }
+  async cancel(id: string) {
+    z.string().uuid().parse(id);
+    const d = await this.db.transaction(async (m) => {
+      await m.query("SELECT pg_advisory_xact_lock(17924003)");
+      const d = (
+        await m.query("SELECT * FROM upload_document WHERE id=$1 FOR UPDATE", [
+          id,
+        ])
+      )[0];
+      if (!d) fail("Document not found", 404);
+      if (d.status !== "queued")
+        fail("Only queued documents can be cancelled safely", 409);
+      const jobs = await m.query(
+        "UPDATE job SET status='cancelled',finished_at=now() WHERE kind='pdf' AND payload->>'documentId'=$1 AND status='pending' RETURNING id",
+        [id],
+      );
+      if (!jobs.length)
+        fail(
+          "Worker has already claimed this document; wait for extraction to finish",
+          409,
+        );
+      await m.query(
+        "UPDATE upload_document SET status='cancelled',content_present=CASE WHEN retain_content THEN content_present ELSE false END WHERE id=$1",
+        [id],
+      );
+      return d;
+    });
+    if (!d.retain_content) await fs.rm(this.path(id), { force: true });
+    return { status: "cancelled" };
   }
   async purgeExpired() {
     await this.init();

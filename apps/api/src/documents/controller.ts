@@ -20,6 +20,7 @@ import { z } from "zod";
 import { authenticated } from "../auth";
 import { db } from "../database";
 import { Documents, MAX_PDF_BYTES } from "./service";
+import { Evaluation } from "./evaluation";
 @Injectable()
 class DocumentAdminGuard implements CanActivate {
   canActivate(context: ExecutionContext) {
@@ -38,6 +39,22 @@ class DocumentAdminGuard implements CanActivate {
 @UseGuards(DocumentAdminGuard)
 export class DocumentController {
   private documents = new Documents(db);
+  private evaluation = new Evaluation(db);
+  @Get("corpus") corpus(@Query("page") page = "1") {
+    return this.evaluation.list(Number(page));
+  }
+  @Get("evaluation") evaluationReport() {
+    return this.evaluation.report();
+  }
+  @Post("evaluation/run") evaluate() {
+    return this.evaluation.report(true);
+  }
+  @Get("batches") batches() {
+    return this.documents.batches();
+  }
+  @Post("batches/:id/approve") approveBatch(@Param("id") id: string) {
+    return this.documents.approveBatch(id);
+  }
   @Post("batches") batch(@Body() body: unknown) {
     return this.documents.createBatch(body);
   }
@@ -115,12 +132,38 @@ export class DocumentController {
   ) {
     return this.documents.review(
       id,
-      z.enum(["save", "approve", "reject", "defer"]).parse(action),
+      z.enum(["save", "stage", "approve", "reject", "defer"]).parse(action),
       body,
     );
   }
   @Post(":id/retry") retry(@Param("id") id: string, @Body() body: unknown) {
     const b = z.object({ allowOcr: z.boolean() }).strict().parse(body);
     return this.documents.retry(id, b.allowOcr);
+  }
+  @Post(":id/cancel") cancel(@Param("id") id: string) {
+    return this.documents.cancel(id);
+  }
+  @Get(":id/corpus") async annotation(
+    @Param("id") id: string,
+    @Res() res: any,
+  ) {
+    res.json(await this.evaluation.detail(id));
+  }
+  @Post(":id/corpus/enroll") enroll(
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    return this.evaluation.enroll(id, body);
+  }
+  @Post(":id/corpus/:action") annotate(
+    @Param("id") id: string,
+    @Param("action") action: string,
+    @Body() body: unknown,
+  ) {
+    return this.evaluation.annotate(
+      id,
+      z.enum(["save", "approve"]).parse(action),
+      body,
+    );
   }
 }

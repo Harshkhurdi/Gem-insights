@@ -166,7 +166,9 @@ export const tenderSchema = z
 export type TenderInput = z.infer<typeof tenderSchema>;
 export function unitName(u: string) {
   const k = u.trim().toLowerCase();
-  return /^(pcs?|pieces?|nos?\.?|numbers?|units?|each)$/.test(k) ? "units" : k;
+  return /^(pcs?|pieces?|nos?\.?|numbers?|units?|each|नग)$/.test(k)
+    ? "units"
+    : k;
 }
 function scaled(s: string) {
   const [a, b = ""] = s.split(".");
@@ -212,11 +214,12 @@ export interface Rule {
   aliases: string[];
 }
 const excluded =
-  /\b(repair(?:s|ing)?|maintenance|amc|cmc|civil works?|construction|renovation|consumables?|reagents?|pharmaceuticals?|accessories|spares?|probes?|circuits?|tubing|syringes|cables?|sensors?|batteries|parts|refill)\b/i;
+  /\b(repair(?:s|ing)?|maintenance|servicing|annual maintenance contract|comprehensive maintenance contract|amc|cmc|civil works?|construction|renovation|consumables?|reagents?|medicines?|drugs?|pharmaceuticals?|accessor(?:y|ies)|spares?|probes?|circuits?|tubing|syringes|cables?|sensors?|batteries|parts|refill)\b/i;
 export function classify(name: string, rules: Rule[]) {
   const n = name
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
+    .normalize("NFKC")
+    .replace(/[^\p{L}\p{N}\p{M}]+/gu, " ")
     .trim();
   if (excluded.test(n.split(/\b(?:with|including|along with)\b/)[0]))
     return {
@@ -230,11 +233,19 @@ export function classify(name: string, rules: Rule[]) {
     r.aliases.flatMap((alias) => {
       const phrase = alias
         .toLowerCase()
-        .replace(/[^a-z0-9]+/g, " ")
+        .normalize("NFKC")
+        .replace(/[^\p{L}\p{N}\p{M}]+/gu, " ")
         .trim();
       if (!phrase) return [];
       const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      return [...n.matchAll(new RegExp(`\\b${escaped}\\b`, "g"))].map((m) => ({
+      return [
+        ...n.matchAll(
+          new RegExp(
+            `(?<![\\p{L}\\p{N}\\p{M}])${escaped}(?![\\p{L}\\p{N}\\p{M}])`,
+            "gu",
+          ),
+        ),
+      ].map((m) => ({
         rule: r,
         start: m.index!,
         end: m.index! + m[0].length,

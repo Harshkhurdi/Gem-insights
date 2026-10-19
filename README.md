@@ -74,7 +74,7 @@ Each page contains at most 1,000 complete bids / 5 MB. Cursors must advance. Che
 
 Administration now supports authorized PDF batches, local embedded text extraction, optional local OCR, page evidence, structured review and atomic approval/import. Content retention requires a separate permission. Apply `npm run migrate` after updating. The API and worker share a private `DOCUMENT_STORAGE_DIR`. See [PDF workflow](docs/PDF_WORKFLOW.md), [corpus status](data/golden-corpus.json), and the [GeM access request draft](docs/GEM_DATA_ACCESS_REQUEST.md). No document URL is fetched automatically.
 
-`npm run documents:accuracy` reports original-extraction versus reviewed-approval agreement from the configured database. Real-document accuracy remains unmeasured until permitted original PDFs are supplied and reviewed.
+`npm run documents:evaluate` (or the compatible `documents:accuracy`) evaluates independently approved corpus annotations against pinned extraction observations. It reports per-field precision/recall/F1, normalized exact match, missing/correction rates, explicit item matching, classification errors and processing samples/timing. Synthetic cases never establish real accuracy. Administration now supports a separate 50-document corpus checklist, side-by-side original review, individually staged batch approval and batches up to 500 PDFs / 2 GiB. See [Phase 3 workflow and metric definitions](docs/PHASE3_EVALUATION.md). Real-document accuracy remains **Not yet measured**: no authorized original corpus was supplied.
 
 ## Validation
 

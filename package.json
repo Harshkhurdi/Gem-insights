@@ -16,7 +16,8 @@
     "import:verified": "node --env-file-if-exists=.env apps/api/dist/apps/api/src/import-cli.js data/verified-bids.json",
     "format": "prettier --write \"apps/**/*.{ts,tsx,css}\" \"packages/**/*.ts\" \"tests/**/*.ts\" \"scripts/*.mjs\"",
     "format:check": "prettier --check \"apps/**/*.{ts,tsx,css}\" \"packages/**/*.ts\" \"tests/**/*.ts\" \"scripts/*.mjs\"",
-    "documents:accuracy": "node --env-file-if-exists=.env scripts/document-accuracy.mjs"
+    "documents:accuracy": "node --env-file-if-exists=.env --import tsx apps/api/src/documents/evaluate-cli.ts",
+    "documents:evaluate": "npm run documents:accuracy"
   },
   "dependencies": {
     "@nestjs/common": "12.1.2",

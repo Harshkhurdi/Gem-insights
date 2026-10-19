@@ -1,5 +1,7 @@
 "use client";
 import DraftFields from "./draft-fields";
+import CorpusAdmin, { CorpusAnnotation } from "./corpus-admin";
+import SourcePreview from "./source-preview";
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -87,6 +89,8 @@ export default function DocumentAdmin({
     [message, setMessage] = useState(""),
     [status, setStatus] = useState(""),
     [page, setPage] = useState(1),
+    [sourcePage, setSourcePage] = useState(1),
+    [batchId, setBatchId] = useState(""),
     [selected, setSelected] = useState<any>(null),
     [record, setRecord] = useState(""),
     [reason, setReason] = useState(""),
@@ -94,19 +98,26 @@ export default function DocumentAdmin({
     [complete, setComplete] = useState(false),
     [allPages, setAllPages] = useState(false);
   const docs = useQuery({
-    queryKey: ["documents", status, page],
+    queryKey: ["documents", status, page, batchId],
     queryFn: () =>
       api(
         "?" +
           new URLSearchParams({
             ...(status ? { status } : {}),
             page: String(page),
+            ...(batchId ? { batchId } : {}),
           }),
       ),
     refetchInterval: 3000,
   });
+  const batches = useQuery({
+    queryKey: ["document-batches"],
+    queryFn: () => api("/batches"),
+    refetchInterval: 3000,
+  });
   async function refresh() {
     await client.invalidateQueries({ queryKey: ["documents"] });
+    await client.invalidateQueries({ queryKey: ["document-batches"] });
     onChange();
   }
   async function open(id: string) {
@@ -114,6 +125,7 @@ export default function DocumentAdmin({
     try {
       const d = await api("/" + id);
       setSelected(d);
+      setSourcePage(1);
       setRecord(JSON.stringify(d.draft?.record || {}, null, 2));
       setOverrides(d.draft?.manual_classifications || {});
       setReason("");
@@ -130,10 +142,10 @@ export default function DocumentAdmin({
     try {
       if (
         !files.length ||
-        files.length > 20 ||
-        files.reduce((s, f) => s + f.size, 0) > 100 * 1024 * 1024
+        files.length > 500 ||
+        files.reduce((s, f) => s + f.size, 0) > 2 * 1024 ** 3
       )
-        throw new Error("Choose 1–20 PDFs, at most 100 MiB per batch");
+        throw new Error("Choose 1–500 PDFs, at most 2 GiB per batch");
       const batch = await api("/batches", {
         sourcePortal: "gem",
         sourceName,
@@ -143,7 +155,10 @@ export default function DocumentAdmin({
         retainContent: retain,
         retainEvidence: evidenceAllowed,
         allowOcr: ocr,
+        maxFiles: 500,
       });
+      setBatchId(batch.id);
+      setPage(1);
       for (let index = 0; index < files.length; index++) {
         const file = files[index],
           key = String(index);
@@ -209,7 +224,9 @@ export default function DocumentAdmin({
       setMessage(
         action === "approve"
           ? "Approved and imported transactionally. Dashboard metrics now include the reviewed record."
-          : "Review saved. Drafts are excluded from demand analytics.",
+          : action === "stage"
+            ? "Complete snapshot staged for batch approval. It remains outside analytics until batch approval."
+            : "Review saved. Drafts are excluded from demand analytics.",
       );
       setSelected(null);
       await refresh();
@@ -333,8 +350,9 @@ export default function DocumentAdmin({
           }}
         />
         <p className="fine">
-          Up to 20 PDFs / 100 MiB per batch. Each PDF: 15 MiB, 80 pages. OCR: at
-          most 10 pages. No document URL is fetched automatically.
+          Up to 500 PDFs / 2 GiB per batch, uploaded one file at a time. Each
+          PDF: 15 MiB, 80 pages. OCR: at most 10 pages. No document URL is
+          fetched automatically.
         </p>
         {files.map((file, index) => (
           <div className="upload-file" key={index}>
@@ -376,6 +394,51 @@ export default function DocumentAdmin({
           Upload and process locally
         </Button>
         <hr />
+        <CorpusAdmin open={open} />
+        <TextField
+          select
+          label="Batch / processing progress"
+          value={batchId}
+          onChange={(e) => {
+            setBatchId(e.target.value);
+            setPage(1);
+          }}
+        >
+          <MenuItem value="">All batches</MenuItem>
+          {batches.data?.map((b: any) => (
+            <MenuItem key={b.id} value={b.id}>
+              {b.source_name} · {b.documents - b.pending}/{b.documents}{" "}
+              processed or terminal · {b.failed} need attention · {b.approved}{" "}
+              approved · {b.ready} staged ·{" "}
+              {new Date(b.created_at).toLocaleString()}
+            </MenuItem>
+          ))}
+        </TextField>
+        {batchId && (
+          <Button
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              try {
+                const r = await api("/batches/" + batchId + "/approve", {});
+                setMessage(
+                  `${r.approved}/${r.attempted} staged documents approved. ${r.outcomes
+                    .filter((o: any) => o.status !== "approved")
+                    .map((o: any) => o.id + ": " + o.error)
+                    .join("; ")}`,
+                );
+                await refresh();
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Approve individually reviewed, staged documents in batch
+          </Button>
+        )}
         <div className="stat-pair">
           <div>
             <strong>{docs.data?.summary.approved_tenders || 0}</strong>
@@ -414,6 +477,7 @@ export default function DocumentAdmin({
             "deferred",
             "rejected",
             "approved",
+            "cancelled",
           ].map((s) => (
             <MenuItem key={s} value={s}>
               {s.replaceAll("_", " ")}
@@ -447,6 +511,9 @@ export default function DocumentAdmin({
                   <td>
                     <Chip label={d.status.replaceAll("_", " ")} size="small" />
                     <small>{d.extraction_method || "Awaiting worker"}</small>
+                    {d.approval_ready && (
+                      <small>Reviewed and staged for batch approval</small>
+                    )}
                   </td>
                   <td>{d.pages ?? "Unknown"}</td>
                   <td>
@@ -462,6 +529,22 @@ export default function DocumentAdmin({
                     <Button size="small" onClick={() => open(d.id)}>
                       Inspect / review
                     </Button>
+                    {d.status === "queued" && (
+                      <Button
+                        size="small"
+                        disabled={busy}
+                        onClick={async () => {
+                          try {
+                            await api("/" + d.id + "/cancel", {});
+                            await refresh();
+                          } catch (e) {
+                            setError((e as Error).message);
+                          }
+                        }}
+                      >
+                        Cancel queued document
+                      </Button>
+                    )}
                     {["failed", "needs_ocr"].includes(d.status) &&
                       d.content_present && (
                         <Button
@@ -553,6 +636,11 @@ export default function DocumentAdmin({
               {selected.draft && (
                 <>
                   <div className="draft-grid">
+                    <SourcePreview
+                      document={selected}
+                      page={sourcePage}
+                      setPage={setSourcePage}
+                    />
                     <div>
                       <h3>
                         Structured draft · version {selected.draft.version}
@@ -650,7 +738,7 @@ export default function DocumentAdmin({
                         </details>
                       )}
                     </div>
-                    <div>
+                    <div className="review-evidence">
                       <h3>Evidence and original pages</h3>
                       {Object.entries(selected.draft.evidence).map(
                         ([field, entries]: any) => (
@@ -659,8 +747,14 @@ export default function DocumentAdmin({
                             {entries.map((e: any, i: number) => (
                               <blockquote key={i}>
                                 <small>
-                                  Page {e.page} · {e.method} · heuristic
-                                  confidence {Math.round(e.confidence * 100)}%
+                                  <Button
+                                    size="small"
+                                    onClick={() => setSourcePage(e.page)}
+                                  >
+                                    Page {e.page}
+                                  </Button>{" "}
+                                  · {e.method} · heuristic confidence{" "}
+                                  {Math.round(e.confidence * 100)}%
                                 </small>
                                 <br />
                                 {e.quote}
@@ -744,6 +838,19 @@ export default function DocumentAdmin({
                       Reject
                     </Button>
                     <Button
+                      disabled={
+                        busy ||
+                        reason.length < 5 ||
+                        !complete ||
+                        !allPages ||
+                        !parsed ||
+                        selected.status === "approved"
+                      }
+                      onClick={() => review("stage")}
+                    >
+                      Stage checked snapshot for batch approval
+                    </Button>
+                    <Button
                       variant="contained"
                       disabled={
                         busy ||
@@ -760,6 +867,14 @@ export default function DocumentAdmin({
                   </div>
                 </>
               )}
+              {!selected.draft && (
+                <SourcePreview
+                  document={selected}
+                  page={sourcePage}
+                  setPage={setSourcePage}
+                />
+              )}
+              <CorpusAnnotation document={selected} taxonomy={taxonomy} />
               <h3>Review audit</h3>
               {selected.reviews.map((r: any, i: number) => (
                 <p key={i}>

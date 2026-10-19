@@ -8,6 +8,7 @@ import {
 import { taxonomy } from "../packages/core/taxonomy";
 import { classify } from "../packages/core/domain";
 import { sampleText } from "./pdf-fixtures";
+import { reconstructRows } from "../scripts/pdf-layout.mjs";
 const rules = Object.values(taxonomy)
   .flat()
   .map(([id, name, aliases]) => ({ id, name, aliases, category_id: "" }));
@@ -151,4 +152,117 @@ test("invalid and missing publication dates remain unknown", () => {
     parse(sampleText().replace("Dated: 01-10-2026", "")).record.publishedAt,
     null,
   );
+});
+test("SYNTHETIC explicit product quantity label does not invent an absent unit", () => {
+  const r = parse("Patient Monitor — Quantity: 15");
+  assert.equal(r.record.items[0].name, "Patient Monitor");
+  assert.equal(r.record.items[0].quantity, "15");
+  assert.equal(r.record.items[0].unit, "unknown");
+  assert.equal(
+    r.evidence["items." + r.record.items[0].key + ".quantity"][0].page,
+    1,
+  );
+});
+test("SYNTHETIC ventilator technical oxygen percentage is never a requested quantity", () => {
+  const r = parse(
+    "Ventilator supporting 100% oxygen concentration\nTechnical Specifications\nOxygen concentration: 100\nTidal volume 1000 ml",
+  );
+  assert.equal(r.record.items.length, 0);
+});
+test("SYNTHETIC quantity table supports multiple products and repeated page headers", () => {
+  const r = parse(
+    "S.No. Item Description Quantity Unit\n1 Patient monitor 15 pieces\nPage 1 of 2\nS.No. Item Description Quantity Unit\n2 ICU ventilator 3 units\nTechnical Specifications\n1 Oxygen concentration 100 percent",
+  );
+  assert.equal(r.record.items.length, 2);
+  assert.equal(r.record.items[0].quantity, "15");
+  assert.equal(r.record.items[1].quantity, "3");
+});
+test("SYNTHETIC broken table row is reconstructed across page boundaries", () => {
+  const r = extractTender(
+    [
+      {
+        page: 1,
+        text: "Item Description Quantity Unit\n1 Bedside multiparameter",
+        method: "embedded",
+        readable: true,
+      },
+      {
+        page: 2,
+        text: "Page 2 of 2\nItem Description Quantity Unit\nmonitor 15 pieces",
+        method: "embedded",
+        readable: true,
+      },
+    ],
+    null,
+    rules,
+  );
+  assert.equal(r.record.items.length, 1);
+  assert.equal(r.record.items[0].name, "Bedside multiparameter monitor");
+  assert.equal(r.record.items[0].quantity, "15");
+  assert.ok(
+    r.evidence["items." + r.record.items[0].key + ".quantity"].some(
+      (e) => e.page === 2 && e.quote.includes("15"),
+    ),
+  );
+});
+test("SYNTHETIC positioned table cells support quantity before description", () => {
+  const rows = [
+    { cells: ["S.No.", "Quantity", "Product Name", "Unit"] },
+    { cells: ["1", "12", "Patient monitor", "pieces"] },
+    { cells: ["2", "4", "ICU ventilator", "units"] },
+  ];
+  const r = extractTender(
+    [
+      {
+        page: 1,
+        text: rows.map((r) => r.cells.join(" ")).join("\n"),
+        rows,
+        method: "embedded",
+        readable: true,
+      },
+    ],
+    null,
+    rules,
+  );
+  assert.deepEqual(
+    r.record.items.map((i: any) => i.quantity),
+    ["12", "4"],
+  );
+});
+test("SYNTHETIC Hindi labels/digits retain Unicode item identities", () => {
+  const r = parse(
+    "बोली संख्या: GEM/2026/B/१२३४५६७\nनिविदा शीर्षक: रोगी मॉनिटर\nरोगी मॉनिटर मात्रा: १५ नग",
+  );
+  assert.equal(r.record.bidNumber, "GEM/2026/B/1234567");
+  assert.equal(r.record.items[0].quantity, "15");
+  assert.equal(r.record.items[0].unit, "units");
+  assert.notEqual(stableItemKey("रोगी मॉनिटर"), stableItemKey("वेंटिलेटर"));
+});
+test("SYNTHETIC maintenance/accessory/medicine/civil context is excluded despite hospital equipment references", () => {
+  for (const name of [
+    "Annual maintenance contract for patient monitor",
+    "Comprehensive maintenance contract of ICU ventilator",
+    "Patient monitor accessory",
+    "Medicines for ventilator patients",
+    "Electrical cables for hospital ICU",
+    "Renovation of anaesthesia room",
+  ])
+    assert.equal(classify(name, rules).productId, null);
+});
+test("SYNTHETIC PDF glyph positions reconstruct rows and columns in reading order", () => {
+  const token = (str: string, x: number, y: number, width: number) => ({
+    str,
+    width,
+    transform: [1, 0, 0, 1, x, y],
+  });
+  const rows = reconstructRows([
+    token("15", 300, 700, 12),
+    token("Quantity", 300, 720, 45),
+    token("Patient monitor", 70, 700, 90),
+    token("Product Name", 70, 720, 80),
+  ]);
+  assert.deepEqual(rows, [
+    { cells: ["Product Name", "Quantity"] },
+    { cells: ["Patient monitor", "15"] },
+  ]);
 });

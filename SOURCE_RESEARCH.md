@@ -1,5 +1,7 @@
 # Source access investigation
 
+Phase 3 follow-up: see the [source capability matrix](docs/SOURCE_CAPABILITIES.md). Official GeM enquiry routes were rechecked, CPPP/Punjab ownership/reproduction policies inspected, and data.gov.in resource licensing investigated. No suitable authorized line-item feed, reusable original-PDF corpus or access grant was established. Retrieved OGD pages included a sandbox/incomplete-data warning. No collector was enabled; actual new original corpus remains zero and the current target is 50. The revised request remains unsent.
+
 Verified 19 October 2026. This report describes tested capabilities, not permission to scrape or a claim of complete collection.
 
 ## Official GeM

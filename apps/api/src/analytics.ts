@@ -1,6 +1,7 @@
 import { DataSource } from "typeorm";
 import { z } from "zod";
 import { stateName, growth } from "../../../packages/core/domain";
+import { Evaluation } from "./documents/evaluation";
 const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -21,6 +22,7 @@ export const filterSchema = z
     category: z.string().max(100).optional(),
     buyer: z.string().uuid().optional(),
     buyerType: z.string().max(100).optional(),
+    source: z.string().max(100).optional(),
     status: z
       .enum(["open", "closed", "cancelled", "awarded", "unknown"])
       .optional(),
@@ -62,6 +64,7 @@ export class Analytics {
     if (f.category) w.push("p.category_id IN (SELECT id FROM subtree)");
     if (f.buyer) w.push("t.organization_id=" + add(f.buyer));
     if (f.buyerType) w.push("o.type=" + add(f.buyerType));
+    if (f.source) w.push("t.source_id=" + add(f.source));
     if (f.status) {
       w[0] = "t.status=" + add(f.status);
     }
@@ -244,8 +247,66 @@ export class Analytics {
       quality: quality[0],
       jobs,
       total: total[0],
+      dataQuality: await this.dataQuality(),
       warning:
         "Observed dataset only. No verified all-India denominator. Closed bids are not confirmed purchases.",
+    };
+  }
+  async dataQuality() {
+    const [t, l, docs, states, products, buyers, sources, months, report] =
+      await Promise.all([
+        this.db.query(
+          "SELECT count(*)::int AS total,count(*) FILTER(WHERE o.state IS NOT NULL)::int AS buyer_states,count(*) FILTER(WHERE t.published_at IS NOT NULL)::int AS publication_dates,count(*) FILTER(WHERE t.estimated_value IS NOT NULL)::int AS explicit_values FROM tender t JOIN organization o ON o.id=t.organization_id",
+        ),
+        this.db.query(
+          "SELECT count(*)::int AS total,count(*) FILTER(WHERE quantity IS NOT NULL)::int AS known_quantities,count(*) FILTER(WHERE needs_review)::int AS unresolved,count(*) FILTER(WHERE EXISTS(SELECT 1 FROM destination d WHERE d.line_item_id=l.id AND d.confirmed))::int AS confirmed_delivery FROM line_item l",
+        ),
+        this.db.query(
+          "SELECT count(*)::int AS uploaded,count(*) FILTER(WHERE extracted_at IS NOT NULL)::int AS extracted,count(*) FILTER(WHERE EXISTS(SELECT 1 FROM extraction_review r WHERE r.document_id=d.id))::int AS reviewed,count(*) FILTER(WHERE status='approved')::int AS approved,count(*) FILTER(WHERE status='failed')::int AS failures,count(*) FILTER(WHERE status='needs_ocr')::int AS needs_ocr,count(*) FILTER(WHERE status IN ('queued','extracting'))::int AS queued,count(*) FILTER(WHERE EXISTS(SELECT 1 FROM evaluation_case e WHERE e.document_id=d.id AND e.status='approved'))::int AS annotated FROM upload_document d",
+        ),
+        this.db.query(
+          "SELECT o.state,count(DISTINCT t.id)::int AS tenders FROM tender t JOIN organization o ON o.id=t.organization_id GROUP BY o.state ORDER BY tenders DESC",
+        ),
+        this.db.query(
+          "SELECT p.id,p.name,count(DISTINCT l.tender_id)::int AS tenders,count(*)::int AS lines FROM line_item l LEFT JOIN product p ON p.id=l.product_id GROUP BY p.id,p.name ORDER BY tenders DESC",
+        ),
+        this.db.query(
+          "SELECT o.id,o.name,count(*)::int AS tenders FROM tender t JOIN organization o ON o.id=t.organization_id GROUP BY o.id ORDER BY tenders DESC LIMIT 100",
+        ),
+        this.db.query(
+          "SELECT s.id,s.name,count(t.id)::int AS tenders FROM source s LEFT JOIN tender t ON t.source_id=s.id GROUP BY s.id ORDER BY s.id",
+        ),
+        this.db.query(
+          "SELECT to_char(published_at,'YYYY-MM') AS month,count(*)::int AS tenders FROM tender GROUP BY to_char(published_at,'YYYY-MM') ORDER BY month DESC NULLS LAST LIMIT 120",
+        ),
+        new Evaluation(this.db).report(),
+      ]);
+    const percent = (known: number, total: number) => ({
+      known,
+      total,
+      percent: total ? (100 * known) / total : null,
+    });
+    const { documents: details, frequentFailures, ...evaluation } = report;
+    return {
+      portal: "gem",
+      nationalPublishedTenders: null,
+      storedVerifiedTenders: t[0].total,
+      documents: docs[0],
+      unresolvedClassifications: l[0].unresolved,
+      percentages: {
+        knownQuantities: percent(l[0].known_quantities, l[0].total),
+        sourceRecordedBuyerStates: percent(t[0].buyer_states, t[0].total),
+        confirmedDeliveryLocations: percent(
+          l[0].confirmed_delivery,
+          l[0].total,
+        ),
+        publicationDates: percent(t[0].publication_dates, t[0].total),
+        explicitTenderValues: percent(t[0].explicit_values, t[0].total),
+      },
+      breakdowns: { states, products, buyers, sources, months },
+      evaluation,
+      warning:
+        "Stored source-reviewed/imported GeM records, including cancelled historical snapshots; not the number published nationally. Buyer states are source-recorded, not independently geocoded. Product/state groups overlap. Buyer breakdown is the top 100; publication periods show the latest 120 observed months. Missing dates/states remain separate. Corpus annotations never contribute tender demand.",
     };
   }
 }

@@ -1442,3 +1442,37 @@ footer i {
     grid-template-columns: 1fr;
   }
 }
+.source-preview canvas {
+  width: 100%;
+  height: auto;
+  border: 1px solid #ddd;
+}
+.source-preview {
+  min-width: 0;
+  position: sticky;
+  top: 0;
+  align-self: start;
+}
+.review-evidence {
+  grid-column: 1 / -1;
+}
+.corpus-admin,
+.corpus-annotation {
+  margin: 20px 0;
+  padding: 14px;
+  border: 1px solid #d7dfe5;
+  border-radius: 6px;
+}
+.corpus-admin summary,
+.corpus-annotation summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+@media (max-width: 850px) {
+  .source-preview {
+    position: static;
+  }
+  .source-preview canvas {
+    height: auto;
+  }
+}

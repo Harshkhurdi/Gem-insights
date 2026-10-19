@@ -1,6 +1,6 @@
 {
   "status": "awaiting_authorized_original_pdfs",
-  "targetDocuments": 25,
+  "targetDocuments": 50,
   "permittedOriginalPdfDocuments": 0,
   "independentlyReviewedOriginalPdfDocuments": 0,
   "realPdfFieldAccuracyPercent": null,
@@ -13,7 +13,9 @@
     "Obtain original PDFs and explicit processing/evidence/retention permission references from the operator or source owner.",
     "Upload through Administration; do not automatically fetch corpus URLs.",
     "Review original pages independently and correct complete snapshots before approval.",
-    "Cover at least 25 distinct authorized documents across institutions, states, equipment families and formats when available.",
+    "Cover at least 50 distinct authorized documents across institutions, states, equipment families and formats when available.",
+    "Use independent corpus annotations, pin parser observations/attempts, explicitly match line items and approve ground truth separately from production imports.",
+    "Cover patient monitors, ventilators, ultrasound, anaesthesia, infusion/syringe pumps, ICU beds, X-ray, surgical lights and laboratory equipment; expose actual counts for text/scanned, multi-page/product/destination, bilingual, table, amendment, missing-quantity and negative cases.",
     "Include scanned/multi-product/BOQ/amendment/service/accessory negative examples; label rather than discard failures.",
     "Run documents:accuracy and report the actual evaluated sample and selection limits; synthetic tests are separate."
   ]

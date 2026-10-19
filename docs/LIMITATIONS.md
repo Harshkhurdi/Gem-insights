@@ -1,5 +1,7 @@
 # Known limitations
 
+Phase 3 adds independent corpus annotations/metrics, conservative text-table reconstruction, local original preview, large batches and data-quality reporting. See [methodology and exact remaining boundaries](PHASE3_EVALUATION.md). The 50-original corpus target remains pending, real accuracy/throughput is unmeasured, native OCR tools were unavailable, and production deployment/load testing has not been performed. Existing 92 tests remain regression coverage, not real-document accuracy evidence.
+
 - No authorized live all-GeM feed, bulk scraping permission or national denominator has been verified. Initial factual dataset is only two historical notices at one institution. Automated GeM ingestion is disabled; the configured generic feed adapter still requires an actual authorized feed.
 - PDF extraction and review now work through authorized uploads. Deterministic extraction supports explicit headings/labels, not every BOQ layout. Complex/multicolumn or scanned files may require manual correction. Optional local OCR requires Poppler/Tesseract; native recognition accuracy is unmeasured. No source URL is fetched automatically. No authorized original-PDF golden corpus has yet been supplied (actual count 0), so real-document extraction accuracy is unmeasured.
 - No inferred prices, forecast, award estimates, national market share or claims of representative growth. Missing coverage is not zero demand. Meaningful trends require longitudinal collection and comparable coverage.

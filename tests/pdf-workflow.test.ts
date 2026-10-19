@@ -9,6 +9,7 @@ import { DataSource } from "typeorm";
 import { Ingestion } from "../apps/api/src/ingestion";
 import { Analytics, filterSchema } from "../apps/api/src/analytics";
 import { makePdf, sampleText } from "./pdf-fixtures";
+import { Evaluation } from "../apps/api/src/documents/evaluation";
 const url = process.env.TEST_DATABASE_URL;
 if (!url || !new URL(url).pathname.endsWith("_test"))
   throw new Error("PDF integration tests require isolated _test database");
@@ -20,6 +21,7 @@ const db = new DataSource({
 });
 let root: string, documents: Documents;
 const a = new Analytics(db);
+const evaluation = new Evaluation(db);
 const settings = {
   sourcePortal: "gem",
   sourceName: "SYNTHETIC TEST source",
@@ -407,4 +409,267 @@ test("optional OCR reports a missing local engine without sending source data el
     if (original === undefined) delete process.env.PDFTOPPM_BIN;
     else process.env.PDFTOPPM_BIN = original;
   }
+});
+test("SYNTHETIC corpus annotations stay separate from production and exclude synthetic accuracy", async () => {
+  const u = await uploaded();
+  await documents.process(u.id);
+  await assert.rejects(
+    evaluation.enroll(u.id, {
+      realOriginal: true,
+      reason: "Synthetic test cannot become a real original",
+    }),
+    /synthetic/i,
+  );
+  await evaluation.enroll(u.id, {
+    realOriginal: false,
+    reason: "SYNTHETIC evaluation lifecycle test only",
+  });
+  const c = await evaluation.detail(u.id);
+  await evaluation.annotate(u.id, "approve", {
+    version: c.version,
+    record: c.record,
+    classifications: c.classifications,
+    lineMatches: c.line_matches,
+    originalReviewed: true,
+    reason: "SYNTHETIC independent page comparison only",
+    tags: ["text-pdf", "patient-monitors"],
+    errorCauses: [],
+  });
+  assert.equal((await a.overview(filterSchema.parse({}))).tenders, 0);
+  const report = await evaluation.report(true);
+  assert.equal(report.documentsEvaluated, 0);
+  assert.equal(report.excludedSyntheticDocuments, 1);
+  assert.equal(report.status, "Not yet measured");
+  assert.equal((await evaluation.detail(u.id)).history.length, 1);
+  assert.equal(
+    (await db.query("SELECT count(*)::int AS n FROM evaluation_run"))[0].n > 0,
+    true,
+  );
+});
+test("SYNTHETIC ground truth requires original review, explicit categories and one-to-one line matches", async () => {
+  const u = await uploaded(sampleText() + "\nICU ventilator ( 3 pieces )");
+  await documents.process(u.id);
+  const c = await evaluation.enroll(u.id, {
+    realOriginal: false,
+    reason: "SYNTHETIC multi-item validation case",
+  });
+  const b = {
+    version: c.version,
+    record: c.record,
+    classifications: c.classifications,
+    lineMatches: c.line_matches,
+    originalReviewed: false,
+    reason: "SYNTHETIC explicit ground truth verification",
+    tags: [],
+    errorCauses: [],
+  };
+  await assert.rejects(
+    evaluation.annotate(u.id, "approve", b),
+    /every original page/,
+  );
+  await assert.rejects(
+    evaluation.annotate(u.id, "approve", {
+      ...b,
+      originalReviewed: true,
+      classifications: {},
+    }),
+    /Explicitly classify/,
+  );
+  const keys = c.record.items.map((i: any) => i.key);
+  await assert.rejects(
+    evaluation.annotate(u.id, "approve", {
+      ...b,
+      originalReviewed: true,
+      lineMatches: { [keys[0]]: keys[0], [keys[1]]: keys[0] },
+    }),
+    /one-to-one/,
+  );
+});
+test("SYNTHETIC annotation versions and frozen extraction survive later draft changes", async () => {
+  const u = await uploaded();
+  await documents.process(u.id);
+  const c = await evaluation.enroll(u.id, {
+    realOriginal: false,
+    reason: "SYNTHETIC audit provenance test",
+  });
+  const b = {
+    version: c.version,
+    record: c.record,
+    classifications: c.classifications,
+    lineMatches: c.line_matches,
+    originalReviewed: true,
+    reason: "SYNTHETIC reviewer correction to quantity",
+    tags: [],
+    errorCauses: ["parser"],
+  };
+  b.record.items[0].quantity = "7";
+  await evaluation.annotate(u.id, "approve", b);
+  await assert.rejects(evaluation.annotate(u.id, "save", b), /changed/);
+  const d = await evaluation.detail(u.id);
+  assert.equal(d.automatic.items[0].quantity, "12");
+  assert.equal(d.record.items[0].quantity, "7");
+  assert.equal(
+    (await documents.detail(u.id)).draft.record.items[0].quantity,
+    "12",
+  );
+});
+test("SYNTHETIC failed documents can be annotated with missing lines for evaluation", async () => {
+  const batch = await documents.createBatch(settings);
+  const u = await documents.upload(batch.id, {
+    buffer: Buffer.from("%PDF-broken"),
+    originalname: "broken.pdf",
+    mimetype: "application/pdf",
+  });
+  await assert.rejects(documents.process(u.id));
+  const c = await evaluation.enroll(u.id, {
+    realOriginal: false,
+    reason: "SYNTHETIC failed document evaluation",
+  });
+  assert.deepEqual(c.record.items, []);
+  assert.equal(c.observation_id, null);
+  assert.ok(c.attempt_id);
+  await evaluation.annotate(u.id, "approve", {
+    version: c.version,
+    record: c.record,
+    classifications: {},
+    lineMatches: {},
+    originalReviewed: true,
+    reason: "SYNTHETIC source has no equipment lines",
+    tags: ["negative-example"],
+    errorCauses: ["parser"],
+  });
+});
+test("SYNTHETIC large batches accept hundreds without weakening per-file limits", async () => {
+  const b = await documents.createBatch({ ...settings, maxFiles: 500 });
+  assert.equal(b.maxFiles, 500);
+  assert.equal(b.maxFileBytes, MAX_PDF_BYTES);
+  for (let i = 0; i < 105; i++)
+    await documents.upload(b.id, {
+      buffer: makePdf([sampleText({ bid: "GEM/2026/B/" + (9100000 + i) })]),
+      originalname: "synthetic.pdf",
+      mimetype: "application/pdf",
+    });
+  const stats = (await documents.batches()).find((x: any) => x.id === b.id);
+  assert.equal(stats.documents, 105);
+  assert.equal(stats.pending, 105);
+  const data = await documents.list({ batchId: b.id });
+  assert.equal(data.data.length, 30);
+  assert.equal(data.total, 105);
+});
+test("SYNTHETIC queued cancellation isolates one file and purges nonretained bytes", async () => {
+  const u = await uploaded();
+  assert.equal((await documents.cancel(u.id)).status, "cancelled");
+  const d = await documents.detail(u.id);
+  assert.equal(d.content_present, false);
+  assert.equal(
+    (
+      await db.query("SELECT status FROM job WHERE payload->>'documentId'=$1", [
+        u.id,
+      ])
+    )[0].status,
+    "cancelled",
+  );
+  await assert.rejects(fs.stat(resolve(root, u.id + ".pdf")));
+  await documents.process(u.id);
+  assert.equal((await documents.detail(u.id)).status, "cancelled");
+});
+test("SYNTHETIC safe batch approval imports only individually staged snapshots", async () => {
+  const u = await uploaded();
+  await documents.process(u.id);
+  const b = (
+    await db.query("SELECT batch_id FROM batch_document WHERE document_id=$1", [
+      u.id,
+    ])
+  )[0].batch_id;
+  assert.equal((await documents.approveBatch(b)).attempted, 0);
+  await assert.rejects(
+    documents.review(
+      u.id,
+      "stage",
+      await approval(u.id, { reviewedAllPages: false }),
+    ),
+    /every source page/,
+  );
+  await documents.review(u.id, "stage", await approval(u.id));
+  assert.equal((await a.overview(filterSchema.parse({}))).tenders, 0);
+  assert.equal((await documents.approveBatch(b)).approved, 1);
+  assert.equal((await documents.approveBatch(b)).attempted, 0);
+  assert.equal((await a.overview(filterSchema.parse({}))).tenders, 1);
+});
+test("SYNTHETIC changed drafts invalidate staging and stale production prevents batch overwrite", async () => {
+  const u = await uploaded();
+  await documents.process(u.id);
+  await documents.review(u.id, "stage", await approval(u.id));
+  await documents.review(u.id, "save", await approval(u.id));
+  assert.equal((await documents.detail(u.id)).draft.approval_ready, false);
+  await documents.review(u.id, "stage", await approval(u.id));
+  const current = (await documents.detail(u.id)).draft.record;
+  await new Ingestion(db).import(
+    [{ ...current, title: "SYNTHETIC concurrent production snapshot" }],
+    "SYNTHETIC concurrent import test",
+  );
+  const b = (
+    await db.query("SELECT batch_id FROM batch_document WHERE document_id=$1", [
+      u.id,
+    ])
+  )[0].batch_id;
+  const r = await documents.approveBatch(b);
+  assert.equal(r.approved, 0);
+  assert.match(r.outcomes[0].error!, /changed/);
+  assert.equal((await a.overview(filterSchema.parse({}))).tenders, 1);
+});
+test("SYNTHETIC quality metrics expose denominators and keep annotations outside tender statistics", async () => {
+  const u = await uploaded();
+  await documents.process(u.id);
+  let q = (await a.coverage()).dataQuality;
+  assert.equal(q.storedVerifiedTenders, 0);
+  assert.equal(q.percentages.knownQuantities.percent, null);
+  assert.equal(q.documents.extracted, 1);
+  await documents.review(u.id, "approve", await approval(u.id));
+  q = (await a.coverage()).dataQuality;
+  assert.equal(q.storedVerifiedTenders, 1);
+  assert.deepEqual(q.percentages.knownQuantities, {
+    known: 1,
+    total: 1,
+    percent: 100,
+  });
+  assert.equal(q.percentages.explicitTenderValues.known, 0);
+  assert.equal(q.documents.approved, 1);
+  assert.equal(q.nationalPublishedTenders, null);
+  assert.equal(
+    (await a.overview(filterSchema.parse({ source: "gem" }))).tenders,
+    0,
+  );
+  assert.equal(
+    (await a.overview(filterSchema.parse({ source: "import" }))).tenders,
+    1,
+  );
+});
+test("SYNTHETIC medical aliases normalize monitor variants and preserve category exclusions", async () => {
+  const rules = await db.query("SELECT * FROM product");
+  const { classify } = await import("../packages/core/domain");
+  for (const name of [
+    "Multipara Patient Monitor",
+    "Multi Parameter Monitor",
+    "Patient Monitoring System",
+    "Bedside Multiparameter Monitor",
+  ])
+    assert.equal(classify(name, rules).productId, "patient-monitors");
+  assert.equal(classify("रोगी मॉनिटर", rules).productId, "patient-monitors");
+  assert.equal(classify("Patient monitor medicines", rules).productId, null);
+});
+test("SYNTHETIC queue backpressure rejects new files before storing their bytes", async () => {
+  await db.query(
+    "INSERT INTO job(id,kind,payload) SELECT gen_random_uuid(),'pdf',jsonb_build_object('documentId',gen_random_uuid()) FROM generate_series(1,1000)",
+  );
+  const b = await documents.createBatch({ ...settings, maxFiles: 500 });
+  await assert.rejects(
+    documents.upload(b.id, {
+      buffer: makePdf([sampleText()]),
+      originalname: "test.pdf",
+      mimetype: "application/pdf",
+    }),
+    /capacity reached/,
+  );
+  assert.equal((await documents.list()).summary.documents, 0);
 });

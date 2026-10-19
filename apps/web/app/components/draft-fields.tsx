@@ -42,12 +42,14 @@ export default function DraftFields({
       <div className="draft-field-grid">
         <TextField
           label="GeM bid number"
+          error={!record.bidNumber}
           required
           value={record.bidNumber || ""}
           onChange={(e) => field("bidNumber", e.target.value || null)}
         />
         <TextField
           label="Original tender title"
+          error={!record.title}
           required
           value={record.title || ""}
           onChange={(e) => field("title", e.target.value || null)}
@@ -78,6 +80,7 @@ export default function DraftFields({
         />
         <TextField
           label="Buyer institution"
+          error={!record.buyer?.name}
           required
           value={record.buyer?.name || ""}
           onChange={(e) => buyer("name", e.target.value || null)}
@@ -147,12 +150,18 @@ export default function DraftFields({
           <div className="draft-field-grid">
             <TextField
               label="Original product name"
+              error={!i.name}
               required
               value={i.name || ""}
               onChange={(e) => item(index, "name", e.target.value)}
             />
             <TextField
               label="Requested quantity (blank = unknown)"
+              helperText={
+                i.quantity == null
+                  ? "Source quantity unknown — inspect the original; never estimate."
+                  : undefined
+              }
               value={i.quantity ?? ""}
               onChange={(e) => item(index, "quantity", e.target.value || null)}
             />

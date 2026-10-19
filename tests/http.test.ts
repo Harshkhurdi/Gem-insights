@@ -290,8 +290,22 @@ test("generic job retry cannot bypass document retry checks", async () => {
   const job = (await db.query("SELECT status FROM job WHERE id=$1", [id]))[0];
   assert.equal(job.status, "failed");
 });
+test("SYNTHETIC unenrolled document returns JSON null for corpus editor", async () => {
+  const d = (await db.query("SELECT id FROM upload_document LIMIT 1"))[0];
+  const r = await request("admin/documents/" + d.id + "/corpus");
+  assert.equal(r.status, 200);
+  assert.equal(await r.json(), null);
+});
 test("logout invalidates browser cookie", async () => {
   const r = await request("auth/logout", {});
   assert.equal(r.status, 201);
   assert.match(r.headers.get("set-cookie")!, /Expires=/);
+});
+test("SYNTHETIC evaluation and corpus routes reject unauthenticated access", async () => {
+  for (const path of [
+    "admin/documents/corpus",
+    "admin/documents/evaluation",
+    "admin/documents/batches",
+  ])
+    assert.equal((await request(path, undefined, false)).status, 401);
 });

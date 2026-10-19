@@ -4,7 +4,28 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
-const run = promisify(execFile);
+import { reconstructRows } from "./pdf-layout.mjs";
+const execute = promisify(execFile);
+let activeNative = null,
+  temporaryImage = null;
+async function run(...args) {
+  const pending = execute(...args);
+  activeNative = pending.child;
+  try {
+    return await pending;
+  } catch (e) {
+    if (e.code === "ENOENT") e.code = "OCR_TOOL_MISSING";
+    throw e;
+  } finally {
+    activeNative = null;
+  }
+}
+process.on("SIGTERM", async () => {
+  activeNative?.kill("SIGKILL");
+  if (temporaryImage)
+    await fs.rm(temporaryImage, { force: true }).catch(() => {});
+  process.exit(1);
+});
 const [input, output, ocrFlag] = process.argv.slice(2);
 try {
   const data = new Uint8Array(await fs.readFile(input));
@@ -14,7 +35,6 @@ try {
       path.resolve("node_modules/pdfjs-dist/standard_fonts") + path.sep,
     useSystemFonts: false,
     disableFontFace: true,
-    isEvalSupported: false,
     enableXfa: false,
     useWorkerFetch: false,
     maxImageSize: 5000000,
@@ -46,7 +66,10 @@ try {
       } else lastY = y;
     }
     if (current.trim()) lines.push(current.trim());
-    let text = lines.join("\n"),
+    let rows = reconstructRows(content.items);
+    let text = rows.length
+        ? rows.map((r) => r.cells.join(" ")).join("\n")
+        : lines.join("\n"),
       method = "embedded";
     let readable = (text.match(/[a-z0-9]/gi) || []).length >= 40;
     if (!readable && ocrFlag === "true") {
@@ -56,6 +79,7 @@ try {
         path.dirname(output),
         path.basename(output) + ".page-" + n,
       );
+      temporaryImage = prefix + ".png";
       try {
         await run(
           process.env.PDFTOPPM_BIN || "pdftoppm",
@@ -89,9 +113,11 @@ try {
         );
         text = r.stdout;
         method = "tesseract";
+        rows = [];
         readable = (text.match(/[a-z0-9]/gi) || []).length >= 40;
       } finally {
         await fs.rm(prefix + ".png", { force: true });
+        temporaryImage = null;
       }
     }
     if (text.length > 60000)
@@ -99,7 +125,7 @@ try {
     total += text.length;
     if (total > 500000)
       throw new Error("PDF exceeds 500,000-character extraction limit");
-    pages.push({ page: n, text, method, readable });
+    pages.push({ page: n, text, method, readable, rows });
     p.cleanup();
   }
   await task.destroy();
@@ -107,9 +133,11 @@ try {
   console.log(JSON.stringify({ pages: pages.length, status: "extracted" }));
 } catch (e) {
   console.error(
-    e.code === "ENOENT"
+    e.code === "OCR_TOOL_MISSING"
       ? "Local OCR tools are missing. Install Poppler and Tesseract or disable OCR."
-      : e.message,
+      : e.code === "ENOENT"
+        ? "Local PDF input is unavailable. Reupload the authorized original."
+        : e.message,
   );
   process.exitCode = 1;
 }
