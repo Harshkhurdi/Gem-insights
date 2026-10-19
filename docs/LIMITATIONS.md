@@ -1,0 +1,13 @@
+# Known limitations
+
+- No authorized live all-GeM feed, bulk scraping permission or national denominator has been verified. Initial factual dataset is only two historical notices at one institution. Automated GeM ingestion is disabled; the configured generic feed adapter still requires an actual authorized feed.
+- No automatic PDF/OCR ingestion in this release. Import reviewed CSV/JSON fields and retain source document links/evidence. Original documents can list incidental GeMARPTS search matches; these must not be treated as actual requested products.
+- No inferred prices, forecast, award estimates, national market share or claims of representative growth. Missing coverage is not zero demand. Meaningful trends require longitudinal collection and comparable coverage.
+- Geographic quantities use only confirmed, explicitly allocated delivery quantities. Unallocated demand is visible through source records and missing-delivery indicators. Tender-level value is never allocated geographically.
+- Product ranking includes only supported classified equipment families. There are 33 initial families; unclassified tenders remain retained for review and future category expansion. Classification rules deliberately prefer review over false positives, and service/accessory exclusion can require human correction in mixed descriptions.
+- Aggregate product, buyer and trend endpoints return all resulting groups; tender lists are paginated and indexed. Materialized views, search indexing and performance testing at millions of records remain future work. Historical range comparisons and the browser time chart should be used with a bounded date filter on large datasets.
+- Single administrator session role; no user management, per-company tenancy or row-level permissions. Read APIs require deployment-wide access controls for confidential imports. API is loopback by default; public production access must be configured deliberately.
+- OpenAPI metadata documents read routes initially; administrative request schemas are validated by code and documented in README, not a complete generated Swagger UI.
+- CSV tender export covers the displayed filtered page, explicitly labeled. Aggregate exports are complete for returned groups. No Excel binary export.
+- Worker supports one active owner, persisted jobs, restart recovery and bounded retries. Operational monitoring is logs and coverage tables; external alerting, distributed queue telemetry and backup/restore exercises remain deployment work.
+- Latest snapshot values can restate publication-period requested units after amendments. Historical raw source versions are retained, but the UI does not provide an as-of source-revision time travel query.

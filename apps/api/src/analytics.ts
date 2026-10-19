@@ -1,0 +1,251 @@
+import { DataSource } from "typeorm";
+import { z } from "zod";
+import { stateName, growth } from "../../../packages/core/domain";
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine(
+    (v) =>
+      !isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v,
+  );
+export const filterSchema = z
+  .object({
+    from: isoDate.optional(),
+    to: isoDate.optional(),
+    state: z
+      .string()
+      .transform((s) => stateName(s)!)
+      .optional(),
+    district: z.string().max(200).optional(),
+    product: z.string().max(100).optional(),
+    category: z.string().max(100).optional(),
+    buyer: z.string().uuid().optional(),
+    buyerType: z.string().max(100).optional(),
+    status: z
+      .enum(["open", "closed", "cancelled", "awarded", "unknown"])
+      .optional(),
+    q: z.string().max(200).optional(),
+    basis: z.enum(["buyer", "delivery"]).default("buyer"),
+    bucket: z
+      .enum(["day", "week", "month", "quarter", "financial_year"])
+      .default("month"),
+    page: z.coerce.number().int().min(1).max(100000).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(25),
+    sort: z
+      .enum(["tenders", "units", "buyers", "value", "product"])
+      .default("tenders"),
+    products: z.string().max(600).optional(),
+  })
+  .strict()
+  .refine(
+    (f) => !f.from || !f.to || f.from <= f.to,
+    "Start date must precede end date",
+  );
+export type Filters = z.infer<typeof filterSchema>;
+export class Analytics {
+  constructor(private db: DataSource) {}
+  scope(f: Filters) {
+    const p: unknown[] = [];
+    const add = (v: unknown) => {
+      p.push(v);
+      return "$" + p.length;
+    };
+    const w = ["t.status <> 'cancelled'"];
+    if (f.from) w.push("t.published_at >= " + add(f.from));
+    if (f.to) w.push("t.published_at <= " + add(f.to));
+    if (f.product) w.push("l.product_id=" + add(f.product));
+    if (f.products) {
+      const ids = f.products.split(",");
+      if (ids.length > 5) throw new Error("Compare at most five products");
+      w.push("l.product_id=ANY(" + add(ids) + "::text[])");
+    }
+    if (f.category) w.push("p.category_id IN (SELECT id FROM subtree)");
+    if (f.buyer) w.push("t.organization_id=" + add(f.buyer));
+    if (f.buyerType) w.push("o.type=" + add(f.buyerType));
+    if (f.status) {
+      w[0] = "t.status=" + add(f.status);
+    }
+    if (f.q) {
+      const s = add("%" + f.q + "%");
+      w.push(
+        `(t.title ILIKE ${s} OR t.bid_number ILIKE ${s} OR o.name ILIKE ${s} OR l.original_name ILIKE ${s})`,
+      );
+    }
+    let allocation = "NULL::numeric";
+    if (f.basis === "buyer") {
+      if (f.state) w.push("o.state=" + add(f.state));
+      if (f.district) w.push("o.district=" + add(f.district));
+    } else {
+      const dw = ["d.line_item_id=l.id", "d.confirmed"];
+      if (f.state) dw.push("d.state=" + add(f.state));
+      if (f.district) dw.push("d.district=" + add(f.district));
+      if (f.state || f.district)
+        w.push(
+          "EXISTS(SELECT 1 FROM destination d WHERE " + dw.join(" AND ") + ")",
+        );
+      allocation =
+        "(SELECT sum(d.quantity) FROM destination d WHERE " +
+        dw.join(" AND ") +
+        ")";
+    }
+    const cat = f.category ? add(f.category) : "NULL::text";
+    return {
+      p,
+      cte: `WITH RECURSIVE subtree AS (SELECT id FROM category WHERE id=${cat} UNION ALL SELECT c.id FROM category c JOIN subtree s ON c.parent_id=s.id), facts AS (SELECT l.*,t.bid_number,t.title,t.source_url,t.published_at,t.closes_at,t.status,t.organization_id,t.estimated_value AS tender_value,o.name AS buyer_name,o.state AS buyer_state,o.district AS buyer_district,p.name AS product_name,p.category_id,${allocation} AS allocated_quantity FROM tender t JOIN line_item l ON l.tender_id=t.id JOIN organization o ON o.id=t.organization_id LEFT JOIN product p ON p.id=l.product_id WHERE ${w.join(" AND ")})`,
+    };
+  }
+  async overview(f: Filters) {
+    const { cte, p } = this.scope(f);
+    return (
+      await this.db.query(
+        cte +
+          ` SELECT count(DISTINCT tender_id)::int AS tenders,count(DISTINCT tender_id) FILTER(WHERE product_id IS NOT NULL)::int AS medical_tenders,count(DISTINCT product_id)::int AS products,count(DISTINCT organization_id) FILTER(WHERE product_id IS NOT NULL)::int AS buyers,(SELECT sum(v) FROM (SELECT DISTINCT tender_id,tender_value AS v FROM facts) x) AS known_value,(SELECT count(*)::int FROM (SELECT DISTINCT tender_id FROM facts WHERE tender_value IS NOT NULL) x) AS valued_tenders,count(DISTINCT tender_id) FILTER(WHERE published_at >= (now() AT TIME ZONE 'Asia/Kolkata')::date-6)::int AS new_week,count(DISTINCT tender_id) FILTER(WHERE published_at IS NULL)::int AS undated_tenders FROM facts`,
+        p,
+      )
+    )[0];
+  }
+  async products(f: Filters) {
+    const { cte, p } = this.scope(f);
+    const sort = {
+      tenders: "tenders DESC",
+      units: "rank_units DESC NULLS LAST",
+      buyers: "buyers DESC",
+      value: "known_value DESC NULLS LAST",
+      product: "product_name ASC",
+    }[f.sort];
+    return this.db.query(
+      cte +
+        `, by_unit AS (SELECT product_id,unit,sum(CASE WHEN $${p.length + 1}::boolean THEN allocated_quantity ELSE quantity END) AS qty,count(*) FILTER(WHERE quantity IS NULL)::int AS unknown_lines FROM facts WHERE product_id IS NOT NULL GROUP BY product_id,unit), quantities AS (SELECT product_id,jsonb_object_agg(unit,qty) AS quantities,sum(qty) FILTER(WHERE unit='units') AS rank_units FROM by_unit GROUP BY product_id) SELECT f.product_id,f.product_name,c.name AS category,count(DISTINCT f.tender_id)::int AS tenders,count(*)::int AS lines,count(DISTINCT organization_id)::int AS buyers,count(DISTINCT buyer_state)::int AS buyer_states,count(*) FILTER(WHERE quantity IS NULL)::int AS missing_quantity_lines,sum(estimated_value) AS known_value,count(estimated_value)::int AS valued_lines,q.quantities,q.rank_units,(SELECT buyer_state FROM facts t2 WHERE t2.product_id=f.product_id AND buyer_state IS NOT NULL GROUP BY buyer_state ORDER BY count(DISTINCT tender_id) DESC,buyer_state LIMIT 1) AS top_buyer_state FROM facts f JOIN category c ON c.id=f.category_id LEFT JOIN quantities q ON q.product_id=f.product_id WHERE f.product_id IS NOT NULL GROUP BY f.product_id,f.product_name,c.name,q.quantities,q.rank_units ORDER BY ${sort},f.product_id`,
+      [...p, f.basis === "delivery" && !!(f.state || f.district)],
+    );
+  }
+  async states(f: Filters) {
+    const { cte, p } = this.scope(f);
+    if (f.basis === "buyer")
+      return this.db.query(
+        cte +
+          ` SELECT buyer_state AS state,count(DISTINCT tender_id)::int AS tenders,count(DISTINCT organization_id)::int AS buyers,(SELECT jsonb_object_agg(unit,qty) FROM (SELECT unit,sum(quantity) qty FROM facts z WHERE z.buyer_state IS NOT DISTINCT FROM f.buyer_state AND product_id IS NOT NULL GROUP BY unit) u) AS quantities FROM facts f WHERE product_id IS NOT NULL GROUP BY buyer_state ORDER BY tenders DESC`,
+        p,
+      );
+    return this.db.query(
+      cte +
+        `, located AS (SELECT f.*,d.state,d.district,d.quantity AS destination_quantity FROM facts f JOIN destination d ON d.line_item_id=f.id AND d.confirmed WHERE f.product_id IS NOT NULL ${f.state ? "AND d.state=$" + p.push(f.state) : ""} ${f.district ? "AND d.district=$" + p.push(f.district) : ""}) SELECT state,count(DISTINCT tender_id)::int AS tenders,count(DISTINCT organization_id)::int AS buyers,(SELECT jsonb_object_agg(unit,qty) FROM (SELECT unit,sum(destination_quantity) AS qty FROM located z WHERE z.state=f.state GROUP BY unit) u) AS quantities FROM located f GROUP BY state ORDER BY tenders DESC`,
+      p,
+    );
+  }
+  async districts(f: Filters) {
+    const { cte, p } = this.scope(f);
+    if (f.basis === "buyer")
+      return this.db.query(
+        cte +
+          ` SELECT buyer_state AS state,buyer_district AS district,count(DISTINCT tender_id)::int AS tenders FROM facts WHERE product_id IS NOT NULL GROUP BY buyer_state,buyer_district ORDER BY tenders DESC`,
+        p,
+      );
+    return this.db.query(
+      cte +
+        ` SELECT d.state,d.district,count(DISTINCT f.tender_id)::int AS tenders FROM facts f JOIN destination d ON d.line_item_id=f.id AND d.confirmed WHERE f.product_id IS NOT NULL ${f.state ? "AND d.state=$" + p.push(f.state) : ""} ${f.district ? "AND d.district=$" + p.push(f.district) : ""} GROUP BY d.state,d.district ORDER BY tenders DESC`,
+      p,
+    );
+  }
+  async buyers(f: Filters) {
+    const { cte, p } = this.scope(f);
+    return this.db.query(
+      cte +
+        ` SELECT organization_id AS id,buyer_name AS name,buyer_state AS state,count(DISTINCT tender_id)::int AS tenders,count(DISTINCT product_id)::int AS products,(SELECT sum(v) FROM (SELECT DISTINCT tender_id,tender_value AS v FROM facts x WHERE x.organization_id=f.organization_id) d) AS known_value FROM facts f WHERE product_id IS NOT NULL GROUP BY organization_id,buyer_name,buyer_state ORDER BY tenders DESC,buyer_name`,
+      p,
+    );
+  }
+  async categories(f: Filters) {
+    const { cte, p } = this.scope(f);
+    return this.db.query(
+      cte +
+        ` SELECT c.id,c.name,count(DISTINCT f.tender_id)::int AS tenders,count(DISTINCT product_id)::int AS products,count(DISTINCT organization_id)::int AS buyers FROM category c LEFT JOIN facts f ON f.category_id=c.id WHERE c.parent_id='medical' GROUP BY c.id,c.name ORDER BY tenders DESC,c.name`,
+      p,
+    );
+  }
+  async trends(f: Filters) {
+    const { cte, p } = this.scope(f);
+    const b =
+      f.bucket === "financial_year"
+        ? "(extract(year FROM published_at - interval '3 months'))::text || '-' || (extract(year FROM published_at - interval '3 months')+1)::text"
+        : `to_char(date_trunc('${f.bucket}',published_at),'YYYY-MM-DD')`;
+    return this.db.query(
+      cte +
+        `, buckets AS (SELECT facts.*,${b} AS period,CASE WHEN $${p.length + 1}::boolean THEN allocated_quantity ELSE quantity END AS measure_quantity FROM facts WHERE product_id IS NOT NULL AND published_at IS NOT NULL), counts AS (SELECT period,product_id,product_name,count(DISTINCT tender_id)::int AS tenders FROM buckets GROUP BY period,product_id,product_name), unit_totals AS (SELECT period,product_id,unit,sum(measure_quantity) AS qty FROM buckets GROUP BY period,product_id,unit), quantities AS (SELECT period,product_id,jsonb_object_agg(unit,qty) AS quantities FROM unit_totals GROUP BY period,product_id) SELECT c.*,q.quantities FROM counts c JOIN quantities q USING(period,product_id) ORDER BY c.period,c.product_name`,
+      [...p, f.basis === "delivery" && !!(f.state || f.district)],
+    );
+  }
+
+  async growth(f: Filters) {
+    const end = f.to || new Date().toISOString().slice(0, 10);
+    const start =
+      f.from ||
+      new Date(Date.parse(end) - 29 * 86400000).toISOString().slice(0, 10);
+    const days = (Date.parse(end) - Date.parse(start)) / 86400000 + 1;
+    if (days > 3660) throw new Error("Comparison range too large");
+    const prevEnd = new Date(Date.parse(start) - 86400000)
+        .toISOString()
+        .slice(0, 10),
+      prevStart = new Date(Date.parse(start) - days * 86400000)
+        .toISOString()
+        .slice(0, 10);
+    const cur = await this.products({ ...f, from: start, to: end }),
+      prev = await this.products({ ...f, from: prevStart, to: prevEnd });
+    return {
+      periods: { current: [start, end], previous: [prevStart, prevEnd] },
+      coverageComparable: false,
+      products: cur.map((r: any) => ({
+        ...r,
+        previous_tenders:
+          prev.find((x: any) => x.product_id === r.product_id)?.tenders || 0,
+        growth: growth(
+          r.tenders,
+          prev.find((x: any) => x.product_id === r.product_id)?.tenders || 0,
+        ),
+      })),
+    };
+  }
+  async tenders(f: Filters) {
+    const { cte, p } = this.scope(f);
+    const rows = await this.db.query(
+      cte +
+        ` SELECT tender_id AS id,bid_number,title,source_url,published_at,closes_at,status,buyer_name,buyer_state,tender_value,jsonb_agg(jsonb_build_object('id',id,'name',original_name,'product',product_name,'quantity',quantity,'unit',unit,'evidence',evidence,'confidence',confidence,'needs_review',needs_review)) AS items,count(*) OVER()::int AS total FROM facts GROUP BY tender_id,bid_number,title,source_url,published_at,closes_at,status,buyer_name,buyer_state,tender_value ORDER BY published_at DESC NULLS LAST,bid_number LIMIT $${p.length + 1} OFFSET $${p.length + 2}`,
+      [...p, f.limit, (f.page - 1) * f.limit],
+    );
+    return {
+      data: rows,
+      total: rows[0]?.total || 0,
+      page: f.page,
+      limit: f.limit,
+    };
+  }
+  async coverage() {
+    const [sources, runs, quality, jobs, total] = await Promise.all([
+      this.db.query("SELECT * FROM source ORDER BY id"),
+      this.db.query(
+        "SELECT * FROM collection_run ORDER BY started_at DESC LIMIT 30",
+      ),
+      this.db.query(
+        `SELECT count(*)::int AS lines,count(*) FILTER(WHERE needs_review)::int AS needs_review,count(*) FILTER(WHERE quantity IS NULL)::int AS unknown_quantity,count(*) FILTER(WHERE product_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM destination d WHERE d.line_item_id=l.id AND d.confirmed))::int AS missing_delivery FROM line_item l`,
+      ),
+      this.db.query(
+        "SELECT id,kind,status,attempts,last_error,created_at,finished_at FROM job ORDER BY created_at DESC LIMIT 30",
+      ),
+      this.db.query(
+        "SELECT count(*)::int AS tenders,min(published_at) AS earliest,max(published_at) AS latest,max(last_checked) AS checked FROM tender",
+      ),
+    ]);
+    return {
+      coverage: "partial",
+      nationalCompleteness: null,
+      liveGeM: false,
+      sources,
+      runs,
+      quality: quality[0],
+      jobs,
+      total: total[0],
+      warning:
+        "Observed dataset only. No verified all-India denominator. Closed bids are not confirmed purchases.",
+    };
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "gem-intelligence",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build -w @gem/api && npm run build -w @gem/web",
+    "typecheck": "tsc -p apps/api/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit",
+    "test": "node --env-file-if-exists=.env --import tsx --test --test-concurrency=1 tests/*.test.ts",
+    "migrate": "node --env-file-if-exists=.env apps/api/dist/apps/api/src/migrate.js",
+    "worker": "node --env-file-if-exists=.env apps/api/dist/apps/api/src/worker.js",
+    "start:api": "node --env-file-if-exists=.env apps/api/dist/apps/api/src/main.js",
+    "import:verified": "node --env-file-if-exists=.env apps/api/dist/apps/api/src/import-cli.js data/verified-bids.json",
+    "format": "prettier --write \"apps/**/*.{ts,tsx,css}\" \"packages/**/*.ts\" \"tests/**/*.ts\" \"scripts/*.mjs\"",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,css}\" \"packages/**/*.ts\" \"tests/**/*.ts\" \"scripts/*.mjs\""
+  },
+  "dependencies": {
+    "@nestjs/common": "12.1.2",
+    "@nestjs/core": "12.1.2",
+    "@nestjs/platform-express": "12.1.2",
+    "pg": "8.23.1",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "typeorm": "1.1.2",
+    "zod": "4.1.11"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.6",
+    "@types/pg": "8.23.1",
+    "prettier": "^3.9.9",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

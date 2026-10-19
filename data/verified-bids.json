@@ -1,0 +1,95 @@
+{
+  "provenance": "Two manually verified original GeM bid PDFs from the public AIIMS Bathinda procurement website; reviewed 19 October 2026. Purposefully narrow historical validation dataset, not representative of India; no award status inferred.",
+  "records": [
+    {
+      "bidNumber": "GEM/2025/B/6928495",
+      "title": "ICU Ventilators (V2) (Q2)",
+      "publishedAt": "2025-11-27",
+      "closesAt": "2025-12-18T12:00:00+05:30",
+      "status": "unknown",
+      "sourceUrl": "https://aiimsbathinda.edu.in/images/procurements/20251127095620.pdf",
+      "buyer": {
+        "key": "aiims-bathinda",
+        "name": "All India Institute of Medical Sciences, Bathinda",
+        "state": "Punjab",
+        "district": "Bathinda",
+        "department": "Department of Health and Family Welfare",
+        "ministry": "Ministry of Health and Family Welfare",
+        "type": "Government healthcare institution"
+      },
+      "estimatedValue": null,
+      "description": "Manually verified original GeM bid document published on the institution website. Original closing date; later amendments/status not revalidated. Equipment demand, not confirmed purchase.",
+      "documents": [
+        {
+          "url": "https://aiimsbathinda.edu.in/images/procurements/20251127095620.pdf",
+          "label": "Original GeM bid document · AIIMS Bathinda"
+        }
+      ],
+      "items": [
+        {
+          "key": "item-1",
+          "name": "ICU Ventilators (V2) (Q2)",
+          "quantity": "20",
+          "unit": "pieces",
+          "estimatedValue": null,
+          "evidence": "pp. 1, 5, 8: item category and requested quantity explicitly shown.",
+          "destinations": [
+            {
+              "state": "Punjab",
+              "district": "Bathinda",
+              "city": "Bathinda",
+              "confirmed": false,
+              "quantity": "20",
+              "evidence": "Consignee address: 151001, Mandi Dabwali road. State normalized from Bathinda postcode; inferred, excluded from confirmed delivery-demand views."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bidNumber": "GEM/2026/B/7096713",
+      "title": "High-End ICU Ventilator",
+      "publishedAt": "2026-01-12",
+      "closesAt": "2026-02-02T21:00:00+05:30",
+      "status": "unknown",
+      "sourceUrl": "https://aiimsbathinda.edu.in/images/procurements/20260112055450.pdf",
+      "buyer": {
+        "key": "aiims-bathinda",
+        "name": "All India Institute of Medical Sciences, Bathinda",
+        "state": "Punjab",
+        "district": "Bathinda",
+        "department": "Department of Health and Family Welfare",
+        "ministry": "Ministry of Health and Family Welfare",
+        "type": "Government healthcare institution"
+      },
+      "estimatedValue": null,
+      "description": "Manually verified original GeM bid document published on the institution website. Original closing date; later amendments/status not revalidated. Equipment demand, not confirmed purchase.",
+      "documents": [
+        {
+          "url": "https://aiimsbathinda.edu.in/images/procurements/20260112055450.pdf",
+          "label": "Original GeM bid document · AIIMS Bathinda"
+        }
+      ],
+      "items": [
+        {
+          "key": "item-1",
+          "name": "High-End ICU Ventilator",
+          "quantity": "7",
+          "unit": "pieces",
+          "estimatedValue": null,
+          "evidence": "pp. 1, 5: item category and requested quantity explicitly shown.",
+          "destinations": [
+            {
+              "state": "Punjab",
+              "district": "Bathinda",
+              "city": "Bathinda",
+              "confirmed": false,
+              "quantity": "7",
+              "evidence": "Consignee address: 151001, Mandi Dabwali road. State normalized from Bathinda postcode; inferred, excluded from confirmed delivery-demand views."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
