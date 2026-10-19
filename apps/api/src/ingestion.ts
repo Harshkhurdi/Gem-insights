@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { DataSource } from "typeorm";
+import { DataSource, EntityManager } from "typeorm";
 import {
   classify,
   digest,
@@ -9,11 +9,17 @@ import {
 } from "../../../packages/core/domain";
 export class Ingestion {
   constructor(private db: DataSource) {}
-  async import(records: unknown[], provenance: string, source = "import") {
+  async import(
+    records: unknown[],
+    provenance: string,
+    source = "import",
+    transaction?: EntityManager,
+  ) {
+    const connection = transaction || this.db;
     if (!Array.isArray(records) || records.length < 1 || records.length > 1000)
       throw new Error("Import between 1 and 1000 complete tender records");
     const runId = randomUUID();
-    await this.db.query(
+    await connection.query(
       "INSERT INTO collection_run(id,source_id,status,discovered,provenance) VALUES($1,$2,'running',$3,$4)",
       [runId, source, records.length, provenance],
     );
@@ -25,7 +31,7 @@ export class Ingestion {
         throw new Error(
           "Duplicate bid numbers in batch; submit one complete current version per bid",
         );
-      const result = await this.db.transaction(async (m) => {
+      const execute = async (m: EntityManager) => {
         await m.query("SELECT pg_advisory_xact_lock(17924001)");
         const rules: Rule[] = await m.query("SELECT * FROM product");
         let inserted = 0,
@@ -140,7 +146,7 @@ export class Ingestion {
             const c = classify(i.name, rules);
             const li = randomUUID();
             await m.query(
-              "INSERT INTO line_item VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
+              "INSERT INTO line_item(id,tender_id,source_key,original_name,product_id,quantity,unit,estimated_value,evidence,confidence,classification_reason,needs_review) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
               [
                 li,
                 id,
@@ -156,6 +162,11 @@ export class Ingestion {
                 manual ? false : c.review,
               ],
             );
+            if (i.specifications != null)
+              await m.query(
+                "UPDATE line_item SET specifications=$2 WHERE id=$1",
+                [li, i.specifications],
+              );
             for (const d of i.destinations)
               await m.query(
                 "INSERT INTO destination VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
@@ -180,13 +191,16 @@ export class Ingestion {
           source,
         ]);
         return { runId, inserted, updated, unchanged };
-      });
-      return result;
+      };
+      return transaction
+        ? await execute(transaction)
+        : await this.db.transaction(execute);
     } catch (e) {
-      await this.db.query(
-        "UPDATE collection_run SET status='failed',finished_at=now(),rejected=discovered,error=$2 WHERE id=$1",
-        [runId, (e as Error).message.slice(0, 2000)],
-      );
+      if (!transaction)
+        await this.db.query(
+          "UPDATE collection_run SET status='failed',finished_at=now(),rejected=discovered,error=$2 WHERE id=$1",
+          [runId, (e as Error).message.slice(0, 2000)],
+        );
       throw e;
     }
   }

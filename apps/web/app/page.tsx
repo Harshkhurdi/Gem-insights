@@ -1,4 +1,5 @@
 "use client";
+import DocumentAdmin from "./components/document-admin";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   QueryClient,
@@ -207,6 +208,12 @@ function Bars({ rows, onClick }: { rows: any[]; onClick?: (r: any) => void }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
   return rows.length ? (
     <div className="bars">
+      {rows.reduce((sum: number, r: any) => sum + r.value, 0) < 25 && (
+        <Alert severity="warning">
+          Very small observed sample. Collected tender appearances do not
+          establish national demand.
+        </Alert>
+      )}
       {rows.slice(0, 6).map((r, i) => (
         <button
           key={r.label}
@@ -274,6 +281,13 @@ function HistoryChart({
   const y = (v: number) => 200 - (v / max) * 160;
   return (
     <div className="history">
+      {rows.reduce((sum: number, r: any) => sum + r.tenders, 0) < 25 && (
+        <Alert severity="warning">
+          Very small observed sample (fewer than 25 product-tender appearances).
+          This chart cannot establish national demand or a reliable market
+          trend.
+        </Alert>
+      )}
       <svg
         viewBox="0 0 770 250"
         role="img"
@@ -2139,6 +2153,7 @@ function Admin({
         </Panel>
       ) : (
         <>
+          <DocumentAdmin taxonomy={taxonomy} onChange={onChange} />
           <div className="view-tools">
             <Chip
               icon={<Check size={15} />}
@@ -2446,7 +2461,7 @@ function Admin({
           </Panel>
           <Panel
             title="Background jobs"
-            sub="Jobs persist in PostgreSQL and retry up to three times."
+            sub="CSV/feed jobs retry up to three times. Retry PDFs through document review or reupload."
           >
             {coverage?.jobs?.length ? (
               <Table
@@ -2467,7 +2482,7 @@ function Admin({
                     <td>{j.attempts}</td>
                     <td>{j.last_error || "—"}</td>
                     <td>
-                      {j.status === "failed" && (
+                      {j.status === "failed" && j.kind !== "pdf" && (
                         <Button
                           disabled={busy}
                           onClick={() =>

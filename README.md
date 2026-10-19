@@ -8,7 +8,7 @@ Implemented with Next.js App Router, TypeScript, Material UI, TanStack Query, Ne
 
 ## Run locally
 
-Requirements: Node 22+, npm, PostgreSQL 16+; Docker is optional.
+Requirements: Node 22.13+, npm, PostgreSQL 16+; Docker is optional.
 
 ```sh
 npm ci
@@ -58,7 +58,7 @@ CSV headers (`data/import-template.csv`):
 bidNumber,title,sourceUrl,publishedAt,closesAt,status,buyerKey,buyerName,buyerState,buyerDistrict,estimatedValue,itemKey,itemName,quantity,unit,lineEstimatedValue,itemEvidence,destinations
 ```
 
-The `destinations` cell is an optional quoted JSON array. Do not include an estimated price unless the source explicitly supplies it. Full documents can be linked; there is no automatic PDF/OCR ingestion in this initial release. CSV/JSON must contain reviewed line-item extraction.
+The `destinations` cell is an optional quoted JSON array. Do not include an estimated price unless the source explicitly supplies it. Authorized PDFs can now be uploaded and extracted locally through Administration, reviewed, then approved through the same importer. CSV/JSON remains available. See [PDF workflow and OCR prerequisites](docs/PDF_WORKFLOW.md).
 
 ### Authorized feed adapter
 
@@ -69,6 +69,12 @@ Only enable after the operator has source authorization. Set `AUTHORIZED_FEED_UR
 ```
 
 Each page contains at most 1,000 complete bids / 5 MB. Cursors must advance. Checkpoints persist after successful pages; requests time out after 30 seconds. Redirects are refused, no session credentials are copied, retries are bounded and a 100-page job budget prevents unbounded collection. Feed imports remain labeled partial: a feed claiming completeness is not accepted as proof. This adapter has not been validated against a real authorized GeM feed.
+
+## PDF document processing
+
+Administration now supports authorized PDF batches, local embedded text extraction, optional local OCR, page evidence, structured review and atomic approval/import. Content retention requires a separate permission. Apply `npm run migrate` after updating. The API and worker share a private `DOCUMENT_STORAGE_DIR`. See [PDF workflow](docs/PDF_WORKFLOW.md), [corpus status](data/golden-corpus.json), and the [GeM access request draft](docs/GEM_DATA_ACCESS_REQUEST.md). No document URL is fetched automatically.
+
+`npm run documents:accuracy` reports original-extraction versus reviewed-approval agreement from the configured database. Real-document accuracy remains unmeasured until permitted original PDFs are supplied and reviewed.
 
 ## Validation
 

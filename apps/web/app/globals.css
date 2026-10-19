@@ -1319,3 +1319,126 @@ footer i {
     font-size: 8px;
   }
 }
+.document-admin {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.document-permissions {
+  display: flex;
+  flex-direction: column;
+}
+.upload-file {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid #e3e8ef;
+  border-radius: 8px;
+  padding: 15px;
+}
+.upload-file > strong {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.upload-file > span,
+.upload-file > small {
+  font-size: 10px;
+  color: #7d8da3;
+}
+.draft-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 24px;
+  margin: 24px 0;
+}
+.draft-grid > div {
+  min-width: 0;
+}
+.draft-grid pre,
+.document-review pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 11px;
+  max-height: 350px;
+  overflow: auto;
+  background: #f6f8fb;
+  padding: 12px;
+}
+.document-review > p {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.document-review details {
+  font-size: 12px;
+  margin: 12px 0;
+}
+.document-review summary {
+  cursor: pointer;
+  color: #446385;
+}
+.document-review .MuiAlert-root {
+  margin: 12px 0;
+}
+.document-review h3 {
+  font-size: 14px;
+}
+.draft-grid .MuiInputBase-input {
+  font-family: monospace;
+  font-size: 11px;
+}
+.draft-grid .review-row {
+  flex-direction: column;
+  align-items: stretch;
+}
+.document-admin .stat-pair {
+  margin: 0;
+}
+.document-admin hr {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid #e5eaf1;
+}
+@media (max-width: 900px) {
+  .draft-grid {
+    grid-template-columns: 1fr;
+  }
+  .document-admin .stat-pair {
+    gap: 25px;
+    flex-wrap: wrap;
+  }
+}
+.draft-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 18px 0;
+}
+.draft-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+.draft-item {
+  border: 1px solid #dce5f1;
+  border-radius: 8px;
+  padding: 17px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.draft-destination {
+  border-left: 3px solid #bccde6;
+  padding: 0 0 0 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.draft-destination h4 {
+  font-size: 12px;
+  margin: 0;
+}
+@media (max-width: 640px) {
+  .draft-field-grid {
+    grid-template-columns: 1fr;
+  }
+}

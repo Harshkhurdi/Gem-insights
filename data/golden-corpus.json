@@ -1,0 +1,20 @@
+{
+  "status": "awaiting_authorized_original_pdfs",
+  "targetDocuments": 25,
+  "permittedOriginalPdfDocuments": 0,
+  "independentlyReviewedOriginalPdfDocuments": 0,
+  "realPdfFieldAccuracyPercent": null,
+  "reason": "No operator-authorized original PDF corpus or confirmed reusable corpus license was supplied for this phase. Public availability and existing factual metadata are not treated as blanket processing/retention/reproduction permission.",
+  "metadataReferencesOnly": [
+    {"bidNumber":"GEM/2025/B/6928495","sourceUrl":"https://aiimsbathinda.edu.in/images/procurements/20251127095620.pdf","publishedAt":"2025-11-27","product":"ICU ventilators","quantity":"20","unit":"pieces","rightsStatus":"Original PDF not included in this corpus; reusable corpus rights unverified"},
+    {"bidNumber":"GEM/2026/B/7096713","sourceUrl":"https://aiimsbathinda.edu.in/images/procurements/20260112055450.pdf","publishedAt":"2026-01-12","product":"High-End ICU Ventilator","quantity":"7","unit":"pieces","rightsStatus":"Original PDF not included in this corpus; reusable corpus rights unverified"}
+  ],
+  "collectionProcedure": [
+    "Obtain original PDFs and explicit processing/evidence/retention permission references from the operator or source owner.",
+    "Upload through Administration; do not automatically fetch corpus URLs.",
+    "Review original pages independently and correct complete snapshots before approval.",
+    "Cover at least 25 distinct authorized documents across institutions, states, equipment families and formats when available.",
+    "Include scanned/multi-product/BOQ/amendment/service/accessory negative examples; label rather than discard failures.",
+    "Run documents:accuracy and report the actual evaluated sample and selection limits; synthetic tests are separate."
+  ]
+}

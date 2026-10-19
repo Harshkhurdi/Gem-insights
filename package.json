@@ -15,12 +15,14 @@
     "start:api": "node --env-file-if-exists=.env apps/api/dist/apps/api/src/main.js",
     "import:verified": "node --env-file-if-exists=.env apps/api/dist/apps/api/src/import-cli.js data/verified-bids.json",
     "format": "prettier --write \"apps/**/*.{ts,tsx,css}\" \"packages/**/*.ts\" \"tests/**/*.ts\" \"scripts/*.mjs\"",
-    "format:check": "prettier --check \"apps/**/*.{ts,tsx,css}\" \"packages/**/*.ts\" \"tests/**/*.ts\" \"scripts/*.mjs\""
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,css}\" \"packages/**/*.ts\" \"tests/**/*.ts\" \"scripts/*.mjs\"",
+    "documents:accuracy": "node --env-file-if-exists=.env scripts/document-accuracy.mjs"
   },
   "dependencies": {
     "@nestjs/common": "12.1.2",
     "@nestjs/core": "12.1.2",
     "@nestjs/platform-express": "12.1.2",
+    "pdfjs-dist": "6.4.299",
     "pg": "8.23.1",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
@@ -35,6 +37,6 @@
     "typescript": "5.9.3"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13.0"
   }
 }

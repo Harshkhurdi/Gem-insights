@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { connect, db } from "./database";
+import { Documents } from "./documents/service";
 import { Ingestion } from "./ingestion";
 import { classify } from "../../../packages/core/domain";
 const ingest = new Ingestion(db);
+const documents = new Documents(db);
 let stopping = false;
 process.on("SIGTERM", () => {
   stopping = true;
@@ -89,17 +91,23 @@ async function start() {
   await connect();
   const lock = db.createQueryRunner();
   await lock.connect();
-  if (
-    !(await lock.query("SELECT pg_try_advisory_lock(17924002) AS locked"))[0]
-      .locked
-  )
-    throw new Error("Another worker owns the scheduler lock");
-  await db.query(
-    "UPDATE job SET status=CASE WHEN attempts>=3 THEN 'failed' ELSE 'pending' END,available_at=now() WHERE status='running'",
-  );
-  let lastScheduled = Date.now();
+  let ownsLock = false;
   try {
+    ownsLock = (
+      await lock.query("SELECT pg_try_advisory_lock(17924002) AS locked")
+    )[0].locked;
+    if (!ownsLock) throw new Error("Another worker owns the scheduler lock");
+    await db.query(
+      "UPDATE job SET status=CASE WHEN attempts>=3 THEN 'failed' ELSE 'pending' END,available_at=now() WHERE status='running'",
+    );
+    await documents.purgeExpired();
+    let lastPurge = Date.now();
+    let lastScheduled = Date.now();
     while (!stopping) {
+      if (Date.now() - lastPurge > 60000) {
+        await documents.purgeExpired();
+        lastPurge = Date.now();
+      }
       if (
         process.env.FEED_AUTHORIZED === "true" &&
         process.env.AUTHORIZED_FEED_URL &&
@@ -131,6 +139,8 @@ async function start() {
         if (j.kind === "import")
           await ingest.import(j.payload.records, j.payload.provenance);
         else if (j.kind === "feed") await collect();
+        else if (j.kind === "pdf")
+          await documents.process(j.payload.documentId);
         else if (j.kind === "classify") await reclassify();
         else throw new Error("Unsupported job kind");
         await db.query(
@@ -148,7 +158,7 @@ async function start() {
           "UPDATE job SET status=$2,last_error=$3,available_at=now()+($4::text||' seconds')::interval WHERE id=$1",
           [
             j.id,
-            attempt >= 3 ? "failed" : "pending",
+            attempt >= 3 || j.kind === "pdf" ? "failed" : "pending",
             (e as Error).message.slice(0, 2000),
             Math.min(300, 2 ** attempt * 5),
           ],
@@ -164,9 +174,12 @@ async function start() {
       }
     }
   } finally {
-    await lock.query("SELECT pg_advisory_unlock(17924002)");
-    await lock.release();
-    await db.destroy();
+    try {
+      if (ownsLock) await lock.query("SELECT pg_advisory_unlock(17924002)");
+    } finally {
+      await lock.release();
+      await db.destroy();
+    }
   }
 }
 start().catch((e) => {

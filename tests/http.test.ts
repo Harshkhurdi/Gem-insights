@@ -1,9 +1,11 @@
+import { migrations } from "../apps/api/src/migrations";
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, ChildProcess } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
+import { makePdf, sampleText } from "./pdf-fixtures";
+import { promises as fs } from "node:fs";
 import { DataSource } from "typeorm";
-import { Initial1792400000000 } from "../apps/api/src/migrations/initial";
 const url = process.env.TEST_DATABASE_URL;
 if (!url || !new URL(url).pathname.endsWith("_test"))
   throw new Error(
@@ -12,7 +14,7 @@ if (!url || !new URL(url).pathname.endsWith("_test"))
 const db = new DataSource({
   type: "postgres",
   url,
-  migrations: [Initial1792400000000],
+  migrations,
   synchronize: false,
 });
 const key = randomBytes(32).toString("hex");
@@ -27,6 +29,7 @@ const env = {
   PORT: "4511",
   WEB_ORIGIN: origin,
   ADMIN_KEY: key,
+  DOCUMENT_STORAGE_DIR: ".runtime/pdf-http-tests",
 };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function request(
@@ -84,6 +87,7 @@ after(async () => {
       setTimeout(r, 2500).unref();
     });
   if (db.isInitialized) await db.destroy();
+  await fs.rm(".runtime/pdf-http-tests", { recursive: true, force: true });
 });
 test("unauthenticated administration is rejected", async () =>
   assert.equal((await request("admin/review", undefined, false)).status, 401));
@@ -182,6 +186,109 @@ test("worker records failure and applies bounded retry state", async () => {
   });
   const r = await request("admin/jobs/" + id + "/retry", {});
   assert.equal(r.status, 201);
+});
+
+test("PDF upload authentication runs before accepting file content", async () => {
+  const form = new FormData();
+  form.append("file", new Blob([makePdf([sampleText()])]), "test.pdf");
+  const r = await fetch(base + "admin/documents/upload", {
+    method: "POST",
+    headers: { Origin: origin },
+    body: form,
+  });
+  assert.equal(r.status, 401);
+});
+test("multipart PDF batch is processed by worker and requires explicit review before analytics", async () => {
+  const batch = await request("admin/documents/batches", {
+    sourcePortal: "gem",
+    sourceName: "SYNTHETIC HTTP PDF source",
+    provenance: "SYNTHETIC HTTP PDF TEST ONLY",
+    permissionNotes: "Generated PDF fixture with test processing rights",
+    authorizedProcessing: true,
+    retainContent: false,
+    retainEvidence: true,
+    allowOcr: false,
+  });
+  assert.equal(batch.status, 201);
+  const b = await batch.json();
+  const form = new FormData();
+  form.append("batchId", b.id);
+  form.append("sourceUrl", "https://example.org/synthetic-pdf");
+  form.append(
+    "file",
+    new Blob([makePdf([sampleText({ product: "Ultrasound machine" })])]),
+    "test.pdf",
+  );
+  const r = await fetch(base + "admin/documents/upload", {
+    method: "POST",
+    headers: { Origin: origin, Cookie: cookie },
+    body: form,
+  });
+  assert.equal(r.status, 202);
+  const u = await r.json();
+  await waitFor(async () => {
+    const d = await (await request("admin/documents/" + u.id)).json();
+    return d.status === "review";
+  });
+  const detail = await (await request("admin/documents/" + u.id)).json();
+  assert.equal((await (await request("overview")).json()).tenders, 1);
+  assert.equal(
+    (await request("admin/documents/" + u.id + "/file")).status,
+    410,
+  );
+  const review = {
+    version: detail.draft.version,
+    record: detail.draft.record,
+    reason: "Checked every synthetic source page",
+    completeSnapshot: true,
+    reviewedAllPages: true,
+    expectedTenderHash: null,
+    classifications: {},
+  };
+  const approved = await request(
+    "admin/documents/" + u.id + "/review/approve",
+    review,
+  );
+  assert.equal(approved.status, 201);
+  assert.equal((await (await request("overview")).json()).tenders, 2);
+  assert.equal(
+    (await (await request("admin/documents")).json()).summary.approved_tenders,
+    1,
+  );
+  const duplicate = await fetch(base + "admin/documents/upload", {
+    method: "POST",
+    headers: { Origin: origin, Cookie: cookie },
+    body: form,
+  });
+  assert.equal(duplicate.status, 200);
+  assert.equal((await duplicate.json()).duplicate, true);
+});
+test("document batch cannot be created without processing rights", async () => {
+  assert.equal(
+    (
+      await request("admin/documents/batches", {
+        sourcePortal: "gem",
+        sourceName: "TEST",
+        provenance: "TEST ONLY RIGHTS",
+        permissionNotes: "No rights granted for this test",
+        authorizedProcessing: false,
+        retainContent: false,
+        retainEvidence: true,
+        allowOcr: false,
+      })
+    ).status,
+    400,
+  );
+});
+test("generic job retry cannot bypass document retry checks", async () => {
+  const id = randomUUID();
+  await db.query(
+    "INSERT INTO job(id,kind,status,payload) VALUES($1,'pdf','failed','{}')",
+    [id],
+  );
+  assert.equal((await request("admin/jobs/" + id + "/retry", {})).status, 409);
+  const job = (await db.query("SELECT status FROM job WHERE id=$1", [id]))[0];
+  assert.equal(job.status, "failed");
 });
 test("logout invalidates browser cookie", async () => {
   const r = await request("auth/logout", {});

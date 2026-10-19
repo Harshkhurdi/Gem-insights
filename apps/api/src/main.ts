@@ -18,6 +18,7 @@ import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { connect, db } from "./database";
 import { Analytics, filterSchema } from "./analytics";
+import { DocumentController } from "./documents/controller";
 import { Ingestion } from "./ingestion";
 import { authenticated, configured, validKey, session } from "./auth";
 import { STATES, classify } from "../../../packages/core/domain";
@@ -262,6 +263,12 @@ class Api {
   ) {
     admin(req);
     z.string().uuid().parse(id);
+    const job = (await db.query("SELECT kind FROM job WHERE id=$1", [id]))[0];
+    if (job?.kind === "pdf")
+      throw new HttpException(
+        "Retry or reupload through document review so source availability and OCR permission are checked.",
+        409,
+      );
     const r = await db.query(
       "UPDATE job SET status='pending',attempts=0,available_at=now(),last_error=NULL WHERE id=$1 AND status='failed' RETURNING id",
       [id],
@@ -355,7 +362,7 @@ class Api {
     return { jobId: id };
   }
 }
-@Module({ controllers: [Api] })
+@Module({ controllers: [Api, DocumentController] })
 class App {}
 async function bootstrap() {
   await connect();

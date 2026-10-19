@@ -1,8 +1,8 @@
+import { migrations } from "../apps/api/src/migrations";
 import "reflect-metadata";
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { DataSource } from "typeorm";
-import { Initial1792400000000 } from "../apps/api/src/migrations/initial";
 import { Ingestion } from "../apps/api/src/ingestion";
 import { Analytics, filterSchema } from "../apps/api/src/analytics";
 const url = process.env.TEST_DATABASE_URL;
@@ -13,7 +13,7 @@ if (!url || !new URL(url).pathname.endsWith("_test"))
 const db = new DataSource({
   type: "postgres",
   url,
-  migrations: [Initial1792400000000],
+  migrations,
   synchronize: false,
 });
 const ingest = new Ingestion(db),

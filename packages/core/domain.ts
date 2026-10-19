@@ -106,6 +106,7 @@ export const itemSchema = z
   .object({
     key: z.string().trim().min(1).max(150),
     name: text,
+    specifications: z.string().max(20000).nullish(),
     quantity: decimal.nullish(),
     unit: z.string().trim().min(1).max(50).default("unknown"),
     estimatedValue: money.nullish(),
@@ -217,7 +218,7 @@ export function classify(name: string, rules: Rule[]) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
-  if (excluded.test(n))
+  if (excluded.test(n.split(/\b(?:with|including|along with)\b/)[0]))
     return {
       productId: null,
       confidence: 1,
@@ -225,14 +226,32 @@ export function classify(name: string, rules: Rule[]) {
         "Service, construction, accessory or consumable; excluded from equipment demand",
       review: false,
     };
-  const hits = rules.filter((r) =>
-    r.aliases.some((a) =>
-      new RegExp(
-        `\\b${a.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
-        "i",
-      ).test(n),
-    ),
+  const matches = rules.flatMap((r) =>
+    r.aliases.flatMap((alias) => {
+      const phrase = alias
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+      if (!phrase) return [];
+      const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return [...n.matchAll(new RegExp(`\\b${escaped}\\b`, "g"))].map((m) => ({
+        rule: r,
+        start: m.index!,
+        end: m.index! + m[0].length,
+      }));
+    }),
   );
+  const distinct = matches.filter(
+    (m) =>
+      !matches.some(
+        (other) =>
+          other.rule.id !== m.rule.id &&
+          other.start <= m.start &&
+          other.end >= m.end &&
+          other.end - other.start > m.end - m.start,
+      ),
+  );
+  const hits = [...new Map(distinct.map((m) => [m.rule.id, m.rule])).values()];
   if (hits.length === 1)
     return {
       productId: hits[0].id,

@@ -33,3 +33,17 @@ CSV and JSON imports work end to end, including an audited database import of th
 ## Geographic boundaries
 
 36 state/UT features from the LGD 2024 state snapshot distributed by [bharatlas](https://bharatlas.com/view/gb_adm1), download https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/LGD_States.geojson . Provider states CC0-1.0 / CC-BY-4.0. Attribution is retained in the asset and interface. The included file is simplified at 0.01 degrees for dashboard rendering and normalized to current state names. Tests verify all 36 identities, spherical ring orientation and bounds. It is an administrative reference, not a surveying dataset. Provider licensing metadata and jurisdictional boundaries should be reviewed before broader commercial distribution.
+
+## Phase 2: corpus rights and legitimate access opportunities
+
+Investigated 19 October 2026. No bulk collection, API enrollment or access agreement was completed. No protected endpoint was used and no document URL fetcher was added.
+
+| Candidate source / route | Verified finding | Permission / coverage status | Next authorized step |
+|---|---|---|---|
+| [Official GeM help desk/contact](https://gem.gov.in/contactUs) | Public contact page and support-ticket route available | Enquiry route only; no data license or completeness guarantee | Operator sends the prepared request and seeks written scope |
+| [GeM Integration Toolkit enquiry](https://gem.gov.in/home/dwn/user_info/ifms) | Official non-registered-user route requests name, email, mobile and organization | Not submitted; toolkit purpose is not evidence of a bulk bid API | Ask whether a research/commercial tender feed is available and what licensing applies |
+| [GeM institutional MoUs](https://gem.gov.in/mou) | Official page lists state/UT arrangements | Does not grant this project access under those agreements | Request an appropriate pilot/data-sharing arrangement directly |
+| AIIMS Bathinda public procurement references already recorded above | Two historical bid documents have reviewed factual reference fields | No new reusable original-PDF corpus permission was supplied | Operator obtains permitted originals and records rights per batch |
+| [AIIMS website policy](https://tenders.aiims.edu/index.php/en/disclaimer?id=6921), [JIPMER website policy](https://jipmer.ac.in/website-policy) | Policy pages identified; full current pages could not be retrieved reliably during this phase | Rights remain unverified; no blanket permission inferred for GeM-authored third-party documents | Confirm actual document owner and processing/retention terms before including originals |
+
+**Actual newly authorized original-PDF golden corpus: 0 documents.** The two legacy factual metadata references are not counted as extracted original-PDF gold examples. No 25-document or national dataset claim is made. Synthetic regression PDFs remain isolated tests. [Corpus manifest](data/golden-corpus.json) records the exact status; [access request](docs/GEM_DATA_ACCESS_REQUEST.md) is a draft for the operator and has not been sent.
