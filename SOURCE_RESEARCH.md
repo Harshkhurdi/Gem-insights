@@ -1,3 +1,5 @@
+Current source expansion: see [NATIONAL_COLLECTION_EXPANSION.md](docs/NATIONAL_COLLECTION_EXPANSION.md) for the 11 implemented public listing profiles and the linked-document workflow. Earlier three-profile counts below are historical.
+
 # Current collection implementation
 
 The new [local collection guide](docs/LOCAL_COLLECTION.md) supersedes the earlier no-collector status below for three public metadata listings: AIIMS Raipur, ICMR and CPPP central active tenders. Native tender references and a review queue are supported. GeM direct access and nationwide coverage remain unimplemented. The earlier investigation is retained as historical context.

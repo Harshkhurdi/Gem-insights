@@ -86,7 +86,7 @@ test("changed listing retains observations and resets dismissed review", async (
 });
 test("queue deduplicates per source, not across all sources", async () => {
   const c = collection();
-  assert.equal((await c.queue()).queued, 3);
+  assert.equal((await c.queue()).queued, 11);
   assert.equal((await c.queue()).queued, 0);
   await assert.rejects(c.queue("gem"));
 });
@@ -258,5 +258,53 @@ test("rotating CPPP transport links do not reset reviewed notice classification"
   assert.equal(
     (await db.query("SELECT count(*)::int n FROM notice_observation"))[0].n,
     1,
+  );
+});
+
+test("backfill refreshes recent notices without rewinding its saved cursor", async () => {
+  const requested: string[] = [];
+  const c = new Collection(
+    db,
+    async (u) => {
+      requested.push(u);
+      return u.includes("page=50")
+        ? raipur("Patient monitors", "tenders.php?page=51", "SYNTHETIC/OLDER")
+        : raipur("Patient monitors", "tenders.php?page=2", "SYNTHETIC/NEW");
+    },
+    0,
+    2,
+  );
+  await db.query("UPDATE source SET checkpoint=$2 WHERE id=$1", [
+    "aiims-raipur",
+    "https://www.aiimsraipur.edu.in/user/tenders.php?page=50",
+  ]);
+  await c.run("aiims-raipur");
+  assert.equal(requested.length, 2);
+  assert.match(requested[1], /page=50/);
+  assert.equal((await c.summary()).counts.notices, 2);
+  assert.match(
+    (await db.query("SELECT checkpoint FROM source WHERE id='aiims-raipur'"))[0]
+      .checkpoint,
+    /page=51/,
+  );
+});
+test("a failed recent-page refresh retains the historical checkpoint", async () => {
+  await db.query("UPDATE source SET checkpoint=$2 WHERE id=$1", [
+    "aiims-raipur",
+    "https://www.aiimsraipur.edu.in/user/tenders.php?page=50",
+  ]);
+  const c = new Collection(
+    db,
+    async () => {
+      throw new Error("SYNTHETIC recent page unavailable");
+    },
+    0,
+    2,
+  );
+  await assert.rejects(c.run("aiims-raipur"));
+  assert.match(
+    (await db.query("SELECT checkpoint FROM source WHERE id='aiims-raipur'"))[0]
+      .checkpoint,
+    /page=50/,
   );
 });

@@ -14,6 +14,8 @@ import { authenticated } from "../auth";
 import { db } from "../database";
 import { Collection } from "./service";
 import { getSource } from "./registry";
+import { NoticeDocuments } from "./document-fetch";
+const noticeDocuments = new NoticeDocuments(db);
 const collection = new Collection(db);
 function admin(req: any) {
   if (!authenticated(req.headers.cookie))
@@ -112,6 +114,26 @@ export class CollectionController {
       [id, b.enabled, b.intervalMinutes],
     );
     return { saved: true };
+  }
+  @Post("admin/collection/notices/:id/extract") async extract(
+    @Req() req: any,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    admin(req);
+    z.string().uuid().parse(id);
+    const b = z
+      .object({
+        expectedHash: z.string().regex(/^[a-f0-9]{64}$/),
+        documentIndex: z.number().int().min(0).max(999).default(0),
+      })
+      .strict()
+      .parse(body);
+    try {
+      return await noticeDocuments.queue(id, b.expectedHash, b.documentIndex);
+    } catch (e) {
+      throw new HttpException((e as Error).message, 409);
+    }
   }
   @Post("admin/collection/notices/:id/dismiss") async dismiss(
     @Req() req: any,

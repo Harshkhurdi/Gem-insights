@@ -4,7 +4,7 @@ A **new independent project** for understanding requested government procurement
 
 Implemented with Next.js App Router, TypeScript, Material UI, TanStack Query, NestJS, TypeORM and PostgreSQL. It has a separate durable worker and a database-backed taxonomy. It uses no external LLM or paid AI API.
 
-**Public-listing collection is now available for AIIMS Raipur, ICMR and CPPP.** Open **Tender Collection** to collect, filter and review notices into the existing analytics. The registry tracks targets across all 36 states/UTs; only these three adapters are automatic. See [local collection guide](docs/LOCAL_COLLECTION.md).
+**Public-listing collection now supports 11 profiles across CPPP central/state listings, AIIMS Raipur, ICMR, AIIMS Bilaspur, HLL and GMCH.** Open **Tender Collection** to collect, filter and review notices into the existing analytics. The registry tracks targets across all 36 states/UTs; the implemented profiles remain partial coverage. See the [national collection expansion](docs/NATIONAL_COLLECTION_EXPANSION.md) for source scope and linked GeM PDF extraction. See [local collection guide](docs/LOCAL_COLLECTION.md).
 
 **Live GeM scraping is disabled.** Public pages were reachable, but authorized bulk access and reproduction rights were not verified. Authorized CSV/JSON imports are the working ingestion path. See [source research](SOURCE_RESEARCH.md).
 
@@ -31,7 +31,7 @@ For an existing PostgreSQL instance, create a new `gem_intelligence` database an
 npm run build -w @gem/api
 npm run migrate
 npm run import:verified
-# Optional: load the 1,909 real listing discoveries for source review
+# Optional: load the 2,305 real listing discoveries for source review
 npm run import:discoveries
 npm run dev
 ```
@@ -76,7 +76,7 @@ Each page contains at most 1,000 complete bids / 5 MB. Cursors must advance. Che
 
 ## PDF document processing
 
-Administration now supports authorized PDF batches, local embedded text extraction, optional local OCR, page evidence, structured review and atomic approval/import. Content retention requires a separate permission. Apply `npm run migrate` after updating. The API and worker share a private `DOCUMENT_STORAGE_DIR`. See [PDF workflow](docs/PDF_WORKFLOW.md), [corpus status](data/golden-corpus.json), and the [GeM access request draft](docs/GEM_DATA_ACCESS_REQUEST.md). No document URL is fetched automatically.
+Administration now supports authorized PDF batches, local embedded text extraction, optional local OCR, page evidence, structured review and atomic approval/import. Content retention requires a separate permission. Apply `npm run migrate` after updating. The API and worker share a private `DOCUMENT_STORAGE_DIR`. See [PDF workflow](docs/PDF_WORKFLOW.md), [corpus status](data/golden-corpus.json), and the [GeM access request draft](docs/GEM_DATA_ACCESS_REQUEST.md). Collection downloads linked GeM PDFs only when the operator requests extraction; listing scans do not fetch document contents.
 
 `npm run documents:evaluate` (or the compatible `documents:accuracy`) evaluates independently approved corpus annotations against pinned extraction observations. It reports per-field precision/recall/F1, normalized exact match, missing/correction rates, explicit item matching, classification errors and processing samples/timing. Synthetic cases never establish real accuracy. Administration now supports a separate 50-document corpus checklist, side-by-side original review, individually staged batch approval and batches up to 500 PDFs / 2 GiB. See [Phase 3 workflow and metric definitions](docs/PHASE3_EVALUATION.md). Real-document accuracy remains **Not yet measured**: no authorized original corpus was supplied.
 

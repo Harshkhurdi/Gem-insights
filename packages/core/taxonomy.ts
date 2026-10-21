@@ -55,6 +55,11 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
   ],
   "Diagnostic Imaging": [
     [
+      "cbct",
+      "Cone beam CT systems",
+      ["cone beam computed tomography", "cone beam ct", "cbct"],
+    ],
+    [
       "fluoroscopy",
       "Fluoroscopy systems",
       ["fluoroscopy system", "fluoroscopy machine"],

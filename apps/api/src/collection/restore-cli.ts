@@ -5,7 +5,7 @@ import { z } from "zod";
 import { connect, db } from "../database";
 import { Collection } from "./service";
 import { getSource } from "./registry";
-import { noticeClassification } from "./parsers";
+import { noticeClassification, noticeKey } from "./parsers";
 import { stateName } from "../../../../packages/core/domain";
 const link = z
   .string()
@@ -44,7 +44,15 @@ async function main() {
       version: z.literal(1),
       collectedAt: z.string().datetime(),
       records: z
-        .array(z.object({ source_id: z.string(), raw: notice }).strict())
+        .array(
+          z
+            .object({
+              source_id: z.string(),
+              raw: notice,
+              observedAt: z.string().datetime().optional(),
+            })
+            .strict(),
+        )
         .max(20000),
     })
     .passthrough()
@@ -63,12 +71,20 @@ async function main() {
     for (const sourceId of [
       ...new Set(snapshot.records.map((r) => r.source_id)),
     ]) {
-      const records = snapshot.records
-        .filter((r) => r.source_id === sourceId)
-        .map((r) => ({
-          ...r.raw,
-          ...noticeClassification(r.raw.title, rules),
-        }));
+      const sourceRecords = snapshot.records.filter(
+        (r) => r.source_id === sourceId,
+      );
+      const observedTimes = new Map(
+        sourceRecords.map((r) => [
+          noticeKey(getSource(sourceId), r.raw.bidNumber, r.raw.url),
+          r.observedAt || snapshot.collectedAt,
+        ]),
+      );
+      const records = sourceRecords.map((r) => ({
+        ...r.raw,
+        key: noticeKey(getSource(sourceId), r.raw.bidNumber, r.raw.url),
+        ...noticeClassification(r.raw.title, rules),
+      }));
       const runId = randomUUID();
       await db.transaction(async (m) => {
         await m.query("SELECT pg_advisory_xact_lock(17924003,hashtext($1))", [
@@ -87,21 +103,31 @@ async function main() {
           "SELECT external_key,last_seen FROM discovered_notice WHERE source_id=$1",
           [sourceId],
         );
-        const recentKeys = new Set(
-          existing
-            .filter(
-              (n: any) =>
-                new Date(n.last_seen) > new Date(snapshot.collectedAt),
-            )
-            .map((n: any) => n.external_key),
+        const existingTimes = new Map(
+          existing.map((n: any) => [
+            n.external_key,
+            new Date(n.last_seen).getTime(),
+          ]),
         );
-        const eligible = records.filter((n) => !recentKeys.has(n.key));
+        const eligible = records.filter(
+          (n) =>
+            Number(existingTimes.get(n.key) || 0) <=
+            new Date(observedTimes.get(n.key)!).getTime(),
+        );
         const stats = await collection.store(m, sourceId, runId, eligible);
         stats.unchanged += records.length - eligible.length;
         if (eligible.length)
           await m.query(
-            "UPDATE discovered_notice SET last_seen=$3,first_seen=LEAST(first_seen,$3::timestamptz) WHERE source_id=$1 AND external_key=ANY($2::text[])",
-            [sourceId, eligible.map((n) => n.key), snapshot.collectedAt],
+            "UPDATE discovered_notice n SET last_seen=t.observed_at,first_seen=LEAST(n.first_seen,t.observed_at) FROM jsonb_to_recordset($2::jsonb) AS t(external_key text,observed_at timestamptz) WHERE n.source_id=$1 AND n.external_key=t.external_key",
+            [
+              sourceId,
+              JSON.stringify(
+                eligible.map((n) => ({
+                  external_key: n.key,
+                  observed_at: observedTimes.get(n.key),
+                })),
+              ),
+            ],
           );
         inserted += stats.inserted;
         updated += stats.updated;

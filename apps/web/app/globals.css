@@ -1546,3 +1546,13 @@ footer i {
     grid-template-columns: 1fr;
   }
 }
+.collection-draft-preview {
+  max-height: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  background: #f3f6fb;
+  padding: 14px;
+  border-radius: 8px;
+}

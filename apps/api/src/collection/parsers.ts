@@ -1,7 +1,14 @@
 import { load } from "cheerio";
-import { digest, classify, Rule } from "../../../../packages/core/domain";
+import { publicLink } from "./links";
+import {
+  digest,
+  classify,
+  Rule,
+  stateName,
+} from "../../../../packages/core/domain";
 import { taxonomy } from "../../../../packages/core/taxonomy";
 import { SourceDefinition } from "./registry";
+import { tableMatches, gmchNoticeLinks } from "./institution-parsers";
 export interface Notice {
   key: string;
   bidNumber: string | null;
@@ -67,7 +74,7 @@ export function noticeClassification(
     .map((r) => r.id);
   const medical =
     !!products.length ||
-    /\b(medical|hospital|surgical|diagnostic|laboratory|healthcare|equipment|analy[sz]er|incubator|dialysis|ophthalmic|dental)\b/i.test(
+    /\b(medical|hospital|surgical|diagnostic|laboratory|healthcare|equipment|analy[sz]er|incubator|dialysis|ophthalmic|dental|cbct|tomography|laser|psychiatr\w*|orthop\w*|patholog\w*|nephro\w*|physio\w*|oncolog\w*|cardio\w*|neurolog\w*)\b/i.test(
       title,
     );
   return {
@@ -78,26 +85,28 @@ export function noticeClassification(
       : c.reason,
   };
 }
-export function publicLink(href: string | undefined, base: string) {
-  if (!href) return null;
-  try {
-    const u = new URL(href, base);
-    return /^https?:$/.test(u.protocol) && !u.username && !u.password
-      ? u.href
-      : null;
-  } catch {
-    return null;
-  }
-}
+export { publicLink } from "./links";
 export function pageAllowed(url: string, source: SourceDefinition) {
   const u = new URL(url),
     base = new URL(source.url);
   return (
     u.origin === base.origin &&
-    u.pathname === base.pathname &&
+    (u.pathname === base.pathname ||
+      (source.adapter === "hll" &&
+        /^\/tender\/index\/p\/\d+\/?$/.test(u.pathname))) &&
     !u.username &&
     !u.password
   );
+}
+export function noticeKey(
+  source: SourceDefinition,
+  reference: string | null,
+  url: string,
+) {
+  // CPPP uses rotating link tokens, but its tender ID is stable. Other sources
+  // can reuse a file/reference number for several different notice documents.
+  if (source.adapter === "cppp" && reference) return reference;
+  return reference ? reference + "#" + digest(url).slice(0, 20) : digest(url);
 }
 export function parseListing(
   html: string,
@@ -112,13 +121,32 @@ export function parseListing(
   const table = $("table")
     .filter((_, el) => {
       const headers = clean($(el).find("th").text());
-      return source.adapter === "raipur"
-        ? /Tender.No./i.test(headers) && /Publishing Date/.test(headers)
-        : source.adapter === "icmr"
-          ? /Title/.test(headers) && /Last Date/.test(headers)
-          : /Title\/Ref.No./.test(headers) && /Organisation Name/.test(headers);
+      return tableMatches(headers, source.adapter);
     })
     .first();
+  if (source.adapter === "gmch-notices") {
+    const links = gmchNoticeLinks(html, pageUrl);
+    if (!links.length)
+      throw new Error(
+        "Procurement content yielded no document links; layout may have changed",
+      );
+    return {
+      notices: links.map(({ title, url }) => ({
+        key: noticeKey(source, null, url),
+        bidNumber: null,
+        portal: source.portal,
+        title: title.slice(0, 2000),
+        url,
+        documents: [url],
+        publishedAt: null,
+        closingDate: null,
+        buyer: source.buyerName || source.name,
+        state: source.states[0] || null,
+        ...noticeClassification(title, classificationRules),
+      })),
+      next: null,
+    };
+  }
   if (!table.length)
     throw new Error(
       "Expected tender table missing; layout changed or access blocked",
@@ -130,14 +158,16 @@ export function parseListing(
       ref = "",
       publishedAt: string | null = null,
       closingDate: string | null = null,
-      buyer: string | null = null;
+      buyer: string | null = null,
+      explicitState: string | null =
+        source.states.length === 1 ? source.states[0] : null;
     let primary: string | null = null;
     if (source.adapter === "raipur" && cells.length >= 6) {
       ref = clean(cells.eq(1).text());
       title = clean(cells.eq(2).text());
       publishedAt = listingDate(cells.eq(3).text());
       closingDate = listingDate(cells.eq(4).text());
-      buyer = source.name;
+      buyer = source.buyerName || source.name;
       primary = publicLink(
         cells.eq(5).find("a[href]").first().attr("href"),
         pageUrl,
@@ -157,9 +187,43 @@ export function parseListing(
         )?.[1] || "";
       publishedAt = listingDate(cells.eq(1).text());
       closingDate = listingDate(cells.eq(2).text());
-      buyer = clean(cells.eq(5).text()) || null;
+      if (/State Name/.test(clean(table.find("th").text()))) {
+        try {
+          explicitState = stateName(clean(cells.eq(5).text()));
+        } catch {
+          explicitState = null;
+        }
+      } else buyer = clean(cells.eq(5).text()) || null;
       primary = publicLink(
         cells.eq(4).find("a[href]").first().attr("href"),
+        pageUrl,
+      );
+    }
+    if (source.adapter === "bilaspur" && cells.length >= 8) {
+      ref = clean(cells.eq(1).text());
+      title = clean(cells.eq(2).text());
+      // "Start Date" is not evidence of the actual publication date.
+      closingDate =
+        listingDate(cells.eq(6).text()) || listingDate(cells.eq(5).text());
+      buyer = source.buyerName || source.name;
+      primary = publicLink(
+        cells.eq(7).find("a[href]").first().attr("href"),
+        pageUrl,
+      );
+    } else if (source.adapter === "hll" && cells.length >= 4) {
+      title = clean(cells.eq(1).text());
+      ref = clean(cells.eq(2).text());
+      buyer = source.name;
+      primary = publicLink(
+        cells.eq(1).find("a[href]").first().attr("href"),
+        pageUrl,
+      );
+    } else if (source.adapter === "gmch" && cells.length >= 4) {
+      title = clean(cells.eq(1).text());
+      closingDate = listingDate(cells.eq(3).text());
+      buyer = source.name;
+      primary = publicLink(
+        cells.eq(2).find("a[href]").first().attr("href"),
         pageUrl,
       );
     }
@@ -178,10 +242,7 @@ export function parseListing(
       ),
     ];
     notices.push({
-      key:
-        source.adapter === "icmr"
-          ? digest(primary)
-          : gem || ref || digest(primary),
+      key: noticeKey(source, gem || ref || null, primary),
       bidNumber: gem || ref || null,
       portal: gem ? "gem" : source.portal,
       title: title.slice(0, 2000),
@@ -190,13 +251,15 @@ export function parseListing(
       publishedAt,
       closingDate,
       buyer,
-      state: source.states.length === 1 ? source.states[0] : null,
+      state: explicitState,
       ...noticeClassification(title, classificationRules),
     });
   });
   if (
     !notices.length &&
-    !/no (?:records|tenders|data)\s*(?:found|available)/i.test(table.text())
+    !/(?:no (?:records|tenders|data)\s*(?:found|available)|currently (?:tenders?|tender archives) are not available)/i.test(
+      table.text(),
+    )
   )
     throw new Error(
       "Tender table yielded no records; collection not marked successful",
@@ -205,10 +268,13 @@ export function parseListing(
     .filter(
       (_, a) =>
         /^(next\s*(?:[›»>]|page)?|[›»])$/i.test(clean($(a).text())) ||
-        $(a).attr("rel") === "next",
+        $(a).attr("rel") === "next" ||
+        $(a).parent().hasClass("pager__item--next"),
     )
     .first();
   const next = publicLink(nextAnchor.attr("href"), pageUrl);
+  if (nextAnchor.length && (!next || !pageAllowed(next, source)))
+    throw new Error("Unsupported pagination link; collection incomplete");
   if (next && pageAllowed(next, source) && next === pageUrl)
     throw new Error("Non-advancing pagination link; collection incomplete");
   return {

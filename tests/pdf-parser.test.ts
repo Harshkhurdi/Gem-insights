@@ -266,3 +266,22 @@ test("SYNTHETIC PDF glyph positions reconstruct rows and columns in reading orde
     { cells: ["Patient monitor", "15"] },
   ]);
 });
+
+test("global GeM placeholder category is not an equipment line and bilingual dated labels parse", () => {
+  const pages = [
+    {
+      page: 1,
+      method: "embedded" as const,
+      readable: true,
+      text: "SYNTHETIC TEST ONLY\nBid Number: GEM/2026/B/9990002\nअमान्य / Dated : 15-10-2026\nItem Category GlobalTenderCategory (Q3)\nCone Beam CT system for craniofacial\nअमान्य /Global Tender Title\nimaging on Turnkey Basis\nMinimum Average Annual Turnover: 50 Lakh\nTechnical Specifications\nCapacity: 100\nBid End Date/Time 05-11-2026 11:00:00",
+    },
+  ];
+  const r = extractTender(pages, "https://example.org/synthetic", rules);
+  assert.equal(r.record.publishedAt, "2026-10-15");
+  assert.equal(
+    r.record.title,
+    "Cone Beam CT system for craniofacial imaging on Turnkey Basis",
+  );
+  assert.equal(r.record.items.length, 0);
+  assert.ok(r.warnings.some((w) => /category ignored/.test(w)));
+});
