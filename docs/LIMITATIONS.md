@@ -1,3 +1,7 @@
+# Collection update
+
+Public listing adapters now support AIIMS Raipur, ICMR and CPPP. The 52-source registry includes all 36 state/UT targets, but three adapters do not establish national coverage. Discoveries are separate from reviewed equipment quantities. Native-reference imports and manual source review work; automatic extraction remains focused on GeM-format documents. See [LOCAL_COLLECTION.md](LOCAL_COLLECTION.md) for exact current behavior. Earlier limitations below remain relevant where not superseded.
+
 # Known limitations
 
 Phase 3 adds independent corpus annotations/metrics, conservative text-table reconstruction, local original preview, large batches and data-quality reporting. See [methodology and exact remaining boundaries](PHASE3_EVALUATION.md). The 50-original corpus target remains pending, real accuracy/throughput is unmeasured, native OCR tools were unavailable, and production deployment/load testing has not been performed. Existing 92 tests remain regression coverage, not real-document accuracy evidence.

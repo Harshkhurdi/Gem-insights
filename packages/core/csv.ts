@@ -39,6 +39,7 @@ export function csvToTenders(s: string) {
   const bids = new Map<string, any>();
   for (const r of rows) {
     const base = {
+      sourcePortal: r.sourcePortal || "gem",
       bidNumber: r.bidNumber,
       title: r.title,
       sourceUrl: r.sourceUrl,
@@ -53,10 +54,11 @@ export function csvToTenders(s: string) {
         district: r.buyerDistrict || null,
       },
     };
-    let t = bids.get(r.bidNumber);
+    const identity = base.sourcePortal + ":" + r.bidNumber;
+    let t = bids.get(identity);
     if (!t) {
       t = { ...base, items: [] };
-      bids.set(r.bidNumber, t);
+      bids.set(identity, t);
     } else {
       const { items, ...existing } = t;
       if (JSON.stringify(existing) !== JSON.stringify(base))

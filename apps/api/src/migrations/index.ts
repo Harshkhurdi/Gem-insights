@@ -4,6 +4,8 @@ import { DocumentReview1792406000000 } from "./document-review";
 import { DocumentAudit1792407000000 } from "./document-audit";
 import { Evaluation1792408000000 } from "./evaluation";
 import { EvaluationAttempt1792408100000 } from "./evaluation-attempt";
+import { Collection1792409000000 } from "./collection";
+import { TaxonomyExpansion1792409100000 } from "./taxonomy-expansion";
 export const migrations = [
   Initial1792400000000,
   Documents1792405000000,
@@ -11,4 +13,6 @@ export const migrations = [
   DocumentAudit1792407000000,
   Evaluation1792408000000,
   EvaluationAttempt1792408100000,
+  Collection1792409000000,
+  TaxonomyExpansion1792409100000,
 ];

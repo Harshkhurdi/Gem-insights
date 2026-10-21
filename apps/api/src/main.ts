@@ -18,6 +18,7 @@ import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { connect, db } from "./database";
 import { Analytics, filterSchema } from "./analytics";
+import { CollectionController } from "./collection/controller";
 import { DocumentController } from "./documents/controller";
 import { Ingestion } from "./ingestion";
 import { authenticated, configured, validKey, session } from "./auth";
@@ -362,7 +363,7 @@ class Api {
     return { jobId: id };
   }
 }
-@Module({ controllers: [Api, DocumentController] })
+@Module({ controllers: [Api, DocumentController, CollectionController] })
 class App {}
 async function bootstrap() {
   await connect();

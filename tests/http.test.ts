@@ -1,3 +1,5 @@
+import { Collection } from "../apps/api/src/collection/service";
+import { raipur } from "./collection-fixtures";
 import { migrations } from "../apps/api/src/migrations";
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -26,6 +28,7 @@ let server: ChildProcess,
 const env = {
   ...process.env,
   DATABASE_URL: url,
+  COLLECTION_ENABLED: "false",
   PORT: "4511",
   WEB_ORIGIN: origin,
   ADMIN_KEY: key,
@@ -60,7 +63,7 @@ before(async () => {
   await db.initialize();
   await db.runMigrations();
   await db.query(
-    "TRUNCATE tender,organization,collection_run,job,analytics_snapshot CASCADE",
+    "TRUNCATE discovered_notice,tender,organization,collection_run,job,analytics_snapshot CASCADE",
   );
   server = spawn(process.execPath, ["apps/api/dist/apps/api/src/main.js"], {
     env,
@@ -295,6 +298,94 @@ test("SYNTHETIC unenrolled document returns JSON null for corpus editor", async 
   const r = await request("admin/documents/" + d.id + "/corpus");
   assert.equal(r.status, 200);
   assert.equal(await r.json(), null);
+});
+test("collection routes validate filters, authorization and supported sources", async () => {
+  assert.equal((await request("admin/collection/run", {}, false)).status, 401);
+  assert.equal(
+    (
+      await request(
+        "admin/collection/run",
+        {},
+        true,
+        "https://untrusted.example",
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (await request("admin/collection/run", { sourceId: "gem" })).status,
+    409,
+  );
+  assert.equal(
+    (await request("admin/collection/run", { sourceId: "unknown" })).status,
+    404,
+  );
+  assert.equal((await request("collection/notices?page=0")).status, 400);
+  const summary = await (await request("collection")).json();
+  assert.equal(summary.states.length, 36);
+  assert.equal(summary.nationalCompleteness, null);
+});
+test("reviewed collected native reference reaches existing analytics through HTTP", async () => {
+  const collection = new Collection(db, async () => raipur(), 0);
+  await collection.run("aiims-raipur");
+  const notice = (await collection.notices({ page: 1, source: "aiims-raipur" }))
+    .rows[0];
+  assert.equal(
+    (await request("admin/collection/notices/" + notice.id, undefined, false))
+      .status,
+    401,
+  );
+  const detail = await (
+    await request("admin/collection/notices/" + notice.id)
+  ).json();
+  assert.equal(detail.currentTender, null);
+  const body = {
+    expectedHash: notice.current_hash,
+    expectedTenderHash: null,
+    reason: "SYNTHETIC source pages reviewed",
+    reviewedOriginal: true,
+    completeSnapshot: true,
+    record: {
+      sourcePortal: "institution",
+      bidNumber: notice.bid_number,
+      title: notice.title,
+      sourceUrl: notice.source_url,
+      buyer: {
+        key: "HTTP-COLLECTION-TEST",
+        name: "SYNTHETIC collection hospital",
+        state: "Chhattisgarh",
+      },
+      items: [
+        {
+          key: "one",
+          name: "Patient monitors",
+          quantity: "4",
+          unit: "pieces",
+          evidence: "SYNTHETIC source page 1",
+        },
+      ],
+    },
+  };
+  assert.equal(
+    (
+      await request("admin/collection/notices/" + notice.id + "/approve", {
+        ...body,
+        reviewedOriginal: false,
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (await request("admin/collection/notices/" + notice.id + "/approve", body))
+      .status,
+    201,
+  );
+  assert.equal((await (await request("collection")).json()).counts.approved, 1);
+  assert.equal(
+    (await request("admin/collection/notices/" + notice.id + "/approve", body))
+      .status,
+    409,
+  );
 });
 test("logout invalidates browser cookie", async () => {
   const r = await request("auth/logout", {});
