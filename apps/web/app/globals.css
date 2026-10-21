@@ -526,7 +526,7 @@ h1 {
 .history {
   padding: 5px 20px 14px;
 }
-.history svg {
+.history > svg {
   display: block;
   width: 100%;
   max-height: 270px;
@@ -1279,7 +1279,7 @@ footer i {
   .history {
     padding: 0 5px 15px;
   }
-  .history svg {
+  .history > svg {
     min-height: 170px;
   }
   .legend {
