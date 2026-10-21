@@ -5,6 +5,7 @@ import { migrations } from "../apps/api/src/migrations";
 import { Collection } from "../apps/api/src/collection/service";
 import { Analytics, filterSchema } from "../apps/api/src/analytics";
 import { Ingestion } from "../apps/api/src/ingestion";
+import { digest } from "../packages/core/domain";
 import { raipur, icmr, cppp } from "./collection-fixtures";
 const url = process.env.TEST_DATABASE_URL;
 if (!url || !new URL(url).pathname.endsWith("_test"))
@@ -320,8 +321,8 @@ test("institution coverage migration refreshes candidates while preserving decis
     reason: "SYNTHETIC legacy unmatched",
   };
   await db.query(
-    "UPDATE discovered_notice SET raw=$2,medical_candidate=false,review_status='dismissed',review_reason='SYNTHETIC operator decision',last_seen='2026-10-19T00:00:00Z' WHERE id=$1",
-    [n.id, JSON.stringify(raw)],
+    "UPDATE discovered_notice SET raw=$2,current_hash=$3,medical_candidate=false,review_status='dismissed',review_reason='SYNTHETIC operator decision',last_seen='2026-10-19T00:00:00Z' WHERE id=$1",
+    [n.id, JSON.stringify(raw), digest(raw)],
   );
   await db.query(
     "UPDATE source SET enabled=false,checkpoint='https://www.icmr.gov.in/tenders?page=2' WHERE id='icmr'",
