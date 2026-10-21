@@ -8,6 +8,7 @@ import { Collection1792409000000 } from "./collection";
 import { TaxonomyExpansion1792409100000 } from "./taxonomy-expansion";
 import { CollectionExpansion1792410000000 } from "./collection-expansion";
 import { InstitutionCoverage1792411000000 } from "./institution-coverage";
+import { MainInsights1792412000000 } from "./main-insights";
 export const migrations = [
   Initial1792400000000,
   Documents1792405000000,
@@ -19,4 +20,5 @@ export const migrations = [
   TaxonomyExpansion1792409100000,
   CollectionExpansion1792410000000,
   InstitutionCoverage1792411000000,
+  MainInsights1792412000000,
 ];

@@ -68,7 +68,11 @@ test("linked original PDF queues once and extracts real fields locally before an
   assert.equal(detail.extractedDocuments[0].status, "review");
   assert.equal(detail.extractedDocuments[0].draft_record.items.length, 1);
   assert.equal(
-    (await new Analytics(db).overview(filterSchema.parse({}))).tenders,
+    (
+      await new Analytics(db).overview(
+        filterSchema.parse({ evidence: "reviewed" }),
+      )
+    ).tenders,
     0,
   );
   assert.equal(

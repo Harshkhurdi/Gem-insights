@@ -2,7 +2,7 @@
 import CollectionView from "./components/collection";
 import DocumentAdmin from "./components/document-admin";
 import { EvaluationMetrics } from "./components/corpus-admin";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   QueryClient,
   QueryClientProvider,
@@ -115,12 +115,12 @@ const timestamp = (d: any) =>
         timeZone: "Asia/Kolkata",
       }).format(new Date(d)) + " IST"
     : "No successful update";
-const units = (q: any) =>
-  q
-    ? Object.entries(q)
-        .map(([u, v]) => `${number(v)} ${u}`)
-        .join(" · ")
+const units = (q: any) => {
+  const known = Object.entries(q || {}).filter(([, v]) => v != null);
+  return known.length
+    ? known.map(([u, v]) => `${number(v)} ${u}`).join(" · ")
     : "Unknown";
+};
 const nav = [
   ["Overview", LayoutDashboard],
   ["Medical Equipment", Stethoscope],
@@ -255,10 +255,33 @@ function HistoryChart({
 }) {
   const series = useMemo(() => {
     const periods = [...new Set(rows.map((r) => r.period))].sort() as string[];
-    const names = [...new Set(rows.map((r) => r.product_name))] as string[];
+    const available = [...new Set(rows.map((r) => r.product_name))] as string[];
+    const score = (name: string) =>
+      rows
+        .filter((r) => r.product_name === name)
+        .reduce(
+          (sum, r) =>
+            sum +
+            Number(
+              metric === "tenders" ? r.tenders : r.quantities?.[unit] || 0,
+            ),
+          0,
+        );
+    const eligible =
+      metric === "tenders"
+        ? available
+        : available.filter((name) =>
+            rows.some(
+              (r) => r.product_name === name && r.quantities?.[unit] != null,
+            ),
+          );
+    const names = eligible
+      .sort((a, b) => score(b) - score(a) || a.localeCompare(b))
+      .slice(0, 5);
     return {
       periods,
       names,
+      limited: eligible.length > names.length,
       points: names.map((name) => ({
         name,
         values: periods.map((p) => {
@@ -281,6 +304,13 @@ function HistoryChart({
     return (
       <Empty text="No publication-dated records for this period. No trend has been inferred." />
     );
+  if (
+    metric === "units" &&
+    !series.points.some((p) => p.values.some((v) => v != null))
+  )
+    return (
+      <Empty text="No extracted quantities for these records. Use notice frequency or reviewed item data." />
+    );
   const x = (i: number) =>
     64 + (i / Math.max(1, series.periods.length - 1)) * 650;
   const y = (v: number) => 200 - (v / max) * 160;
@@ -296,7 +326,7 @@ function HistoryChart({
       <svg
         viewBox="0 0 770 250"
         role="img"
-        aria-label={`${metric === "tenders" ? "Tender count" : unit} by publication period; missing periods have no plotted observations`}
+        aria-label={`${metric === "tenders" ? "Notice count" : unit} by publication period; missing periods have no plotted observations`}
       >
         {[0, 0.25, 0.5, 0.75, 1].map((t) => (
           <g key={t}>
@@ -389,7 +419,10 @@ function HistoryChart({
         ))}
       </div>
       <p className="fine">
-        Publication dates · Gaps are unobserved, not zero demand.{" "}
+        {series.limited &&
+          "Showing the five largest series. Select products in Demand Trends for a focused comparison. "}
+        Recorded publication dates · Undated notices are excluded. Gaps are
+        unobserved, not zero demand.{" "}
         {metric === "units" ? "Quantities are shown in " + unit + "." : ""}
       </p>
     </div>
@@ -562,7 +595,11 @@ function Dashboard() {
   const client = useQueryClient();
   const [view, setView] = useState("Overview"),
     [mobile, setMobile] = useState(false);
-  const [f, setF] = useState<Record<string, string>>({ basis: "buyer" }),
+  const [f, setF] = useState<Record<string, string>>({
+      basis: "buyer",
+      evidence: "all",
+      medical: "true",
+    }),
     [search, setSearch] = useState(""),
     [page, setPage] = useState(1),
     [detail, setDetail] = useState<string | null>(null),
@@ -591,6 +628,30 @@ function Dashboard() {
     queryFn: () => api("coverage"),
     refetchInterval: 10000,
   });
+  const lastObservedCheck = useRef<string | null>(null);
+  useEffect(() => {
+    const checked = coverage.data?.total.checked;
+    if (!checked) return;
+    if (lastObservedCheck.current && lastObservedCheck.current !== checked) {
+      client.invalidateQueries({
+        predicate: (q) =>
+          [
+            "overview",
+            "products",
+            "states",
+            "buyers",
+            "categories",
+            "trends",
+            "growth",
+            "tenders",
+            "districts",
+            "state-comparisons",
+            "tender",
+          ].includes(String(q.queryKey[0])),
+      });
+    }
+    lastObservedCheck.current = checked;
+  }, [coverage.data?.total.checked, client]);
   const stats = useQuery({
     queryKey: ["overview", params],
     queryFn: () => api("overview?" + params),
@@ -664,10 +725,11 @@ function Dashboard() {
       filters: params,
       collectedAt: coverage.data?.total.checked || "unknown",
       exportedAt: new Date().toISOString(),
-      source: "Reviewed official tender records / imports",
+      source: "Collected official listings and reviewed item records",
+      evidence: f.evidence || "all",
       coverage: "Partial; national denominator unknown",
       definitions:
-        "Tender counts are distinct bids; quantities are requested units by unit; values are explicit estimates, not awards; unknowns remain blank.",
+        "Observed notice counts group known bid references and repeated document links. Listing product matches are provisional. Quantities and estimates come only from item records; unknowns remain blank.",
     });
     const url = URL.createObjectURL(
       new Blob([data], { type: "text/csv;charset=utf-8;" }),
@@ -684,7 +746,7 @@ function Dashboard() {
         <Table
           heads={[
             "Product / family",
-            "Tenders",
+            "Notices",
             "Requested quantity",
             "Buyers",
             "Top buyer state",
@@ -692,7 +754,10 @@ function Dashboard() {
             "",
           ]}
         >
-          {products.data.map((p: any) => (
+          {(view === "Overview"
+            ? products.data.slice(0, 10)
+            : products.data
+          ).map((p: any) => (
             <tr key={p.product_id}>
               <td>
                 <button
@@ -704,6 +769,11 @@ function Dashboard() {
                   {p.product_name}
                 </button>
                 <small>{p.category}</small>
+                {p.listing_signals > 0 && (
+                  <small>
+                    {p.listing_signals} title-based signals included
+                  </small>
+                )}
               </td>
               <td className="numeric">
                 <button
@@ -717,7 +787,8 @@ function Dashboard() {
                 {units(p.quantities)}
                 {p.missing_quantity_lines > 0 && (
                   <small>
-                    {p.missing_quantity_lines} lines with unknown quantities
+                    {p.missing_quantity_lines} item/title records with unknown
+                    quantities
                   </small>
                 )}
               </td>
@@ -726,7 +797,7 @@ function Dashboard() {
               <td>
                 {money(p.known_value)}
                 <small>
-                  {p.valued_lines} / {p.lines} lines valued
+                  {p.valued_lines} / {p.lines} item/title records valued
                 </small>
               </td>
               <td>
@@ -752,10 +823,10 @@ function Dashboard() {
         <>
           <Table
             heads={[
-              "Bid / original title",
+              "Notice / original title",
               "Buyer / state",
               "Publication",
-              "Requested items",
+              "Equipment / item evidence",
               "Estimate",
               "Status",
             ]}
@@ -764,9 +835,17 @@ function Dashboard() {
               <tr key={t.id}>
                 <td>
                   <button className="text-link" onClick={() => setDetail(t.id)}>
-                    {t.bid_number}
+                    {t.bid_number || "Listing notice"}
                   </button>
                   <small className="wide-text">{t.title}</small>
+                  <Chip
+                    size="small"
+                    label={
+                      t.evidence_level === "listing"
+                        ? "Listing · item data unverified"
+                        : "Reviewed item record"
+                    }
+                  />
                 </td>
                 <td>
                   {t.buyer_name}
@@ -776,7 +855,10 @@ function Dashboard() {
                 <td>
                   {t.items.map((i: any) => (
                     <small key={i.id}>
-                      {i.name} · {number(i.quantity)} {i.unit}
+                      {t.evidence_level === "listing"
+                        ? i.product ||
+                          "Original title; equipment not identified"
+                        : `${i.name} · ${number(i.quantity)} ${i.unit}`}
                     </small>
                   ))}
                 </td>
@@ -789,7 +871,7 @@ function Dashboard() {
           </Table>
           <div className="pagination">
             <span>
-              {tenders.data.total} unique tenders · page {page}
+              {tenders.data.total} observed records · page {page}
             </span>
             <Button disabled={page === 1} onClick={() => setPage(page - 1)}>
               Previous
@@ -811,7 +893,7 @@ function Dashboard() {
     <Table
       heads={[
         "State / union territory",
-        "Tenders",
+        "Notices",
         "Requested quantity",
         "Buyers",
         "",
@@ -853,7 +935,7 @@ function Dashboard() {
           heads={[
             "Organization",
             "Buyer state",
-            "Tenders",
+            "Notices",
             "Products",
             "Known tender value",
           ]}
@@ -1038,11 +1120,31 @@ function Dashboard() {
               <div className="filters">
                 <TextField
                   select
+                  label="Data included"
+                  value={f.evidence || "all"}
+                  onChange={(e) => change("evidence", e.target.value)}
+                >
+                  <MenuItem value="all">All collected notices</MenuItem>
+                  <MenuItem value="reviewed">Reviewed item records</MenuItem>
+                  <MenuItem value="listing">Listing signals</MenuItem>
+                </TextField>
+                <TextField
+                  select
+                  label="Procurement scope"
+                  value={f.medical || ""}
+                  onChange={(e) => change("medical", e.target.value)}
+                >
+                  <MenuItem value="true">Medical / clinical signals</MenuItem>
+                  <MenuItem value="">All procurement notices</MenuItem>
+                  <MenuItem value="false">Other procurement</MenuItem>
+                </TextField>
+                <TextField
+                  select
                   label="Location basis"
                   value={f.basis}
                   onChange={(e) => change("basis", e.target.value)}
                 >
-                  <MenuItem value="buyer">Buyer location</MenuItem>
+                  <MenuItem value="buyer">Buyer / publisher location</MenuItem>
                   <MenuItem value="delivery">Confirmed delivery</MenuItem>
                 </TextField>
                 <TextField
@@ -1095,7 +1197,7 @@ function Dashboard() {
                   value={f.source || ""}
                   onChange={(e) => change("source", e.target.value)}
                 >
-                  <MenuItem value="">All reviewed tenders</MenuItem>
+                  <MenuItem value="">All acquisition sources</MenuItem>
                   {coverage.data?.sources.map((s: any) => (
                     <MenuItem key={s.id} value={s.id}>
                       {s.name}
@@ -1118,7 +1220,7 @@ function Dashboard() {
                 />
                 <Button
                   onClick={() => {
-                    setF({ basis: "buyer" });
+                    setF({ basis: "buyer", evidence: "all", medical: "true" });
                     setSearch("");
                     setCompare([]);
                     setPage(1);
@@ -1127,6 +1229,22 @@ function Dashboard() {
                   Reset
                 </Button>
               </div>
+            )}
+            {![
+              "Administration",
+              "Data Coverage",
+              "Tender Collection",
+              "Categories",
+            ].includes(view) && (
+              <Alert severity="info" className="insight-evidence-note">
+                {number(stats.data?.listing_notices || 0)} listing records and{" "}
+                {number(stats.data?.reviewed_tenders || 0)} reviewed item
+                records in these filters. Collected notices appear immediately.
+                Title matches are provisional; quantities and values use item
+                records only. Known bid references and repeated document links
+                are grouped; amendments and unknown references can still
+                overlap.
+              </Alert>
             )}
             {stats.isLoading && (
               <div className="loading">
@@ -1139,23 +1257,23 @@ function Dashboard() {
                 <div className="section-meta">
                   <span>
                     <i className="blue-dot" />
-                    COLLECTED DATASET
+                    COLLECTED NOTICE INSIGHTS
                   </span>
                   <small>Last checked: {timestamp(last)}</small>
                 </div>
                 <div className="kpis">
                   {[
                     {
-                      label: "Unique tenders",
+                      label: "Observed notices",
                       value: stats.data?.tenders,
-                      sub: "All collected categories",
+                      sub: "Collected listings and item records",
                       click: () => go("Tender Explorer"),
                       icon: Files,
                     },
                     {
-                      label: "Equipment tenders",
+                      label: "Medical signals",
                       value: stats.data?.medical_tenders,
-                      sub: "Distinct medical equipment bids",
+                      sub: "Equipment and clinical title matches",
                       click: () => go("Medical Equipment"),
                       icon: Stethoscope,
                     },
@@ -1167,9 +1285,9 @@ function Dashboard() {
                       icon: Boxes,
                     },
                     {
-                      label: "Active buyers",
+                      label: "Observed buyers",
                       value: stats.data?.buyers,
-                      sub: "Institutions in selected records",
+                      sub: "Known buyers / publishing institutions",
                       click: () => go("Buyer Intelligence"),
                       icon: Building2,
                     },
@@ -1197,8 +1315,8 @@ function Dashboard() {
                 </div>
                 <div className="grid-two">
                   <Panel
-                    title="Most requested equipment"
-                    sub="Ranked by unique tender count"
+                    title="Equipment notice signals"
+                    sub="Ranked by observed notice count; title matches included"
                     action={
                       <button
                         className="panel-link"
@@ -1223,7 +1341,7 @@ function Dashboard() {
                     title="Where demand originates"
                     sub={
                       f.basis === "buyer"
-                        ? "Buyer location · distinct equipment tenders"
+                        ? "Buyer / publisher location · observed medical notices"
                         : "Confirmed delivery locations · distinct equipment tenders"
                     }
                     action={
@@ -1264,7 +1382,7 @@ function Dashboard() {
                 </Panel>
                 <Panel
                   title="Product demand rankings"
-                  sub="Tender frequency and equipment quantity are different measures"
+                  sub="Top 10 product families. Open All products for the full ranking. Notice frequency and equipment quantity are different measures."
                   action={
                     <Button
                       size="small"
@@ -1343,7 +1461,7 @@ function Dashboard() {
                       <ArrowUpRight className="corner" size={17} />
                       <h3>{c.name}</h3>
                       <strong>
-                        {number(c.tenders)} <small>unique tenders</small>
+                        {number(c.tenders)} <small>observed notices</small>
                       </strong>
                       <div>
                         {c.products} products · {c.buyers} buyers
@@ -1477,7 +1595,7 @@ function Dashboard() {
                     value={metric}
                     onChange={(e) => setMetric(e.target.value)}
                   >
-                    <MenuItem value="tenders">Unique tenders</MenuItem>
+                    <MenuItem value="tenders">Observed notices</MenuItem>
                     <MenuItem value="units" disabled={!f.product}>
                       Requested units · select a product
                     </MenuItem>
@@ -1496,7 +1614,7 @@ function Dashboard() {
                         ? `${tax.data?.products.find((p: any) => p.id === f.product)?.name || "Product"} demand`
                         : "Equipment demand across India"
                     }
-                    sub={`${metric === "tenders" ? "Unique equipment tenders" : "Requested equipment units"} · ${f.basis === "buyer" ? "buyer" : "confirmed delivery"} location`}
+                    sub={`${metric === "tenders" ? "Equipment / clinical notices" : "Requested equipment units"} · ${f.basis === "buyer" ? "buyer" : "confirmed delivery"} location`}
                   >
                     <IndiaMap
                       rows={states.data || []}
@@ -1616,7 +1734,7 @@ function Dashboard() {
                     <Table
                       heads={[
                         "State",
-                        "Tenders",
+                        "Notices",
                         "Requested quantities",
                         "Buyers",
                       ]}
@@ -1721,7 +1839,7 @@ function Dashboard() {
                       value={trendMetric}
                       onChange={(e) => setTrendMetric(e.target.value)}
                     >
-                      <MenuItem value="tenders">Unique tenders</MenuItem>
+                      <MenuItem value="tenders">Observed notices</MenuItem>
                       <MenuItem value="units">Requested quantity</MenuItem>
                     </TextField>
                     {trendMetric === "units" && (
@@ -1820,7 +1938,7 @@ function Dashboard() {
                 </div>
                 <Panel
                   title="Tender explorer"
-                  sub="One row per unique bid. Closing date is never used as publication date."
+                  sub="Known bid references and repeated document links are grouped. Listing records are visible before item review. Missing publication dates remain unknown."
                   action={
                     <Chip
                       size="small"
@@ -1875,7 +1993,25 @@ function Dashboard() {
           ) : (
             tender.data && (
               <div className="tender-detail">
-                <span className="eyebrow">{tender.data.bid_number}</span>
+                <Chip
+                  size="small"
+                  label={
+                    tender.data.evidence_level === "listing"
+                      ? "Listing signal · included in main insights"
+                      : "Reviewed item record"
+                  }
+                />
+                {tender.data.evidence_level === "listing" && (
+                  <Alert severity="info">
+                    This collected notice is already included in the main
+                    insights. Equipment matches come from the listing title.
+                    Item quantities, values, exact buyer identity and amendments
+                    still need original-document extraction and review.
+                  </Alert>
+                )}
+                <span className="eyebrow">
+                  {tender.data.bid_number || "No published bid reference"}
+                </span>
                 <h2>{tender.data.title}</h2>
                 <p>
                   {tender.data.buyer_name} ·{" "}
@@ -1886,7 +2022,12 @@ function Dashboard() {
                     Published <b>{date(tender.data.published_at)}</b>
                   </span>
                   <span>
-                    Closes <b>{timestamp(tender.data.closes_at)}</b>
+                    Closes{" "}
+                    <b>
+                      {tender.data.closing_date
+                        ? date(tender.data.closing_date)
+                        : timestamp(tender.data.closes_at)}
+                    </b>
                   </span>
                   <span>
                     Estimate <b>{money(tender.data.estimated_value)}</b>
@@ -1908,13 +2049,13 @@ function Dashboard() {
                   <div className="item-detail" key={i.id}>
                     <h3>{i.original_name}</h3>
                     <p>
-                      {number(i.quantity)} {i.unit} ·{" "}
-                      {i.product_name || "Unclassified / excluded"} · Confidence{" "}
-                      {number(Number(i.confidence) * 100)}%
+                      {tender.data.evidence_level === "listing"
+                        ? `${i.product_name || "Unclassified title"} · Quantity unknown · Title match only`
+                        : `${number(i.quantity)} ${i.unit} · ${i.product_name || "Unclassified / excluded"} · Confidence ${number(Number(i.confidence) * 100)}%`}
                     </p>
                     <blockquote>{i.evidence}</blockquote>
                     <p className="fine">{i.classification_reason}</p>
-                    {i.destinations.map((d: any) => (
+                    {(i.destinations || []).map((d: any) => (
                       <p className="fine" key={d.id}>
                         {d.state} / {d.district || "Unknown district"} ·{" "}
                         {d.confirmed
@@ -1935,6 +2076,18 @@ function Dashboard() {
                     </a>
                   </p>
                 ))}
+                {tender.data.observations?.length > 0 && (
+                  <>
+                    <h3>Related listing observations</h3>
+                    {tender.data.observations.map((o: any) => (
+                      <p key={o.id}>
+                        <a href={o.source_url} target="_blank" rel="noreferrer">
+                          {o.source_name}: {o.title}
+                        </a>
+                      </p>
+                    ))}
+                  </>
+                )}
                 <h3>Audit history</h3>
                 <p>
                   {tender.data.versions.length} source versions · First
@@ -1964,7 +2117,7 @@ function Coverage({ data }: { data: any }) {
     <>
       {data.dataQuality && (
         <Panel
-          title="Document processing and data quality"
+          title="Document processing and item data quality"
           sub="Our stored reviewed tender dataset; national publication totals are unknown."
         >
           <Alert severity="warning">
@@ -2025,6 +2178,12 @@ function Coverage({ data }: { data: any }) {
           )}
         </Panel>
       )}
+      <Alert severity="info">
+        Main insights include {number(data.observed?.records || 0)} observed
+        records: {number(data.observed?.listing_notices || 0)} listing signals
+        and {number(data.observed?.reviewed_tenders || 0)} item records.
+        Document quality measures below apply to imported/reviewed item records.
+      </Alert>
       <div className="kpis">
         <div className="kpi">
           <span>Dataset coverage</span>
@@ -2032,9 +2191,9 @@ function Coverage({ data }: { data: any }) {
           <small>National completeness unknown</small>
         </div>
         <div className="kpi">
-          <span>Stored tenders</span>
+          <span>Stored item records</span>
           <strong>{number(data.total.tenders)}</strong>
-          <small>Historical records retained</small>
+          <small>Imported / reviewed item records retained</small>
         </div>
         <div className="kpi">
           <span>Manual review</span>

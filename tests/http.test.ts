@@ -339,6 +339,24 @@ test("reviewed collected native reference reaches existing analytics through HTT
     await request("admin/collection/notices/" + notice.id)
   ).json();
   assert.equal(detail.currentTender, null);
+  const initialOverview = await (
+    await request("overview?source=aiims-raipur")
+  ).json();
+  assert.equal(initialOverview.tenders, 1);
+  assert.equal(initialOverview.listing_notices, 1);
+  const mainListing = await (await request("tenders/" + notice.id)).json();
+  assert.equal(mainListing.evidence_level, "listing");
+  assert.equal(mainListing.items[0].quantity, null);
+  assert.equal(mainListing.observations.length, 1);
+  assert.equal(
+    (
+      await (
+        await request("overview?evidence=reviewed&source=aiims-raipur")
+      ).json()
+    ).tenders,
+    0,
+  );
+  assert.equal((await request("overview?evidence=invalid")).status, 400);
   const extractPath = "admin/collection/notices/" + notice.id + "/extract";
   const extraction = { expectedHash: notice.current_hash, documentIndex: 0 };
   assert.equal((await request(extractPath, extraction, false)).status, 401);
@@ -394,6 +412,12 @@ test("reviewed collected native reference reaches existing analytics through HTT
     201,
   );
   assert.equal((await (await request("collection")).json()).counts.approved, 1);
+  const integratedOverview = await (
+    await request("overview?source=aiims-raipur")
+  ).json();
+  assert.equal(integratedOverview.tenders, 1);
+  assert.equal(integratedOverview.reviewed_tenders, 1);
+  assert.equal(integratedOverview.listing_notices, 0);
   assert.equal(
     (await request("admin/collection/notices/" + notice.id + "/approve", body))
       .status,
