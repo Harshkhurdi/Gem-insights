@@ -1,3 +1,5 @@
+> Main-project integration: collected notices now appear automatically in the overview, product, buyer, geography, trend and explorer pages. See [main insights](MAIN_INSIGHTS.md). Item review adds verified detail; it does not block visibility.
+
 > Current update: [institution coverage](INSTITUTION_COVERAGE.md) brings collection to 15 working listing profiles and a 4,642-record discovery snapshot. Word/Excel/ZIP attachments and published amendment pointers remain review links; supported same-host GeM PDFs can be extracted locally. This supersedes earlier source and notice counts below.
 
 # Local collection and medical demand workflow

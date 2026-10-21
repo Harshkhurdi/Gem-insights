@@ -18,7 +18,7 @@ const db = new DataSource({
   migrations,
   synchronize: false,
 });
-const f = filterSchema.parse({});
+const f = filterSchema.parse({ evidence: "reviewed" });
 before(async () => {
   await db.initialize();
   await db.runMigrations();

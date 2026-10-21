@@ -233,8 +233,8 @@ export default function CollectionView() {
           <div>
             <h2>Nationwide tender collection</h2>
             <p>
-              Discover official notices, then verify equipment and quantities
-              from their original documents.
+              Collected notices appear in the main insights immediately. Extract
+              and review original documents to add item quantities and values.
             </p>
           </div>
         </div>
@@ -246,8 +246,8 @@ export default function CollectionView() {
                 "Medical / equipment candidates",
                 data?.counts.medical_candidates,
               ],
-              ["Awaiting review", data?.counts.pending],
-              ["Reviewed into analytics", data?.counts.approved],
+              ["Item review outstanding", data?.counts.pending],
+              ["Item review completed", data?.counts.approved],
             ].map(([label, value]) => (
               <div key={String(label)}>
                 <strong>{value ?? "—"}</strong>

@@ -137,9 +137,37 @@ class Api {
         [id],
       )
     )[0];
-    if (!t) throw new HttpException("Tender not found", 404);
+    if (!t) {
+      const listing = (
+        await db.query(
+          "SELECT * FROM insight_record WHERE id=$1 AND evidence_level='listing'",
+          [id],
+        )
+      )[0];
+      if (!listing) throw new HttpException("Tender not found", 404);
+      return {
+        ...listing,
+        description:
+          "Public listing record included in main insights. Product matches come from titles; quantities and values remain unknown until extracted and reviewed.",
+        items: await db.query("SELECT * FROM insight_line WHERE tender_id=$1", [
+          id,
+        ]),
+        documents: listing.documents.map((url: string, index: number) => ({
+          id: String(index),
+          url,
+          label: "Published original or related document",
+        })),
+        versions: [],
+        corrections: [],
+        observations: await db.query(
+          "SELECT n.id,n.title,n.source_url,n.bid_number,n.published_at,n.closing_date,n.buyer_name,n.buyer_state,s.name AS source_name FROM discovered_notice n JOIN source s ON s.id=n.source_id WHERE n.id=ANY($1::uuid[]) ORDER BY n.last_seen DESC LIMIT 100",
+          [listing.observation_ids],
+        ),
+      };
+    }
     return {
       ...t,
+      evidence_level: "reviewed",
       items: await db.query(
         "SELECT l.*,p.name AS product_name,COALESCE((SELECT jsonb_agg(d) FROM destination d WHERE d.line_item_id=l.id),'[]') AS destinations FROM line_item l LEFT JOIN product p ON p.id=l.product_id WHERE l.tender_id=$1",
         [id],
