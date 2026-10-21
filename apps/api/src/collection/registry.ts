@@ -14,6 +14,8 @@ export interface SourceDefinition {
     | "hll"
     | "gmch"
     | "gmch-notices"
+    | "rishikesh"
+    | "kmscl"
     | null;
   buyerName?: string;
   scope: string;
@@ -187,6 +189,24 @@ export const SOURCES: SourceDefinition[] = [
     "institution",
     ["Chandigarh"],
   ),
+  ...(
+    [
+      ["aiims-rishikesh", "AIIMS Rishikesh current tenders", "2525"],
+      ["aiims-rishikesh-archive", "AIIMS Rishikesh archived tenders", "2529"],
+      ["aiims-rishikesh-quotations", "AIIMS Rishikesh quotations", "2533"],
+    ] as const
+  ).map(([id, name, page]) => ({
+    ...source(
+      id,
+      name,
+      `https://aiimsrishikesh.edu.in/a1_1/?page_id=${page}`,
+      "institution",
+      ["Uttarakhand"],
+      "rishikesh",
+      "Public tender/quotation listing and original/amendment attachments. Start date is not verified publication; historical links can be broken. Coverage remains partial.",
+    ),
+    buyerName: "AIIMS Rishikesh",
+  })),
   source(
     "gmch32",
     "GMCH Chandigarh",
@@ -251,9 +271,11 @@ export const SOURCES: SourceDefinition[] = [
   source(
     "kmscl",
     "Kerala Medical Services Corporation",
-    "https://kmscl.kerala.gov.in/",
+    "https://kmscl.kerala.gov.in/KMSCL/index.php/ckmscl/menucontentview/60",
     "institution",
     ["Kerala"],
+    "kmscl",
+    "Public notices include equipment, amendments, evaluation/price-opening and running-contract notices. Native references, dates and quantities require original review; these are not all open tenders.",
   ),
 ];
 export function getSource(id: string) {

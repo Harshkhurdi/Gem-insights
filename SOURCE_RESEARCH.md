@@ -1,4 +1,4 @@
-Current source expansion: see [NATIONAL_COLLECTION_EXPANSION.md](docs/NATIONAL_COLLECTION_EXPANSION.md) for the 11 implemented public listing profiles and the linked-document workflow. Earlier three-profile counts below are historical.
+Current source expansion: see [INSTITUTION_COVERAGE.md](docs/INSTITUTION_COVERAGE.md) for the 15 implemented public listing profiles and current access checks. See [NATIONAL_COLLECTION_EXPANSION.md](docs/NATIONAL_COLLECTION_EXPANSION.md) for the linked-document workflow. Earlier counts below are historical.
 
 # Current collection implementation
 

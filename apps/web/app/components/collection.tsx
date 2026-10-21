@@ -654,28 +654,29 @@ export default function CollectionView() {
                     <a href={url} target="_blank" rel="noopener noreferrer">
                       Document {i + 1}
                     </a>
-                    {selected.notice.source_portal === "gem" && (
-                      <Button
-                        disabled={busy}
-                        onClick={() =>
-                          action(
-                            () =>
-                              api(
-                                "admin/collection/notices/" +
-                                  selected.notice.id +
-                                  "/extract",
-                                {
-                                  expectedHash: selected.notice.current_hash,
-                                  documentIndex: i,
-                                },
-                              ),
-                            "Local PDF download and extraction queued. Keep the worker running, then refresh extraction status.",
-                          )
-                        }
-                      >
-                        Extract PDF locally
-                      </Button>
-                    )}
+                    {selected.notice.source_portal === "gem" &&
+                      /^https:\/\/.*\.pdf$/i.test(url) && (
+                        <Button
+                          disabled={busy}
+                          onClick={() =>
+                            action(
+                              () =>
+                                api(
+                                  "admin/collection/notices/" +
+                                    selected.notice.id +
+                                    "/extract",
+                                  {
+                                    expectedHash: selected.notice.current_hash,
+                                    documentIndex: i,
+                                  },
+                                ),
+                              "Local PDF download and extraction queued. Keep the worker running, then refresh extraction status.",
+                            )
+                          }
+                        >
+                          Extract PDF locally
+                        </Button>
+                      )}
                   </p>
                 ))}
                 {selected.notice.source_portal === "gem" && (

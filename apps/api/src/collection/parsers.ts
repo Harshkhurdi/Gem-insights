@@ -1,5 +1,5 @@
 import { load } from "cheerio";
-import { publicLink } from "./links";
+import { publicLink, isNoticeAttachment } from "./links";
 import {
   digest,
   classify,
@@ -8,7 +8,11 @@ import {
 } from "../../../../packages/core/domain";
 import { taxonomy } from "../../../../packages/core/taxonomy";
 import { SourceDefinition } from "./registry";
-import { tableMatches, gmchNoticeLinks } from "./institution-parsers";
+import {
+  tableMatches,
+  gmchNoticeLinks,
+  kmsclNoticeLinks,
+} from "./institution-parsers";
 export interface Notice {
   key: string;
   bidNumber: string | null;
@@ -74,7 +78,7 @@ export function noticeClassification(
     .map((r) => r.id);
   const medical =
     !!products.length ||
-    /\b(medical|hospital|surgical|diagnostic|laboratory|healthcare|equipment|analy[sz]er|incubator|dialysis|ophthalmic|dental|cbct|tomography|laser|psychiatr\w*|orthop\w*|patholog\w*|nephro\w*|physio\w*|oncolog\w*|cardio\w*|neurolog\w*)\b/i.test(
+    /\b(medical|hospital|surgical|diagnostic|laboratory|healthcare|equipment|analy[sz]er|incubator|dialysis|ophthalmic|dental|cbct|tomography|laser|psychiatr\w*|orthop\w*|patholog\w*|nephro\w*|physio\w*|oncolog\w*|cardio\w*|neurolog\w*|elisa|assay|reagents?|consumables?|pharma\w*|medicines?|drugs?|sutures?|catheters?|endotracheal|nasogastric|gauze|haemo\w*|hemo\w*|microbiolog\w*|biochem\w*|immuno\w*|prosthe\w*|implants?|endoscop\w*|gastro\w*|otolaryng\w*|urolog\w*|anaesthe\w*|anesthe\w*)\b/i.test(
       title,
     );
   return {
@@ -82,7 +86,9 @@ export function noticeClassification(
     products,
     reason: c.productId
       ? "Equipment candidate from listing title; verify original line items and quantities"
-      : c.reason,
+      : medical
+        ? "Possible clinical procurement from listing title; verify medical scope and original item evidence"
+        : c.reason,
   };
 }
 export { publicLink } from "./links";
@@ -91,6 +97,8 @@ export function pageAllowed(url: string, source: SourceDefinition) {
     base = new URL(source.url);
   return (
     u.origin === base.origin &&
+    (source.adapter !== "rishikesh" ||
+      u.searchParams.get("page_id") === base.searchParams.get("page_id")) &&
     (u.pathname === base.pathname ||
       (source.adapter === "hll" &&
         /^\/tender\/index\/p\/\d+\/?$/.test(u.pathname))) &&
@@ -102,10 +110,14 @@ export function noticeKey(
   source: SourceDefinition,
   reference: string | null,
   url: string,
+  title?: string,
 ) {
   // CPPP uses rotating link tokens, but its tender ID is stable. Other sources
   // can reuse a file/reference number for several different notice documents.
   if (source.adapter === "cppp" && reference) return reference;
+  // Missing historical links lead to the listing; titles distinguish its rows.
+  if (source.adapter === "rishikesh" && url === source.url && title)
+    url += "#" + digest(title);
   return reference ? reference + "#" + digest(url).slice(0, 20) : digest(url);
 }
 export function parseListing(
@@ -124,26 +136,38 @@ export function parseListing(
       return tableMatches(headers, source.adapter);
     })
     .first();
-  if (source.adapter === "gmch-notices") {
-    const links = gmchNoticeLinks(html, pageUrl);
+  if (source.adapter === "gmch-notices" || source.adapter === "kmscl") {
+    const links =
+      source.adapter === "kmscl"
+        ? kmsclNoticeLinks(html, pageUrl)
+        : gmchNoticeLinks(html, pageUrl).map((n) => ({
+            ...n,
+            documents: [n.url],
+          }));
     if (!links.length)
       throw new Error(
         "Procurement content yielded no document links; layout may have changed",
       );
     return {
-      notices: links.map(({ title, url }) => ({
-        key: noticeKey(source, null, url),
-        bidNumber: null,
-        portal: source.portal,
-        title: title.slice(0, 2000),
-        url,
-        documents: [url],
-        publishedAt: null,
-        closingDate: null,
-        buyer: source.buyerName || source.name,
-        state: source.states[0] || null,
-        ...noticeClassification(title, classificationRules),
-      })),
+      notices: [
+        ...new Map(
+          links
+            .map(({ title, url, documents }) => ({
+              key: noticeKey(source, null, url),
+              bidNumber: null,
+              portal: source.portal,
+              title: title.slice(0, 2000),
+              url,
+              documents,
+              publishedAt: null,
+              closingDate: null,
+              buyer: source.buyerName || source.name,
+              state: source.states[0] || null,
+              ...noticeClassification(title, classificationRules),
+            }))
+            .map((n) => [n.key, n]),
+        ).values(),
+      ],
       next: null,
     };
   }
@@ -152,6 +176,7 @@ export function parseListing(
       "Expected tender table missing; layout changed or access blocked",
     );
   table.find("tr").each((_, row) => {
+    if ($(row).closest("table")[0] !== table[0]) return;
     const cells = $(row).children("td");
     if (!cells.length) return;
     let title = "",
@@ -226,6 +251,27 @@ export function parseListing(
         cells.eq(2).find("a[href]").first().attr("href"),
         pageUrl,
       );
+    } else if (source.adapter === "rishikesh" && cells.length >= 5) {
+      ref = clean(cells.eq(0).text());
+      title = clean(cells.eq(1).text());
+      closingDate = listingDate(cells.eq(3).text());
+      buyer = source.buyerName || source.name;
+      // Quotation downloads can be in Related Links instead of the title cell.
+      // Preserve a listing row even when its historical original link is broken.
+      primary =
+        cells
+          .find("a[href]")
+          .toArray()
+          .map((a) => publicLink($(a).attr("href"), pageUrl))
+          .find(
+            (u) =>
+              !!u &&
+              (new URL(u).hostname === new URL(source.url).hostname ||
+                new URL(u).hostname.endsWith(".aiimsrishikesh.edu.in")),
+          ) || null;
+      if (!primary && title) {
+        primary = source.url;
+      }
     }
     if (!title || !primary) return;
     const gem = (ref + " " + title)
@@ -238,11 +284,17 @@ export function parseListing(
           .find("a[href]")
           .toArray()
           .map((a) => publicLink($(a).attr("href"), pageUrl))
-          .filter((u): u is string => !!u && /\.pdf(?:[?#]|$)/i.test(u)),
+          .filter(
+            (u): u is string =>
+              !!u &&
+              (isNoticeAttachment(u) ||
+                (source.adapter === "rishikesh" &&
+                  new URL(u).hostname.includes("."))),
+          ),
       ),
     ];
     notices.push({
-      key: noticeKey(source, gem || ref || null, primary),
+      key: noticeKey(source, gem || ref || null, primary, title.slice(0, 2000)),
       bidNumber: gem || ref || null,
       portal: gem ? "gem" : source.portal,
       title: title.slice(0, 2000),
