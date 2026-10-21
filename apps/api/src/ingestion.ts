@@ -26,7 +26,8 @@ export class Ingestion {
     try {
       const normalized = records.map(validateTender);
       if (
-        new Set(normalized.map((t) => t.bidNumber)).size !== normalized.length
+        new Set(normalized.map((t) => t.sourcePortal + ":" + t.bidNumber))
+          .size !== normalized.length
       )
         throw new Error(
           "Duplicate bid numbers in batch; submit one complete current version per bid",
@@ -41,8 +42,8 @@ export class Ingestion {
           const hash = digest(t);
           const existing = (
             await m.query(
-              "SELECT * FROM tender WHERE bid_number=$1 FOR UPDATE",
-              [t.bidNumber],
+              "SELECT * FROM tender WHERE bid_number=$1 AND source_portal=$2 FOR UPDATE",
+              [t.bidNumber, t.sourcePortal],
             )
           )[0];
           if (existing?.current_hash === hash) {
@@ -106,6 +107,7 @@ export class Ingestion {
             JSON.stringify(t),
             id,
             t.bidNumber,
+            t.sourcePortal,
           ];
           if (existing) {
             await m.query(
@@ -115,7 +117,7 @@ export class Ingestion {
             updated++;
           } else {
             await m.query(
-              "INSERT INTO tender(title,source_url,source_id,organization_id,published_at,closes_at,status,estimated_value,emd,description,related_bid_number,revision_at,current_hash,raw,id,bid_number) VALUES(" +
+              "INSERT INTO tender(title,source_url,source_id,organization_id,published_at,closes_at,status,estimated_value,emd,description,related_bid_number,revision_at,current_hash,raw,id,bid_number,source_portal) VALUES(" +
                 args.map((_, i) => `$${i + 1}`).join(",") +
                 ")",
               args,

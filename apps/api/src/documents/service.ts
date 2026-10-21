@@ -286,7 +286,7 @@ export class Documents {
     const current = draft?.record.bidNumber
       ? (
           await this.db.query(
-            "SELECT id,current_hash,raw FROM tender WHERE bid_number=$1",
+            "SELECT id,current_hash,raw FROM tender WHERE source_portal='gem' AND bid_number=$1",
             [draft.record.bidNumber],
           )
         )[0] || null
@@ -366,9 +366,10 @@ export class Documents {
       const draft = extractTender(extracted.pages, d.source_url, rules);
       const existing = draft.record.bidNumber
         ? (
-            await this.db.query("SELECT raw FROM tender WHERE bid_number=$1", [
-              draft.record.bidNumber,
-            ])
+            await this.db.query(
+              "SELECT raw FROM tender WHERE source_portal='gem' AND bid_number=$1",
+              [draft.record.bidNumber],
+            )
           )[0]?.raw
         : null;
       if (existing) {
@@ -535,9 +536,10 @@ export class Documents {
           fail("Every item requires source evidence");
         await m.query("SELECT pg_advisory_xact_lock(17924001)");
         const current = (
-          await m.query("SELECT current_hash FROM tender WHERE bid_number=$1", [
-            record.bidNumber,
-          ])
+          await m.query(
+            "SELECT current_hash FROM tender WHERE source_portal='gem' AND bid_number=$1",
+            [record.bidNumber],
+          )
         )[0];
         if ((current?.current_hash || null) !== b.expectedTenderHash)
           fail(
@@ -559,9 +561,10 @@ export class Documents {
           m,
         );
         tenderId = (
-          await m.query("SELECT id FROM tender WHERE bid_number=$1", [
-            record.bidNumber,
-          ])
+          await m.query(
+            "SELECT id FROM tender WHERE source_portal='gem' AND bid_number=$1",
+            [record.bidNumber],
+          )
         )[0].id;
         for (const [key, productId] of Object.entries(b.classifications)) {
           const line = (

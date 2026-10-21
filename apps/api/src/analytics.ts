@@ -288,7 +288,7 @@ export class Analytics {
     });
     const { documents: details, frequentFailures, ...evaluation } = report;
     return {
-      portal: "gem",
+      portal: "multiple",
       nationalPublishedTenders: null,
       storedVerifiedTenders: t[0].total,
       documents: docs[0],
@@ -306,7 +306,7 @@ export class Analytics {
       breakdowns: { states, products, buyers, sources, months },
       evaluation,
       warning:
-        "Stored source-reviewed/imported GeM records, including cancelled historical snapshots; not the number published nationally. Buyer states are source-recorded, not independently geocoded. Product/state groups overlap. Buyer breakdown is the top 100; publication periods show the latest 120 observed months. Missing dates/states remain separate. Corpus annotations never contribute tender demand.",
+        "Stored source-reviewed/imported official tender records, including cancelled historical snapshots; not the number published nationally. Buyer states are source-recorded, not independently geocoded. Product/state groups overlap. Buyer breakdown is the top 100; publication periods show the latest 120 observed months. Missing dates/states remain separate. Corpus annotations never contribute tender demand.",
     };
   }
 }

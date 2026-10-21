@@ -116,11 +116,15 @@ export const itemSchema = z
   .strict();
 export const tenderSchema = z
   .object({
+    sourcePortal: z
+      .enum(["gem", "cppp", "state", "institution"])
+      .default("gem"),
     bidNumber: z
       .string()
       .trim()
-      .toUpperCase()
-      .regex(/^GEM\/\d{4}\/[BR]\/\d+$/),
+      .min(1)
+      .max(250)
+      .regex(/^[^\x00-\x1F\x7F]+$/),
     title: text,
     sourceUrl: link,
     publishedAt: date.nullish(),
@@ -176,6 +180,13 @@ function scaled(s: string) {
 }
 export function validateTender(input: unknown): TenderInput {
   const t = tenderSchema.parse(input);
+  if (t.sourcePortal === "gem") {
+    t.bidNumber = t.bidNumber.toUpperCase();
+    if (!/^GEM\/\d{4}\/[BR]\/\d+$/.test(t.bidNumber))
+      throw new Error(
+        "GeM records require a valid GEM/year/B-or-R/number reference",
+      );
+  }
   stateName(t.buyer.state);
   const keys = new Set<string>();
   for (const i of t.items) {
@@ -221,7 +232,10 @@ export function classify(name: string, rules: Rule[]) {
     .normalize("NFKC")
     .replace(/[^\p{L}\p{N}\p{M}]+/gu, " ")
     .trim();
-  if (excluded.test(n.split(/\b(?:with|including|along with)\b/)[0]))
+  const exclusionScope = n
+    .split(/\b(?:with|including|along with)\b/)[0]
+    .replace(/\b(?:lab|laboratory) medicine\b/g, "laboratory department");
+  if (excluded.test(exclusionScope))
     return {
       productId: null,
       confidence: 1,
@@ -241,7 +255,7 @@ export function classify(name: string, rules: Rule[]) {
       return [
         ...n.matchAll(
           new RegExp(
-            `(?<![\\p{L}\\p{N}\\p{M}])${escaped}(?![\\p{L}\\p{N}\\p{M}])`,
+            `(?<![\\p{L}\\p{N}\\p{M}])${escaped}${phrase.endsWith("s") ? "" : "s?"}(?![\\p{L}\\p{N}\\p{M}])`,
             "gu",
           ),
         ),

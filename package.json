@@ -17,12 +17,15 @@
     "format": "prettier --write \"apps/**/*.{ts,tsx,css}\" \"packages/**/*.ts\" \"tests/**/*.ts\" \"scripts/*.mjs\"",
     "format:check": "prettier --check \"apps/**/*.{ts,tsx,css}\" \"packages/**/*.ts\" \"tests/**/*.ts\" \"scripts/*.mjs\"",
     "documents:accuracy": "node --env-file-if-exists=.env --import tsx apps/api/src/documents/evaluate-cli.ts",
-    "documents:evaluate": "npm run documents:accuracy"
+    "documents:evaluate": "npm run documents:accuracy",
+    "collect": "node --env-file-if-exists=.env --import tsx apps/api/src/collection/cli.ts",
+    "import:discoveries": "node --env-file-if-exists=.env --import tsx apps/api/src/collection/restore-cli.ts"
   },
   "dependencies": {
     "@nestjs/common": "12.1.2",
     "@nestjs/core": "12.1.2",
     "@nestjs/platform-express": "12.1.2",
+    "cheerio": "1.1.2",
     "pdfjs-dist": "6.4.299",
     "pg": "8.23.1",
     "reflect-metadata": "0.2.2",

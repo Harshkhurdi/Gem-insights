@@ -1,4 +1,5 @@
 "use client";
+import CollectionView from "./components/collection";
 import DocumentAdmin from "./components/document-admin";
 import { EvaluationMetrics } from "./components/corpus-admin";
 import React, { useEffect, useMemo, useState } from "react";
@@ -129,6 +130,7 @@ const nav = [
   ["Demand Trends", ChartNoAxesCombined],
   ["Tender Explorer", Files],
   ["Categories", Layers3],
+  ["Tender Collection", Download],
   ["Data Coverage", Database],
   ["Administration", Settings],
 ] as const;
@@ -142,6 +144,8 @@ const descriptions: Record<string, string> = {
   "Demand Trends": "Observe procurement activity across time.",
   "Tender Explorer": "Inspect the original notices behind every number.",
   Categories: "A growing taxonomy, built for broader intelligence.",
+  "Tender Collection":
+    "Collect official notices and review equipment demand across India.",
   "Data Coverage": "Know what the dataset can — and cannot — tell you.",
   Administration: "Manage authorized data, classification and collection.",
 };
@@ -660,7 +664,7 @@ function Dashboard() {
       filters: params,
       collectedAt: coverage.data?.total.checked || "unknown",
       exportedAt: new Date().toISOString(),
-      source: "GeM notices / authorized imports",
+      source: "Reviewed official tender records / imports",
       coverage: "Partial; national denominator unknown",
       definitions:
         "Tender counts are distinct bids; quantities are requested units by unit; values are explicit estimates, not awards; unknowns remain blank.",
@@ -925,7 +929,7 @@ function Dashboard() {
             <div className="source-badge">
               <span className="amber-dot" />
               <strong>Partial coverage</strong>
-              <small>Source access not verified</small>
+              <small>Coverage varies by source</small>
             </div>
             <p>
               Independent research platform.
@@ -956,7 +960,7 @@ function Dashboard() {
             <div className="top-actions">
               <span className="live-label">
                 <span className="amber-dot" />
-                Import-based dataset
+                Partial observed dataset
               </span>
               <button
                 className="icon-button"
@@ -979,33 +983,35 @@ function Dashboard() {
                 </h1>
                 <p>{descriptions[view]}</p>
               </div>
-              <Button
-                variant="outlined"
-                startIcon={<Download size={16} />}
-                onClick={() =>
-                  exportRows(
-                    view === "Tender Explorer"
-                      ? tenders.data?.data || []
-                      : view === "Buyer Intelligence"
-                        ? buyers.data || []
-                        : view === "Geographic Intelligence"
-                          ? states.data || []
-                          : view === "Demand Trends"
-                            ? history.data || []
-                            : products.data || [],
-                    "gem-" + view.toLowerCase().replaceAll(" ", "-"),
-                  )
-                }
-              >
-                Export view
-              </Button>
+              {view !== "Tender Collection" && (
+                <Button
+                  variant="outlined"
+                  startIcon={<Download size={16} />}
+                  onClick={() =>
+                    exportRows(
+                      view === "Tender Explorer"
+                        ? tenders.data?.data || []
+                        : view === "Buyer Intelligence"
+                          ? buyers.data || []
+                          : view === "Geographic Intelligence"
+                            ? states.data || []
+                            : view === "Demand Trends"
+                              ? history.data || []
+                              : products.data || [],
+                      "gem-" + view.toLowerCase().replaceAll(" ", "-"),
+                    )
+                  }
+                >
+                  Export view
+                </Button>
+              )}
             </div>
             <div className="coverage-strip">
               <ShieldCheck size={17} />
               <p>
                 <strong>Know your coverage.</strong> Figures describe collected
-                notices, not the entire GeM market. Requested procurement is not
-                completed sales.
+                notices; national coverage is incomplete. Requested procurement
+                is not completed sales.
               </p>
               <button onClick={() => go("Data Coverage")}>
                 View coverage <ArrowUpRight size={14} />
@@ -1023,9 +1029,12 @@ function Dashboard() {
                 {err.message}
               </Alert>
             )}
-            {!["Administration", "Data Coverage", "Categories"].includes(
-              view,
-            ) && (
+            {![
+              "Administration",
+              "Data Coverage",
+              "Categories",
+              "Tender Collection",
+            ].includes(view) && (
               <div className="filters">
                 <TextField
                   select
@@ -1082,11 +1091,11 @@ function Dashboard() {
                 </TextField>
                 <TextField
                   select
-                  label="GeM acquisition source"
+                  label="Acquisition source"
                   value={f.source || ""}
                   onChange={(e) => change("source", e.target.value)}
                 >
-                  <MenuItem value="">All GeM records</MenuItem>
+                  <MenuItem value="">All reviewed tenders</MenuItem>
                   {coverage.data?.sources.map((s: any) => (
                     <MenuItem key={s.id} value={s.id}>
                       {s.name}
@@ -1828,6 +1837,7 @@ function Dashboard() {
                 </p>
               </>
             )}
+            {view === "Tender Collection" && <CollectionView />}
             {view === "Data Coverage" && <Coverage data={coverage.data} />}
             {view === "Administration" && (
               <Admin
@@ -1955,7 +1965,7 @@ function Coverage({ data }: { data: any }) {
       {data.dataQuality && (
         <Panel
           title="Document processing and data quality"
-          sub="Our stored GeM dataset; national publication totals are unknown."
+          sub="Our stored reviewed tender dataset; national publication totals are unknown."
         >
           <Alert severity="warning">
             {data.dataQuality.warning}{" "}

@@ -1,3 +1,7 @@
+# Current collection implementation
+
+The new [local collection guide](docs/LOCAL_COLLECTION.md) supersedes the earlier no-collector status below for three public metadata listings: AIIMS Raipur, ICMR and CPPP central active tenders. Native tender references and a review queue are supported. GeM direct access and nationwide coverage remain unimplemented. The earlier investigation is retained as historical context.
+
 # Source access investigation
 
 Phase 3 follow-up: see the [source capability matrix](docs/SOURCE_CAPABILITIES.md). Official GeM enquiry routes were rechecked, CPPP/Punjab ownership/reproduction policies inspected, and data.gov.in resource licensing investigated. No suitable authorized line-item feed, reusable original-PDF corpus or access grant was established. Retrieved OGD pages included a sandbox/incomplete-data warning. No collector was enabled; actual new original corpus remains zero and the current target is 50. The revised request remains unsent.

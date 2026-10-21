@@ -4,6 +4,8 @@ import { connect, db } from "./database";
 import { Documents } from "./documents/service";
 import { Ingestion } from "./ingestion";
 import { classify } from "../../../packages/core/domain";
+import { Collection } from "./collection/service";
+const collection = new Collection(db);
 const ingest = new Ingestion(db);
 const documents = new Documents(db);
 let stopping = false;
@@ -107,10 +109,21 @@ async function start() {
     await db.query(
       "UPDATE job SET status=CASE WHEN attempts>=3 THEN 'failed' ELSE 'pending' END,available_at=now() WHERE status='running'",
     );
+    await db.query(
+      "UPDATE collection_run SET status='interrupted',finished_at=now(),error='Worker restarted; next run resumes saved checkpoint' WHERE status='running'",
+    );
     await documents.purgeExpired();
     let lastPurge = Date.now();
     let lastScheduled = Date.now();
+    let lastCollectionSchedule = 0;
     while (!stopping) {
+      if (
+        process.env.COLLECTION_ENABLED !== "false" &&
+        Date.now() - lastCollectionSchedule >= 30000
+      ) {
+        await collection.schedule();
+        lastCollectionSchedule = Date.now();
+      }
       if (Date.now() - lastPurge > 60000) {
         await documents.purgeExpired();
         lastPurge = Date.now();
@@ -146,6 +159,8 @@ async function start() {
         if (j.kind === "import")
           await ingest.import(j.payload.records, j.payload.provenance);
         else if (j.kind === "feed") await collect();
+        else if (j.kind === "collect")
+          await collection.run(j.payload.sourceId, () => stopping);
         else if (j.kind === "pdf")
           await documents.process(j.payload.documentId);
         else if (j.kind === "classify") await reclassify();

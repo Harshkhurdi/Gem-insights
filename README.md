@@ -4,6 +4,8 @@ A **new independent project** for understanding requested government procurement
 
 Implemented with Next.js App Router, TypeScript, Material UI, TanStack Query, NestJS, TypeORM and PostgreSQL. It has a separate durable worker and a database-backed taxonomy. It uses no external LLM or paid AI API.
 
+**Public-listing collection is now available for AIIMS Raipur, ICMR and CPPP.** Open **Tender Collection** to collect, filter and review notices into the existing analytics. The registry tracks targets across all 36 states/UTs; only these three adapters are automatic. See [local collection guide](docs/LOCAL_COLLECTION.md).
+
 **Live GeM scraping is disabled.** Public pages were reachable, but authorized bulk access and reproduction rights were not verified. Authorized CSV/JSON imports are the working ingestion path. See [source research](SOURCE_RESEARCH.md).
 
 ## Run locally
@@ -29,6 +31,8 @@ For an existing PostgreSQL instance, create a new `gem_intelligence` database an
 npm run build -w @gem/api
 npm run migrate
 npm run import:verified
+# Optional: load the 1,909 real listing discoveries for source review
+npm run import:discoveries
 npm run dev
 ```
 
@@ -48,7 +52,7 @@ Open **http://localhost:3000**. `dev` starts the API, the separate worker and Ne
 
 ## Import contract
 
-Upload an array of complete tender objects or `{ "records": [...], "provenance": "..." }`. See `data/verified-bids.json` for a real small example. Required identity fields are a GeM bid number, title, HTTP(S) source URL, an explicit institution key/name and one or more line items with stable keys, original names and source evidence. Publication date may be null; known publication dates use `YYYY-MM-DD`. Closing/revision timestamps require an explicit timezone. Quantities and INR monetary values can be decimal strings; null means unknown. Destination records require a state, confirmation flag and evidence; allocations can be null. Never divide an unknown destination allocation by assumption.
+Upload an array of complete tender objects or `{ "records": [...], "provenance": "..." }`. See `data/verified-bids.json` for a real small example. Required identity fields are an original tender reference (`bidNumber`, with optional `sourcePortal` defaulting to `gem`), title, HTTP(S) source URL, an explicit institution key/name and one or more line items with stable keys, original names and source evidence. Publication date may be null; known publication dates use `YYYY-MM-DD`. Closing/revision timestamps require an explicit timezone. Quantities and INR monetary values can be decimal strings; null means unknown. Destination records require a state, confirmation flag and evidence; allocations can be null. Never divide an unknown destination allocation by assumption.
 
 Each batch is a **complete current snapshot per bid**, not a patch of selected line items. Use the same stable line key after amendments so corrections survive. Duplicate bids inside one batch are rejected. Repeating an identical bid is idempotent. All rows in a batch commit or roll back together. CSV uses one row per line item and groups repeated bid metadata; duplicate line keys are rejected.
 
