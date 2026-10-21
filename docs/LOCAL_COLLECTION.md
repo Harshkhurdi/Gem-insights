@@ -1,4 +1,4 @@
-> Current update: the [national collection expansion](NATIONAL_COLLECTION_EXPANSION.md) adds 11 working listing profiles, same-host linked GeM PDF extraction, recent-page refresh during backfill, and an updated 2,305-notice snapshot. It supersedes the earlier three-profile/1,909-notice counts below.
+> Current update: [institution coverage](INSTITUTION_COVERAGE.md) brings collection to 15 working listing profiles and a 4,642-record discovery snapshot. Word/Excel/ZIP attachments and published amendment pointers remain review links; supported same-host GeM PDFs can be extracted locally. This supersedes earlier source and notice counts below.
 
 # Local collection and medical demand workflow
 

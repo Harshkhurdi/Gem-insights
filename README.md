@@ -4,7 +4,7 @@ A **new independent project** for understanding requested government procurement
 
 Implemented with Next.js App Router, TypeScript, Material UI, TanStack Query, NestJS, TypeORM and PostgreSQL. It has a separate durable worker and a database-backed taxonomy. It uses no external LLM or paid AI API.
 
-**Public-listing collection now supports 11 profiles across CPPP central/state listings, AIIMS Raipur, ICMR, AIIMS Bilaspur, HLL and GMCH.** Open **Tender Collection** to collect, filter and review notices into the existing analytics. The registry tracks targets across all 36 states/UTs; the implemented profiles remain partial coverage. See the [national collection expansion](docs/NATIONAL_COLLECTION_EXPANSION.md) for source scope and linked GeM PDF extraction. See [local collection guide](docs/LOCAL_COLLECTION.md).
+**Public-listing collection now supports 15 profiles across CPPP central/state listings, AIIMS Raipur, ICMR, AIIMS Bilaspur, AIIMS Rishikesh, HLL, GMCH and KMSCL.** Open **Tender Collection** to collect, filter and review notices into the existing analytics. The registry tracks targets across all 36 states/UTs; the implemented profiles remain partial coverage. See [institution coverage](docs/INSTITUTION_COVERAGE.md) for the latest sources and [linked GeM PDF extraction](docs/NATIONAL_COLLECTION_EXPANSION.md). See [local collection guide](docs/LOCAL_COLLECTION.md).
 
 **Live GeM scraping is disabled.** Public pages were reachable, but authorized bulk access and reproduction rights were not verified. Authorized CSV/JSON imports are the working ingestion path. See [source research](SOURCE_RESEARCH.md).
 
@@ -31,7 +31,7 @@ For an existing PostgreSQL instance, create a new `gem_intelligence` database an
 npm run build -w @gem/api
 npm run migrate
 npm run import:verified
-# Optional: load the 2,305 real listing discoveries for source review
+# Optional: load the 4,642 real listing discoveries for source review
 npm run import:discoveries
 npm run dev
 ```

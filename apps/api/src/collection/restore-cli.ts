@@ -76,13 +76,23 @@ async function main() {
       );
       const observedTimes = new Map(
         sourceRecords.map((r) => [
-          noticeKey(getSource(sourceId), r.raw.bidNumber, r.raw.url),
+          noticeKey(
+            getSource(sourceId),
+            r.raw.bidNumber,
+            r.raw.url,
+            r.raw.title,
+          ),
           r.observedAt || snapshot.collectedAt,
         ]),
       );
       const records = sourceRecords.map((r) => ({
         ...r.raw,
-        key: noticeKey(getSource(sourceId), r.raw.bidNumber, r.raw.url),
+        key: noticeKey(
+          getSource(sourceId),
+          r.raw.bidNumber,
+          r.raw.url,
+          r.raw.title,
+        ),
         ...noticeClassification(r.raw.title, rules),
       }));
       const runId = randomUUID();

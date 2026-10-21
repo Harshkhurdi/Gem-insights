@@ -86,7 +86,7 @@ test("changed listing retains observations and resets dismissed review", async (
 });
 test("queue deduplicates per source, not across all sources", async () => {
   const c = collection();
-  assert.equal((await c.queue()).queued, 11);
+  assert.equal((await c.queue()).queued, 15);
   assert.equal((await c.queue()).queued, 0);
   await assert.rejects(c.queue("gem"));
 });
@@ -307,4 +307,60 @@ test("a failed recent-page refresh retains the historical checkpoint", async () 
       .checkpoint,
     /page=50/,
   );
+});
+
+test("institution coverage migration refreshes candidates while preserving decisions, ages and pauses", async () => {
+  const { InstitutionCoverage1792411000000 } =
+    await import("../apps/api/src/migrations/institution-coverage");
+  await collection(raipur("SYNTHETIC ELISA kits")).run("aiims-raipur");
+  const n = (await db.query("SELECT * FROM discovered_notice"))[0];
+  const raw = {
+    ...n.raw,
+    medical: false,
+    reason: "SYNTHETIC legacy unmatched",
+  };
+  await db.query(
+    "UPDATE discovered_notice SET raw=$2,medical_candidate=false,review_status='dismissed',review_reason='SYNTHETIC operator decision',last_seen='2026-10-19T00:00:00Z' WHERE id=$1",
+    [n.id, JSON.stringify(raw)],
+  );
+  await db.query(
+    "UPDATE source SET enabled=false,checkpoint='https://www.icmr.gov.in/tenders?page=2' WHERE id='icmr'",
+  );
+  await db.query(
+    "UPDATE source SET adapter=NULL,enabled=false,listing_url='https://kmscl.kerala.gov.in/',checkpoint='https://kmscl.kerala.gov.in/old' WHERE id='kmscl'",
+  );
+  const runner = db.createQueryRunner();
+  await runner.connect();
+  try {
+    await new InstitutionCoverage1792411000000().up(runner);
+  } finally {
+    await runner.release();
+  }
+  const refreshed = (
+    await db.query("SELECT * FROM discovered_notice WHERE id=$1", [n.id])
+  )[0];
+  assert.equal(refreshed.medical_candidate, true);
+  assert.equal(refreshed.review_status, "dismissed");
+  assert.equal(refreshed.review_reason, "SYNTHETIC operator decision");
+  assert.equal(
+    new Date(refreshed.last_seen).toISOString(),
+    "2026-10-19T00:00:00.000Z",
+  );
+  const paused = (await db.query("SELECT * FROM source WHERE id='icmr'"))[0];
+  assert.equal(paused.enabled, false);
+  assert.match(paused.checkpoint, /page=2/);
+  const kmscl = (await db.query("SELECT * FROM source WHERE id='kmscl'"))[0];
+  assert.equal(kmscl.enabled, true);
+  assert.equal(kmscl.checkpoint, null);
+  await collection(raipur("SYNTHETIC ELISA kits")).run("aiims-raipur");
+  assert.equal(
+    (
+      await db.query(
+        "SELECT review_status FROM discovered_notice WHERE id=$1",
+        [n.id],
+      )
+    )[0].review_status,
+    "dismissed",
+  );
+  assert.equal((await new Analytics(db).overview(f)).tenders, 0);
 });

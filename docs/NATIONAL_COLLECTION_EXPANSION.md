@@ -1,3 +1,5 @@
+> Later update: [institution coverage](INSTITUTION_COVERAGE.md) adds AIIMS Rishikesh and KMSCL, bringing the current totals to 15 profiles and 4,642 listing records. The 11-profile counts below describe the preceding increment.
+
 # National collection expansion
 
 This increment expands the medical-tender collection workflow, preserves more source notices, and connects discovered GeM documents to local extraction. It remains a local-PC application with no external LLM.

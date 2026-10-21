@@ -1,6 +1,6 @@
 import { load } from "cheerio";
 import { SourceDefinition } from "./registry";
-import { publicLink } from "./links";
+import { publicLink, isNoticeAttachment } from "./links";
 export const clean = (v: string) => v.replace(/\s+/g, " ").trim();
 export function tableMatches(
   headers: string,
@@ -35,9 +35,47 @@ export function tableMatches(
         /Tender Related Notices/.test(headers) &&
         /Last Date of Submission/.test(headers)
       );
+    case "rishikesh":
+      return (
+        /(?:Tender|Quotation) Reference/.test(headers) &&
+        /Download (?:Tender|Quotation) Document/.test(headers) &&
+        /Start Date/.test(headers) &&
+        /Last Date/.test(headers)
+      );
     default:
       return false;
   }
+}
+export function kmsclNoticeLinks(html: string, pageUrl: string) {
+  const $ = load(html),
+    main = $("main#main").first();
+  if (!main.length || !/^Notices$/i.test(clean(main.find("h1").first().text())))
+    throw new Error("Expected KMSCL notices content missing");
+  const rows = main
+    .find(".list-box")
+    .toArray()
+    .flatMap((box) => {
+      const title = clean($(box).find(".media1 p").text());
+      const documents = [
+        ...new Set(
+          $(box)
+            .find("a[href]")
+            .toArray()
+            .map((a) => publicLink($(a).attr("href"), pageUrl))
+            .filter((u): u is string => !!u && isNoticeAttachment(u)),
+        ),
+      ];
+      if (!title || !documents.length)
+        throw new Error(
+          "KMSCL notice lacks a title or attachment; layout may have changed",
+        );
+      return [{ title, url: documents[0], documents }];
+    });
+  if (!rows.length)
+    throw new Error(
+      "KMSCL notices yielded no records; layout may have changed",
+    );
+  return rows;
 }
 // This source has a document-link list rather than a structured tender table.
 // Limit selection to its main content; header/footer PDFs are not notices.
