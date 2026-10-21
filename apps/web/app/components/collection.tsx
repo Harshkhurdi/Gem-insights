@@ -145,6 +145,50 @@ export default function CollectionView() {
       );
     }, "Review opened. Check the original source before approving.");
   }
+  async function refreshExtraction() {
+    if (!selected) return;
+    await action(
+      async () =>
+        setSelected(
+          await api("admin/collection/notices/" + selected.notice.id),
+        ),
+      "Extraction status refreshed. Review every source page before approval.",
+    );
+  }
+  function useExtraction(document: any) {
+    setError("");
+    if (selected.currentTender) {
+      setError(
+        "This tender already exists. Compare the extracted fields with the complete current record and reconcile amendments before approval.",
+      );
+      return;
+    }
+    const draft = document.draft_record;
+    if (
+      document.notice_hash !== selected.notice.current_hash ||
+      !draft ||
+      draft.bidNumber !== selected.notice.bid_number
+    ) {
+      setError(
+        "The extracted identity does not match the current notice. Review the original manually.",
+      );
+      return;
+    }
+    const record = {
+      ...draft,
+      sourcePortal: selected.notice.source_portal,
+      sourceUrl: selected.notice.source_url,
+      documents: selected.notice.documents.map((url: string) => ({
+        url,
+        label: "Original or amendment document",
+      })),
+    };
+    setRaw(JSON.stringify(record, null, 2));
+    setChecked(false);
+    setMessage(
+      "Extracted draft loaded. It is provisional; verify quantities, buyer identity and all amendments before approval.",
+    );
+  }
   function exportPage() {
     const rows = (notices.data?.rows || []).map((n: any) => ({
       source: n.source_name,
@@ -610,7 +654,63 @@ export default function CollectionView() {
                     <a href={url} target="_blank" rel="noopener noreferrer">
                       Document {i + 1}
                     </a>
+                    {selected.notice.source_portal === "gem" && (
+                      <Button
+                        disabled={busy}
+                        onClick={() =>
+                          action(
+                            () =>
+                              api(
+                                "admin/collection/notices/" +
+                                  selected.notice.id +
+                                  "/extract",
+                                {
+                                  expectedHash: selected.notice.current_hash,
+                                  documentIndex: i,
+                                },
+                              ),
+                            "Local PDF download and extraction queued. Keep the worker running, then refresh extraction status.",
+                          )
+                        }
+                      >
+                        Extract PDF locally
+                      </Button>
+                    )}
                   </p>
+                ))}
+                {selected.notice.source_portal === "gem" && (
+                  <Button disabled={busy} onClick={refreshExtraction}>
+                    Refresh extraction status
+                  </Button>
+                )}
+                {selected.extractedDocuments?.map((d: any) => (
+                  <div key={d.document_id} className="padded">
+                    <Chip size="small" label={d.status} />
+                    {d.error && <Alert severity="error">{d.error}</Alert>}
+                    {d.warnings?.map((w: string, i: number) => (
+                      <Alert severity="warning" key={i}>
+                        {w}
+                      </Alert>
+                    ))}
+                    {d.draft_record && (
+                      <>
+                        <details>
+                          <summary>
+                            Inspect extracted equipment and quantities
+                          </summary>
+                          <pre className="collection-draft-preview">
+                            {JSON.stringify(d.draft_record, null, 2)}
+                          </pre>
+                        </details>
+                        <Button
+                          disabled={busy || !!selected.currentTender}
+                          onClick={() => useExtraction(d)}
+                        >
+                          Use extracted draft for review
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 ))}
                 <Alert severity="info">
                   Enter every equipment line with its stable key, original name
@@ -627,6 +727,7 @@ export default function CollectionView() {
                 )}
               </div>
               <div className="admin-form">
+                {message && <Alert severity="info">{message}</Alert>}
                 <TextField
                   label="Complete reviewed tender JSON"
                   multiline

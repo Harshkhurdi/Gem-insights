@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { classify, Rule, STATES, unitName } from "./domain";
-export const PARSER_VERSION = "gem-pdf-2";
+export const PARSER_VERSION = "gem-pdf-3";
 export interface ExtractedPage {
   page: number;
   text: string;
@@ -109,7 +109,7 @@ export function extractTender(
       .replace(/\s/g, "")
       .toUpperCase() || null;
   const pub =
-    field("publishedAt", /(?:^|\/)(?:Dated|दिनांक)\s*[:\s]*(.*)$/i) ||
+    field("publishedAt", /(?:^|\/)\s*(?:Dated|दिनांक)\s*[:\s]*(.*)$/i) ||
     field(
       "publishedAt",
       /(?:Publication Date|Bid Start Date(?:\/Time)?)\s*[:\s]*(.*)$/i,
@@ -122,10 +122,56 @@ export function extractTender(
     "items",
     /(?:Item Category|वस्तु श्रेणी)\s*[:\s]*(.*)$/i,
   );
-  const explicitTitle = field(
+  let explicitTitle = field(
     "title",
     /(?:Tender Title|Bid Title|Subject|निविदा शीर्षक)\s*[:\s]+(.*)$/i,
   );
+  const placeholderCategory =
+    !!category &&
+    /^(?:global\s*tender\s*category|custom\s*bid|boq)(?:\s*\(q\d+\))?$/i.test(
+      category,
+    );
+  const globalTitleIndex = lines.findIndex((l) =>
+    /Global Tender Title/i.test(l.text),
+  );
+  if (globalTitleIndex >= 0) {
+    const label = lines[globalTitleIndex],
+      inline = label.text
+        .match(/Global Tender Title\s*[:\s]*(.*)$/i)?.[1]
+        ?.trim();
+    const parts: string[] = [];
+    const indices: number[] = [globalTitleIndex];
+    const fragment = (v: string) =>
+      /^[A-Za-z][A-Za-z0-9 (),&+.-]{3,240}$/.test(v) &&
+      !/^(?:GlobalTenderCategory|Technical Specifications|Total Quantity|Minimum Average|Bid Details|Item Category)/i.test(
+        v,
+      );
+    if (inline) parts.push(inline);
+    else if (
+      placeholderCategory &&
+      globalTitleIndex >= 2 &&
+      /Item Category/.test(lines[globalTitleIndex - 2].text) &&
+      fragment(lines[globalTitleIndex - 1].text) &&
+      lines[globalTitleIndex - 1].page === label.page
+    ) {
+      parts.push(lines[globalTitleIndex - 1].text);
+      indices.unshift(globalTitleIndex - 1);
+    }
+    const next = lines[globalTitleIndex + 1];
+    if (next && next.page === label.page && fragment(next.text)) {
+      parts.push(next.text);
+      indices.push(globalTitleIndex + 1);
+    }
+    if (parts.length) {
+      explicitTitle = clean(parts.join(" "));
+      evidence.title = [];
+      for (const index of indices) add("title", lines[index]);
+    }
+  }
+  if (placeholderCategory)
+    warnings.push(
+      "Generic global/custom tender category ignored as an equipment line. Read the original BOQ/attachments to establish every item and quantity.",
+    );
   const organization = field(
       "buyer.name",
       /(?:(?:Organisation|Organization|Buyer Institution) Name|संगठन का नाम)\s*[:\s]*(.*)$/i,
@@ -324,7 +370,7 @@ export function extractTender(
       carry = null;
     }
   itemHeads.sort((a, b) => a.index - b.index);
-  if (!itemHeads.length && category) {
+  if (!itemHeads.length && category && !placeholderCategory) {
     const value = total?.match(
       /^([\d,.]+)\s*(pieces?|units?|nos?\.?|sets?|kits?)?\b/i,
     );

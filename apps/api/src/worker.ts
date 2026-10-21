@@ -5,6 +5,8 @@ import { Documents } from "./documents/service";
 import { Ingestion } from "./ingestion";
 import { classify } from "../../../packages/core/domain";
 import { Collection } from "./collection/service";
+import { NoticeDocuments } from "./collection/document-fetch";
+const noticeDocuments = new NoticeDocuments(db);
 const collection = new Collection(db);
 const ingest = new Ingestion(db);
 const documents = new Documents(db);
@@ -142,7 +144,7 @@ async function start() {
       }
       const j = await db.transaction(async (m) => {
         const rows = await m.query(
-          "SELECT * FROM job WHERE status='pending' AND available_at<=now() ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1",
+          "SELECT * FROM job WHERE status='pending' AND available_at<=now() ORDER BY CASE WHEN kind IN ('pdf','notice-pdf','import','classify') THEN 0 ELSE 1 END,created_at FOR UPDATE SKIP LOCKED LIMIT 1",
         );
         if (!rows[0]) return null;
         await m.query(
@@ -161,6 +163,8 @@ async function start() {
         else if (j.kind === "feed") await collect();
         else if (j.kind === "collect")
           await collection.run(j.payload.sourceId, () => stopping);
+        else if (j.kind === "notice-pdf")
+          await noticeDocuments.process(j.payload);
         else if (j.kind === "pdf")
           await documents.process(j.payload.documentId);
         else if (j.kind === "classify") await reclassify();

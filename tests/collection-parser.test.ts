@@ -20,7 +20,7 @@ test("registry tracks all 36 states/UTs without equating registration to live co
     assert.ok(
       SOURCES.some((s) => s.portal === "state" && s.states.includes(state)),
     );
-  assert.equal(SOURCES.filter((s) => s.adapter).length, 3);
+  assert.equal(SOURCES.filter((s) => s.adapter).length, 11);
   assert.equal(new Set(SOURCES.map((s) => s.id)).size, SOURCES.length);
   assert.equal(getSource("gem").adapter, null);
   assert.throws(() => getSource("unknown"));
@@ -47,7 +47,10 @@ test("Raipur follows only published same-source pagination", () => {
     "https://www.aiimsraipur.edu.in/private",
     "javascript:alert(1)",
   ])
-    assert.equal(parseListing(raipur("Patient monitor", next), s).next, null);
+    assert.throws(
+      () => parseListing(raipur("Patient monitor", next), s),
+      /pagination/,
+    );
   assert.equal(
     pageAllowed("http://www.aiimsraipur.edu.in/user/tenders.php", s),
     false,

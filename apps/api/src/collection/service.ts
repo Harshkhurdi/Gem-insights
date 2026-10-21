@@ -52,11 +52,17 @@ export class Collection {
     private db: DataSource,
     private fetchPage = fetchListing,
     private pageDelayMs = 2000,
-  ) {}
+    private pageBudget = 25,
+  ) {
+    if (!Number.isInteger(pageBudget) || pageBudget < 1 || pageBudget > 100)
+      throw new Error("Page budget must be between 1 and 100");
+  }
   async queue(sourceId?: string) {
     const eligible = sourceId
       ? [getSource(sourceId)]
-      : SOURCES.filter((s) => s.adapter);
+      : SOURCES.filter((s) => s.adapter).sort(
+          (a, b) => Number(a.adapter === "cppp") - Number(b.adapter === "cppp"),
+        );
     if (eligible.some((s) => !s.adapter))
       throw new Error(
         "This source needs assisted import; no automated adapter available",
@@ -94,7 +100,9 @@ export class Collection {
       // CPPP detail links contain rotating transport tokens; identity comes from
       // the source-recorded reference, not those tokens. Keep the latest link.
       const hash = digest(
-        sourceId === "cppp" && n.bidNumber ? { ...n, url: "" } : n,
+        getSource(sourceId).adapter === "cppp" && n.bidNumber
+          ? { ...n, url: "" }
+          : n,
       );
       const old = (
         await m.query(
@@ -195,8 +203,55 @@ export class Collection {
     const rules = await this.db.query("SELECT * FROM product");
     const visited = new Set<string>();
     let pages = 0;
+    const savePage = async (
+      parsed: ReturnType<typeof parseListing>,
+      advanceCheckpoint: boolean,
+    ) => {
+      await this.db.transaction(async (m) => {
+        const stats = await this.store(m, sourceId, runId, parsed.notices);
+        await m.query(
+          "UPDATE collection_run SET discovered=discovered+$2,inserted=inserted+$3,updated=updated+$4,unchanged=unchanged+$5 WHERE id=$1",
+          [
+            runId,
+            parsed.notices.length,
+            stats.inserted,
+            stats.updated,
+            stats.unchanged,
+          ],
+        );
+        if (advanceCheckpoint)
+          await m.query("UPDATE source SET checkpoint=$2 WHERE id=$1", [
+            sourceId,
+            parsed.next,
+          ]);
+      });
+    };
     try {
-      while (pages < 25 && !stop()) {
+      // Keep the newest notices fresh while a large historical listing is scanned.
+      // Refreshing the head never rewinds the durable backfill checkpoint.
+      if (row.checkpoint && row.checkpoint !== source.url) {
+        let head: string | null = source.url;
+        const headSeen = new Set<string>();
+        for (
+          let i = 0;
+          i < Math.min(3, this.pageBudget - 1) && head && !stop();
+          i++
+        ) {
+          if (headSeen.has(head)) throw new Error("Cyclic head pagination");
+          headSeen.add(head);
+          const parsed = parseListing(
+            await this.fetchPage(head),
+            source,
+            head,
+            rules,
+          );
+          await savePage(parsed, false);
+          pages++;
+          head = parsed.next;
+          if (head) await delay(this.pageDelayMs);
+        }
+      }
+      while (pages < this.pageBudget && !stop()) {
         if (visited.has(pageUrl))
           throw new Error("Cyclic pagination; checkpoint retained");
         visited.add(pageUrl);
@@ -208,23 +263,7 @@ export class Collection {
         );
         if (parsed.next && visited.has(parsed.next))
           throw new Error("Cyclic pagination; checkpoint retained");
-        await this.db.transaction(async (m) => {
-          const stats = await this.store(m, sourceId, runId, parsed.notices);
-          await m.query(
-            "UPDATE collection_run SET discovered=discovered+$2,inserted=inserted+$3,updated=updated+$4,unchanged=unchanged+$5 WHERE id=$1",
-            [
-              runId,
-              parsed.notices.length,
-              stats.inserted,
-              stats.updated,
-              stats.unchanged,
-            ],
-          );
-          await m.query("UPDATE source SET checkpoint=$2 WHERE id=$1", [
-            sourceId,
-            parsed.next,
-          ]);
-        });
+        await savePage(parsed, true);
         pages++;
         if (!parsed.next) {
           await this.db.query(
@@ -342,7 +381,15 @@ export class Collection {
           )
         )[0]
       : null;
-    return { notice, currentTender: tender || null };
+    const documents = await this.db.query(
+      "SELECT l.source_url,l.document_id,l.notice_hash,d.status,d.error,x.record AS draft_record,x.warnings FROM notice_document_link l JOIN upload_document d ON d.id=l.document_id LEFT JOIN extraction_draft x ON x.document_id=d.id WHERE l.notice_id=$1 ORDER BY l.created_at DESC",
+      [id],
+    );
+    return {
+      notice,
+      currentTender: tender || null,
+      extractedDocuments: documents,
+    };
   }
   async approve(
     id: string,

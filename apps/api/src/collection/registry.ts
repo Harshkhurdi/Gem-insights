@@ -6,7 +6,16 @@ export interface SourceDefinition {
   url: string;
   portal: "gem" | "cppp" | "state" | "institution";
   states: string[];
-  adapter: "raipur" | "icmr" | "cppp" | null;
+  adapter:
+    | "raipur"
+    | "icmr"
+    | "cppp"
+    | "bilaspur"
+    | "hll"
+    | "gmch"
+    | "gmch-notices"
+    | null;
+  buyerName?: string;
   scope: string;
 }
 const source = (
@@ -77,6 +86,15 @@ export const SOURCES: SourceDefinition[] = [
     "Public latest-tender listing only; not a complete archive. No item quantities on listing.",
   ),
   source(
+    "cppp-states",
+    "CPPP state procurement",
+    "https://eprocure.gov.in/cppp/latestactivetendersnew/mmpdata",
+    "state",
+    [],
+    "cppp",
+    "Public state tender mirror; explicit state labels, unknown buyer identity; partial listing coverage.",
+  ),
+  source(
     "aiims-raipur",
     "AIIMS Raipur",
     "https://www.aiimsraipur.edu.in/user/tenders.php",
@@ -85,6 +103,18 @@ export const SOURCES: SourceDefinition[] = [
     "raipur",
     "Public current tender table and linked corrigenda; listing metadata only.",
   ),
+  {
+    ...source(
+      "aiims-raipur-quotations",
+      "AIIMS Raipur quotations",
+      "https://www.aiimsraipur.edu.in/user/tender-procurement-through-quotations.php",
+      "institution",
+      ["Chhattisgarh"],
+      "raipur",
+      "Public quotations and linked original/corrigendum documents; partial listing coverage.",
+    ),
+    buyerName: "AIIMS Raipur",
+  },
   source(
     "icmr",
     "ICMR and its institutes",
@@ -120,10 +150,36 @@ export const SOURCES: SourceDefinition[] = [
   source(
     "aiims-bilaspur",
     "AIIMS Bilaspur",
-    "https://www.aiimsbilaspur.edu.in/",
+    "https://www.aiimsbilaspur.edu.in/procurement/tender/gem",
     "institution",
     ["Himachal Pradesh"],
+    "bilaspur",
+    "Public GeM notices and linked PDFs. GeM bid identities preserved; start date is not assumed to be publication.",
   ),
+  {
+    ...source(
+      "aiims-bilaspur-cppp",
+      "AIIMS Bilaspur CPPP notices",
+      "https://www.aiimsbilaspur.edu.in/procurement/tender/cppp",
+      "institution",
+      ["Himachal Pradesh"],
+      "bilaspur",
+      "Public institution-hosted CPPP notices; native references and linked PDFs.",
+    ),
+    buyerName: "AIIMS Bilaspur",
+  },
+  {
+    ...source(
+      "aiims-bilaspur-niq",
+      "AIIMS Bilaspur quotations",
+      "https://www.aiimsbilaspur.edu.in/procurement/niq",
+      "institution",
+      ["Himachal Pradesh"],
+      "bilaspur",
+      "Public quotation list; dates, original documents and amendments require review.",
+    ),
+    buyerName: "AIIMS Bilaspur",
+  },
   source(
     "pgimer",
     "PGIMER Chandigarh",
@@ -131,9 +187,27 @@ export const SOURCES: SourceDefinition[] = [
     "institution",
     ["Chandigarh"],
   ),
-  source("gmch32", "GMCH Chandigarh", "https://gmch.gov.in/", "institution", [
-    "Chandigarh",
-  ]),
+  source(
+    "gmch32",
+    "GMCH Chandigarh",
+    "https://gmch.gov.in/tenders",
+    "institution",
+    ["Chandigarh"],
+    "gmch",
+    "Public tender table; an explicit empty state is recorded as an empty listing, not national coverage.",
+  ),
+  {
+    ...source(
+      "gmch32-proprietary",
+      "GMCH Chandigarh procurement notices",
+      "https://gmch.gov.in/notices-for-procurement-of-proprietary-items",
+      "institution",
+      ["Chandigarh"],
+      "gmch-notices",
+      "Public proprietary/quotation/EOI document links; dates and native reference stay unknown unless explicit.",
+    ),
+    buyerName: "GMCH Chandigarh",
+  },
   source(
     "bfuhs",
     "Baba Farid University of Health Sciences",
@@ -154,9 +228,11 @@ export const SOURCES: SourceDefinition[] = [
   source(
     "hll",
     "HLL Lifecare",
-    "https://www.lifecarehll.com/",
+    "https://www.lifecarehll.com/tender",
     "institution",
     [],
+    "hll",
+    "Public HLL tender listing and published pagination; delivery states are not inferred from titles.",
   ),
   source(
     "hites",

@@ -339,6 +339,19 @@ test("reviewed collected native reference reaches existing analytics through HTT
     await request("admin/collection/notices/" + notice.id)
   ).json();
   assert.equal(detail.currentTender, null);
+  const extractPath = "admin/collection/notices/" + notice.id + "/extract";
+  const extraction = { expectedHash: notice.current_hash, documentIndex: 0 };
+  assert.equal((await request(extractPath, extraction, false)).status, 401);
+  assert.equal(
+    (await request(extractPath, extraction, true, "https://untrusted.example"))
+      .status,
+    403,
+  );
+  assert.equal(
+    (await request(extractPath, { ...extraction, documentIndex: -1 })).status,
+    400,
+  );
+  assert.equal((await request(extractPath, extraction)).status, 409);
   const body = {
     expectedHash: notice.current_hash,
     expectedTenderHash: null,

@@ -1,3 +1,5 @@
+> Current update: the [national collection expansion](NATIONAL_COLLECTION_EXPANSION.md) adds 11 working listing profiles, same-host linked GeM PDF extraction, recent-page refresh during backfill, and an updated 2,305-notice snapshot. It supersedes the earlier three-profile/1,909-notice counts below.
+
 # Local collection and medical demand workflow
 
 This phase adds public-listing discovery to the existing local application. It preserves the Next.js/NestJS/PostgreSQL stack, PDF review, imports, corrections and SQL analytics. There is no hosted service or external LLM dependency.

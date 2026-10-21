@@ -1,0 +1,5 @@
+// Synthetic source rows only; never used as production procurement data.
+export const bilaspur = (ref = "GEM/2026/B/123456", suffix = "one") =>
+  `<table><tr><th>S.No.</th><th>Reference No.</th><th>Title</th><th>Pre Bid Date</th><th>Start Date</th><th>End Date</th><th>Extend Date</th><th>Related Document</th></tr><tr><td>1</td><td>${ref}</td><td>SYNTHETIC Patient monitors</td><td>-</td><td>20-10-2026</td><td>25-10-2026</td><td>30-10-2026</td><td><a href="/sites/default/files/${suffix}.pdf">PDF</a></td></tr></table>`;
+export const hll = `<table><tr><th>Sl. No</th><th>Title</th><th>Ref. No.</th><th>Department/ Category</th></tr><tr><td>1</td><td><a href="/tender/view/reference/test">SYNTHETIC Dialysis machines</a></td><td>HLL/TEST/1</td><td>Supply</td></tr></table><a href="https://www.lifecarehll.com/tender/index/p/2">Next</a>`;
+export const gmchEmpty = `<table><tr><th>S. No.</th><th>Tender Related Notices</th><th>Documents</th><th>Last Date of Submission</th></tr><tr><td colspan="4">Currently Tenders are not available</td></tr></table>`;
