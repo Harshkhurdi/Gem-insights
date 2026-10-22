@@ -7,6 +7,19 @@ export function tableMatches(
   adapter: SourceDefinition["adapter"],
 ) {
   switch (adapter) {
+    case "rmsc":
+      return (
+        /Name/.test(headers) &&
+        /Description/.test(headers) &&
+        /Files/.test(headers) &&
+        /Upload Date/.test(headers)
+      );
+    case "upums":
+      return (
+        /Title/.test(headers) &&
+        /Published Date/.test(headers) &&
+        /Details/.test(headers)
+      );
     case "aiims-delhi":
       return (
         /Title/.test(headers) &&

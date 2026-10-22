@@ -40,10 +40,10 @@ export async function refreshNoticeClassifications(
   const rules = await q.query("SELECT * FROM product");
   const rows = await q.query("SELECT id,source_id,raw FROM discovered_notice");
   const updates = rows.flatMap((n: any) => {
-    const classification = noticeClassification(n.raw.title, rules);
+    const source = SOURCES.find((s) => s.id === n.source_id);
+    const classification = noticeClassification(n.raw.title, rules, source);
     const raw = { ...n.raw, ...classification };
     if (JSON.stringify(raw) === JSON.stringify(n.raw)) return [];
-    const source = SOURCES.find((s) => s.id === n.source_id);
     return [
       {
         id: n.id,

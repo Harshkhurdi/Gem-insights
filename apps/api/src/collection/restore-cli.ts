@@ -93,7 +93,7 @@ async function main() {
           r.raw.url,
           r.raw.title,
         ),
-        ...noticeClassification(r.raw.title, rules),
+        ...noticeClassification(r.raw.title, rules, getSource(sourceId)),
       }));
       const runId = randomUUID();
       await db.transaction(async (m) => {
