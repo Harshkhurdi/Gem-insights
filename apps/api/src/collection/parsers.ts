@@ -14,6 +14,8 @@ import {
   gmchNoticeLinks,
   kmsclNoticeLinks,
 } from "./institution-parsers";
+import { jkmsclEntries } from "./jkmscl";
+import { northernLinks } from "./northern-links";
 export interface Notice {
   key: string;
   bidNumber: string | null;
@@ -81,7 +83,7 @@ export function noticeClassification(
     .sort();
   const titleMedical =
     !!equipmentAliasMatches(title, classificationRules).length ||
-    /\b(medical|hospital|surgical|diagnostic|laboratory|healthcare|equipment|analy[sz]er|incubator|dialysis|ophthalmic|dental|cbct|tomography|laser|psychiatr\w*|orthop\w*|patholog\w*|nephro\w*|physio\w*|oncolog\w*|cardio\w*|neurolog\w*|elisa|assay|reagents?|consumables?|pharma\w*|medicines?|drugs?|sutures?|catheters?|endotracheal|nasogastric|gauze|haemo\w*|hemo\w*|microbiolog\w*|biochem\w*|immuno\w*|prosthe\w*|implants?|endoscop\w*|gastro\w*|otolaryng\w*|urolog\w*|anaesthe\w*|anesthe\w*)\b/i.test(
+    /\b(medical|hospital|surgical|diagnostic|laboratory|healthcare|equipments?|analy[sz]er|incubator|dialysis|ophthalmic|dental|cbct|tomography|laser|psychiatr\w*|orthop\w*|patholog\w*|nephro\w*|physio\w*|oncolog\w*|cardio\w*|neurolog\w*|elisa|assay|reagents?|consumables?|pharma\w*|medicines?|drugs?|sutures?|catheters?|endotracheal|nasogastric|gauze|haemo\w*|hemo\w*|microbiolog\w*|biochem\w*|immuno\w*|prosthe\w*|implants?|endoscop\w*|gastro\w*|otolaryng\w*|urolog\w*|anaesthe\w*|anesthe\w*)\b/i.test(
       title,
     ) ||
     /\b(pacemakers?|dysphagia|infusion|syringes?|needles?|gloves?|dressings?|neonat\w*|echocardi\w*|laparoscop\w*|surger\w*|injections?|chemotherap\w*|intra[- ]?ocular|platelet\w*|patient\s+care|blood\s+(?:collection|bank)|pulse\s+oximet\w*|molecular\s+biology|scrub\s+suits?|(?:ot|operating\s+theatre)\s+(?:towels?|tables?|lights?))\b/i.test(
@@ -112,13 +114,23 @@ export function pageAllowed(url: string, source: SourceDefinition) {
     base = new URL(source.url);
   return (
     u.origin === base.origin &&
-    (source.adapter !== "aiims-delhi" ||
+    (!["aiims-delhi", "skims"].includes(source.adapter || "") ||
       ([...u.searchParams.keys()].every((k) => k === "start") &&
         (!u.searchParams.has("start") ||
           (u.searchParams.getAll("start").length === 1 &&
             /^\d+$/.test(u.searchParams.get("start")!))))) &&
     (source.adapter !== "bathinda" || u.search === base.search) &&
-    (!["rmsc", "upums", "bhubaneswar"].includes(source.adapter || "") ||
+    (![
+      "rmsc",
+      "upums",
+      "bhubaneswar",
+      "jammu",
+      "jkmscl",
+      "nhm-ladakh",
+      "kgmu",
+      "kcgmc",
+      "s3waas",
+    ].includes(source.adapter || "") ||
       u.search === base.search) &&
     (source.adapter !== "rishikesh" ||
       u.searchParams.get("page_id") === base.searchParams.get("page_id")) &&
@@ -138,11 +150,25 @@ export function noticeKey(
   // CPPP uses rotating link tokens, but its tender ID is stable. Other sources
   // can reuse a file/reference number for several different notice documents.
   if (source.adapter === "cppp" && reference) return reference;
+  // This publisher reuses some PDF URLs for unrelated tender titles. Preserve
+  // each row's title context instead of silently dropping one at collection.
+  if (["jammu", "jkmscl"].includes(source.adapter || "") && title) {
+    const identity = digest(url + "#" + title);
+    return reference ? reference + "#" + identity.slice(0, 20) : identity;
+  }
   // Missing historical links lead to the listing; titles distinguish its rows.
   if (
-    ["rishikesh", "bathinda", "rmsc", "upums", "bhubaneswar"].includes(
-      source.adapter || "",
-    ) &&
+    [
+      "rishikesh",
+      "bathinda",
+      "rmsc",
+      "upums",
+      "bhubaneswar",
+      "jammu",
+      "kgmu",
+      "kcgmc",
+      "s3waas",
+    ].includes(source.adapter || "") &&
     url === source.url &&
     title
   )
@@ -158,10 +184,50 @@ export function parseListing(
   const $ = load(html);
   if (/captcha|access denied|verify you are human/i.test($("title").text()))
     throw new Error("Source access challenge; assisted import required");
+  if (["skims", "nhm-ladakh", "jkmscl"].includes(source.adapter || "")) {
+    const entries =
+      source.adapter === "jkmscl"
+        ? jkmsclEntries(html, pageUrl)
+        : northernLinks(html, source, pageUrl);
+    const notices = entries.map((entry) => {
+      const title = entry.title.slice(0, 2000),
+        { url, documents } = entry;
+      const gem = title
+        .match(/GEM\s*\/\s*\d{4}\s*\/\s*[BR]\s*\/\s*\d+/i)?.[0]
+        .replace(/\s/g, "")
+        .toUpperCase();
+      const reference =
+        gem ||
+        entry.reference ||
+        title.match(/\b\d{4}_[A-Za-z0-9]+_\d+(?:_\d+)?\b/)?.[0] ||
+        null;
+      return {
+        key: noticeKey(source, reference, url, title),
+        bidNumber: reference,
+        portal: gem ? ("gem" as const) : source.portal,
+        title: title.slice(0, 2000),
+        url,
+        documents,
+        publishedAt: null,
+        closingDate: entry.closingText ? listingDate(entry.closingText) : null,
+        buyer: source.buyerName || source.name,
+        state: source.states[0] || null,
+        ...noticeClassification(title, classificationRules, source),
+      };
+    });
+    return {
+      notices: [...new Map(notices.map((n) => [n.key, n])).values()],
+      next: source.adapter === "skims" ? listingNext($, source, pageUrl) : null,
+    };
+  }
   const notices: Notice[] = [];
   const table = $("table")
     .filter((_, el) => {
-      const headers = clean($(el).find("th").text());
+      const headers = clean(
+        ["kgmu", "kcgmc"].includes(source.adapter || "")
+          ? $(el).find("tr").first().children("td,th").text()
+          : $(el).find("th").text(),
+      );
       return tableMatches(headers, source.adapter);
     })
     .first();
@@ -216,7 +282,78 @@ export function parseListing(
       explicitState: string | null =
         source.states.length === 1 ? source.states[0] : null;
     let primary: string | null = null;
-    if (source.adapter === "bhubaneswar") {
+    if (
+      ["kgmu", "kcgmc"].includes(source.adapter || "") &&
+      /Sr\. No\./.test(clean(cells.eq(0).text()))
+    )
+      return;
+    if (source.adapter === "jammu") {
+      if (cells.length !== 3)
+        throw new Error("AIIMS Jammu row changed; expected three columns");
+      title =
+        clean(cells.eq(1).clone().find("a").remove().end().text()) ||
+        clean(cells.eq(1).text());
+      buyer = source.buyerName || source.name;
+      primary =
+        cells
+          .eq(2)
+          .find("a[href]")
+          .toArray()
+          .map((a) => publicLink($(a).attr("href"), pageUrl))
+          .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+      // Upload dates are not verified original publication dates.
+      ref = title.match(/\b\d{4}_[A-Za-z0-9]+_\d+(?:_\d+)?\b/)?.[0] || "";
+    } else if (source.adapter === "kgmu") {
+      if (cells.length !== 4)
+        throw new Error("KGMU row changed; expected four columns");
+      ref = clean(cells.eq(1).text());
+      if (/^(?:-|nil|na)?$/i.test(ref)) ref = "";
+      title = clean(cells.eq(2).text());
+      buyer = source.name;
+      primary =
+        cells
+          .eq(2)
+          .find("a[href]")
+          .toArray()
+          .map((a) => publicLink($(a).attr("href"), pageUrl))
+          .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+      const submission = clean(cells.eq(3).text()).split(/\s+to\s+/i);
+      closingDate = listingDate(submission.at(-1) || "");
+    } else if (source.adapter === "kcgmc") {
+      if (cells.length !== 5)
+        throw new Error("KCGMC row changed; expected five columns");
+      title = clean(cells.eq(1).text());
+      buyer = source.buyerName || source.name;
+      closingDate = listingDate(cells.eq(3).text());
+      primary =
+        publicLink(cells.eq(4).find("a[href]").first().attr("href"), pageUrl) ||
+        source.url;
+      if (
+        primary !== source.url &&
+        new URL(primary).origin !== new URL(source.url).origin
+      )
+        throw new Error("KCGMC original is not on its official host");
+      ref = title.match(/\b\d{4}_[A-Za-z0-9]+_\d+(?:_\d+)?\b/)?.[0] || "";
+    } else if (source.adapter === "s3waas") {
+      if (cells.length !== 6)
+        throw new Error(
+          "Health department tender row changed; expected six columns",
+        );
+      const name = clean(cells.eq(1).text()),
+        description = clean(cells.eq(2).text());
+      title =
+        name + (description && description !== name ? " — " + description : "");
+      buyer = source.name;
+      primary =
+        cells
+          .eq(5)
+          .find("a[href]")
+          .toArray()
+          .map((a) => publicLink($(a).attr("href"), pageUrl))
+          .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+      // Generic Start/End notice dates are not asserted as bid dates.
+      ref = title.match(/\b\d{4}_[A-Za-z0-9]+_\d+(?:_\d+)?\b/)?.[0] || "";
+    } else if (source.adapter === "bhubaneswar") {
       if (cells.length !== 8) {
         if (
           cells.length === 1 &&
@@ -428,6 +565,9 @@ export function parseListing(
             (u): u is string =>
               !!u &&
               (isNoticeAttachment(u) ||
+                (source.adapter === "kcgmc" &&
+                  new URL(u).origin === new URL(source.url).origin &&
+                  /^\/Tender\/ShowPDF\/\d+$/.test(new URL(u).pathname)) ||
                 (source.adapter === "rishikesh" &&
                   new URL(u).hostname.includes("."))),
           ),
@@ -456,7 +596,21 @@ export function parseListing(
     throw new Error(
       "Tender table yielded no records; collection not marked successful",
     );
-  const nextAnchor = $("a[href]")
+  const next = listingNext($, source, pageUrl);
+  return {
+    notices: [...new Map(notices.map((n) => [n.key, n])).values()],
+    next: next && pageAllowed(next, source) && next !== pageUrl ? next : null,
+  };
+}
+
+function listingNext(
+  $: ReturnType<typeof load>,
+  source: SourceDefinition,
+  pageUrl: string,
+) {
+  const nextAnchor = $(
+    source.adapter === "skims" ? "form[name=adminForm] a[href]" : "a[href]",
+  )
     .filter(
       (_, a) =>
         /^(next\s*(?:[›»>]|page)?|[›»])$/i.test(clean($(a).text())) ||
@@ -471,13 +625,10 @@ export function parseListing(
     throw new Error("Non-advancing pagination link; collection incomplete");
   if (
     next &&
-    source.adapter === "aiims-delhi" &&
+    ["aiims-delhi", "skims"].includes(source.adapter || "") &&
     Number(new URL(next).searchParams.get("start") || 0) <=
       Number(new URL(pageUrl).searchParams.get("start") || 0)
   )
     throw new Error("Non-advancing archive offset; collection incomplete");
-  return {
-    notices: [...new Map(notices.map((n) => [n.key, n])).values()],
-    next: next && pageAllowed(next, source) && next !== pageUrl ? next : null,
-  };
+  return next;
 }

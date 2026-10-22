@@ -20,6 +20,13 @@ export interface SourceDefinition {
     | "bathinda"
     | "rmsc"
     | "upums"
+    | "jkmscl"
+    | "jammu"
+    | "nhm-ladakh"
+    | "kgmu"
+    | "kcgmc"
+    | "s3waas"
+    | "skims"
     | "bhubaneswar"
     | null;
   buyerName?: string;
@@ -273,12 +280,158 @@ export const SOURCES: SourceDefinition[] = [
     ),
     buyerName: "GMCH Chandigarh",
   },
+  ...(
+    [
+      ["aiims-jammu", "public tenders", "tenders-new"],
+      ["aiims-jammu-open", "older open tenders", "open-tenders"],
+      ["aiims-jammu-quotations", "quotations and objections", "all-quotations"],
+    ] as const
+  ).map(([id, label, path]) => ({
+    ...source(
+      id,
+      `AIIMS Jammu ${label}`,
+      `https://www.aiimsjammu.edu.in/${path}/`,
+      "institution",
+      ["Jammu and Kashmir"],
+      "jammu",
+      "Public original and amendment links. Upload Date is not verified publication; no inferred quantities or delivery locations. Current and older pages can overlap.",
+    ),
+    buyerName: "AIIMS Jammu",
+  })),
+  ...(
+    [
+      ["skims-imports", "Imports", "51-materials-management-imports"],
+      ["skims-purchase1", "Purchase I", "52-materials-management-purchase-i"],
+      ["skims-purchase2", "Purchase II", "56-materials-management-purchase-ii"],
+      ["skims-quotations", "Quotations", "114-quotations"],
+    ] as const
+  ).map(([id, label, path]) => ({
+    ...source(
+      id,
+      `SKIMS Srinagar — ${label}`,
+      `https://www.skims.ac.in/index.php/tenders/${path}.html`,
+      "institution",
+      ["Jammu and Kashmir"],
+      "skims",
+      "Public paginated procurement article list. Hits are page views, not quantities. Original article links are retained; dates, items and attachments require source review. Bounded backfill resumes from checkpoint.",
+    ),
+    buyerName: "SKIMS Srinagar",
+  })),
+  source(
+    "nhm-ladakh",
+    "National Health Mission Ladakh",
+    "https://www.nhmladakh.in/",
+    "institution",
+    ["Ladakh"],
+    "nhm-ladakh",
+    "Procurement-labelled PDF links in the public notice marquee only; recruitment and app links are excluded. Partial homepage history, with unknown publication/closing dates and quantities.",
+  ),
+  source(
+    "kgmu",
+    "King George's Medical University",
+    "https://www.kgmu.org/tenders.php",
+    "institution",
+    ["Uttar Pradesh"],
+    "kgmu",
+    "Public tender table and official references. Submission date range establishes closing date only; its start is not verified publication. Original PDFs retained, with unknown item quantities. The source intermittently returned a connection-error page during validation; failures remain visible and earlier evidence is retained.",
+  ),
+  ...(
+    [
+      ["kcgmc", "tenders", "Tender"],
+      ["kcgmc-archive", "archive", "TenderArchive"],
+    ] as const
+  ).map(([id, label, path]) => ({
+    ...source(
+      id,
+      `Kalpana Chawla Government Medical College — ${label}`,
+      `https://www.kcgmc.edu.in/Tender/${path}`,
+      "institution",
+      ["Haryana"],
+      "kcgmc",
+      "Public tender table and original PDF-viewer links. Opening Date is not publication; explicit closing dates retained. Mixed procurement; missing originals remain linked to the listing. Publisher location only.",
+    ),
+    buyerName: "Kalpana Chawla Government Medical College",
+  })),
+  source(
+    "haryana-health",
+    "Health Department Haryana",
+    "https://haryanahealth.gov.in/notice-category/tenders/",
+    "institution",
+    ["Haryana"],
+    "s3waas",
+    "Current public tender notices with official CDN attachments. Generic Start/End dates are not verified publication/submission deadlines. The archive contains apparent template/demo entries and is not collected.",
+  ),
+  source(
+    "jkmscl",
+    "Jammu and Kashmir Medical Supplies Corporation",
+    "https://jkmsclbusiness.com/tender.php",
+    "institution",
+    ["Jammu and Kashmir"],
+    "jkmscl",
+    "Corporation public tender/notice list and linked older archive. Row-spanned references, notice types and original documents retained. Closing Date is a listing claim; publication dates and item quantities remain unknown. Amendments and evaluation notices are not all open bids.",
+  ),
+  source(
+    "sgpgims",
+    "Sanjay Gandhi Postgraduate Institute of Medical Sciences",
+    "https://www.sgpgims.org.in/Home/Tender.html",
+    "institution",
+    ["Uttar Pradesh"],
+    null,
+    "Priority northern target; official tender listing returned HTTP 503 on 22 October 2026. Not enabled as a working collector; KGMU/UPUMS remain separate partial coverage.",
+  ),
+  source(
+    "rmlh",
+    "Dr Ram Manohar Lohia Hospital",
+    "https://www.rmlh.mohfw.gov.in/Index1.aspx?langid=1&lev=2&lid=1243&lsid=2258&pid=2257",
+    "institution",
+    ["Delhi"],
+    null,
+    "Priority northern target; official tender listing returned HTTP 503 on 22 October 2026. Assisted source review remains available.",
+  ),
+  source(
+    "igmc-shimla",
+    "Indira Gandhi Medical College Shimla",
+    "https://www.igmcshimla.edu.in/",
+    "institution",
+    ["Himachal Pradesh"],
+    null,
+    "Priority northern target; official source identified. Homepage returned HTTP 503 on 22 October 2026; procurement listing still requires access/layout validation. AIIMS Bilaspur is separate partial coverage.",
+  ),
+  source(
+    "hmscl",
+    "Haryana Medical Services Corporation",
+    "https://hmscl.org.in/",
+    "institution",
+    ["Haryana"],
+    null,
+    "Priority northern target; public request returned HTTP 503 on 22 October 2026. Automated collection not enabled; Haryana health/KCGMC profiles provide separate partial coverage.",
+  ),
+  source(
+    "uhsr",
+    "University of Health Sciences Rohtak",
+    "https://www.uhsr.ac.in/quotations",
+    "institution",
+    ["Haryana"],
+    null,
+    "Priority northern target; official quotation page returned HTTP 503 on 22 October 2026. Assisted import/source review remains available.",
+  ),
+  source(
+    "aiims-jodhpur",
+    "AIIMS Jodhpur",
+    "https://aiimsjodhpur.edu.in/tenders.php",
+    "institution",
+    ["Rajasthan"],
+    null,
+    "Priority northern target; official listing found but returned HTTP 503 on 22 October 2026. Not enabled as a working collector; RMSC is separate partial coverage.",
+  ),
   source(
     "bfuhs",
     "Baba Farid University of Health Sciences",
-    "https://bfuhs.ac.in/",
+    "https://www.bfuhs.ac.in/tender/tender.asp",
     "institution",
     ["Punjab"],
+    null,
+    "Priority northern target; public tender page returned HTTP 503 on 22 October 2026. Automated collection not enabled; AIIMS Bathinda is separate partial coverage.",
   ),
   source(
     "esic",

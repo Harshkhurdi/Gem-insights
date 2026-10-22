@@ -1,15 +1,20 @@
 import { connect, db } from "../database";
 import { Collection } from "./service";
-import { SOURCES, getSource } from "./registry";
+import { getSource } from "./registry";
+import { collectionSources } from "./regions";
 async function main() {
   const id = process.argv[2];
-  if (id && id !== "all") getSource(id);
+  if (id && !["all", "north"].includes(id)) getSource(id);
   await connect();
   try {
     const collection = new Collection(db);
-    for (const s of SOURCES.filter(
-      (s) => s.adapter && (!id || id === "all" || s.id === id),
-    )) {
+    const sources =
+      id && !["all", "north"].includes(id)
+        ? [getSource(id)]
+        : collectionSources(
+            id === "north" ? "north" : id === "all" ? "all" : undefined,
+          );
+    for (const s of sources) {
       try {
         console.log(
           JSON.stringify({ source: s.id, ...(await collection.run(s.id)) }),

@@ -7,8 +7,9 @@ import {
   STATES,
 } from "../../../../packages/core/domain";
 import { Ingestion } from "../ingestion";
-import { getSource, SOURCES } from "./registry";
+import { getSource } from "./registry";
 import { Notice, pageAllowed, parseListing } from "./parsers";
+import { collectionRegion, collectionSources } from "./regions";
 
 export async function fetchListing(url: string): Promise<string> {
   const response = await fetch(url, {
@@ -58,11 +59,7 @@ export class Collection {
       throw new Error("Page budget must be between 1 and 100");
   }
   async queue(sourceId?: string) {
-    const eligible = sourceId
-      ? [getSource(sourceId)]
-      : SOURCES.filter((s) => s.adapter).sort(
-          (a, b) => Number(a.adapter === "cppp") - Number(b.adapter === "cppp"),
-        );
+    const eligible = sourceId ? [getSource(sourceId)] : collectionSources();
     if (eligible.some((s) => !s.adapter))
       throw new Error(
         "This source needs assisted import; no automated adapter available",
@@ -82,10 +79,15 @@ export class Collection {
     };
   }
   async schedule() {
-    for (const s of await this.db.query(
-      "SELECT id FROM source WHERE enabled AND adapter IS NOT NULL AND next_collection_at<=now()",
-    ))
-      await this.queue(s.id);
+    const due = new Set(
+      (
+        await this.db.query(
+          "SELECT id FROM source WHERE enabled AND adapter IS NOT NULL AND next_collection_at<=now()",
+        )
+      ).map((s: { id: string }) => s.id),
+    );
+    for (const source of collectionSources())
+      if (due.has(source.id)) await this.queue(source.id);
   }
   async store(
     m: EntityManager,
@@ -317,6 +319,7 @@ export class Collection {
       ),
     ]);
     return {
+      collectionRegion: collectionRegion(),
       sources,
       counts: counts[0],
       products,

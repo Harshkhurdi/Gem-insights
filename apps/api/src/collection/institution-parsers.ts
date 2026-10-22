@@ -7,6 +7,34 @@ export function tableMatches(
   adapter: SourceDefinition["adapter"],
 ) {
   switch (adapter) {
+    case "jammu":
+      return (
+        /Upload Date/.test(headers) &&
+        /Title/.test(headers) &&
+        /Download/.test(headers)
+      );
+    case "kgmu":
+      return (
+        /Sr\. No\./.test(headers) &&
+        /Notice No\./.test(headers) &&
+        /Tenders/.test(headers) &&
+        /Submission Date/.test(headers)
+      );
+    case "kcgmc":
+      return (
+        /Title/.test(headers) &&
+        /Opening Date/.test(headers) &&
+        /Closing Date/.test(headers) &&
+        /DETAILS/.test(headers)
+      );
+    case "s3waas":
+      return (
+        /Title/.test(headers) &&
+        /Description/.test(headers) &&
+        /Start Date/.test(headers) &&
+        /End Date/.test(headers) &&
+        /File/.test(headers)
+      );
     case "bhubaneswar":
       return (
         /Title/.test(headers) &&

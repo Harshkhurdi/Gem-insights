@@ -4,9 +4,9 @@ A **new independent project** for understanding requested government procurement
 
 Implemented with Next.js App Router, TypeScript, Material UI, TanStack Query, NestJS, TypeORM and PostgreSQL. It has a separate durable worker and a database-backed taxonomy. It uses no external LLM or paid AI API.
 
-**Public-listing collection now supports 25 profiles across CPPP central/state listings, AIIMS Bhubaneswar, RMSC, UPUMS, AIIMS New Delhi, AIIMS Bathinda, AIIMS Raipur, ICMR, AIIMS Bilaspur, AIIMS Rishikesh, HLL, GMCH and KMSCL.** Collected notices now appear immediately in the **main insights**, with medical/clinical signals selected by default. Review enriches item quantities and values; it no longer blocks visibility. See [main insight definitions and upgrade steps](docs/MAIN_INSIGHTS.md). Open **Tender Collection** to manage sources and item processing. The registry tracks targets across all 36 states/UTs; the implemented profiles remain partial coverage. See [Odisha collection](docs/ODISHA_COLLECTION.md) for the latest sources, [Rajasthan/UP collection](docs/STATE_MEDICAL_COLLECTION.md), [Delhi/Bathinda collection](docs/AIIMS_COLLECTION.md) and [institution coverage](docs/INSTITUTION_COVERAGE.md) for earlier rollouts and [linked GeM PDF extraction](docs/NATIONAL_COLLECTION_EXPANSION.md). See [local collection guide](docs/LOCAL_COLLECTION.md).
+**Public-listing collection now supports 38 profiles and 87 registered targets.** The latest North-first rollout adds AIIMS Jammu, JKMSCL, SKIMS, NHM Ladakh, KGMU, KCGMC and Haryana Health. Collected notices now appear immediately in the **main insights**, with medical/clinical signals selected by default. Review enriches item quantities and values; it no longer blocks visibility. See [main insight definitions and upgrade steps](docs/MAIN_INSIGHTS.md). Open **Tender Collection** to manage sources and item processing. The registry tracks targets across all 36 states/UTs; the implemented profiles remain partial coverage. See [North-first collection and remaining priorities](docs/NORTH_COLLECTION.md) for the latest sources, [Odisha collection](docs/ODISHA_COLLECTION.md), [Rajasthan/UP collection](docs/STATE_MEDICAL_COLLECTION.md), [Delhi/Bathinda collection](docs/AIIMS_COLLECTION.md) and [institution coverage](docs/INSTITUTION_COVERAGE.md) for earlier rollouts and [linked GeM PDF extraction](docs/NATIONAL_COLLECTION_EXPANSION.md). See [local collection guide](docs/LOCAL_COLLECTION.md).
 
-**Medical classification now recognizes 127 equipment families**, including patient warming, laryngoscopes and previously missed radiography variants. Alias reclassification also updates collected notices. See [classification improvements and count definitions](docs/MEDICAL_CLASSIFICATION.md). The included baseline has **11,538 observations → 11,430 grouped procurement records → 6,355 provisional medical/clinical records**; 117 equipment families have matched listing evidence.
+**Medical classification now recognizes 127 equipment families**, including patient warming, laryngoscopes and previously missed radiography variants. Alias reclassification also updates collected notices. See [classification improvements and count definitions](docs/MEDICAL_CLASSIFICATION.md). The included baseline has **14,996 observations → 14,823 grouped procurement records → 7,822 provisional medical/clinical records**; 119 equipment families have matched listing evidence.
 
 **Live GeM scraping is disabled.** Public pages were reachable, but authorized bulk access and reproduction rights were not verified. Authorized CSV/JSON imports are the working ingestion path. See [source research](SOURCE_RESEARCH.md).
 
@@ -33,12 +33,12 @@ For an existing PostgreSQL instance, create a new `gem_intelligence` database an
 npm run build -w @gem/api
 npm run migrate
 npm run import:verified
-# Optional: load the 11,538 real listing observations into main insights
+# Optional: load the 14,996 real listing observations into main insights
 npm run import:discoveries
 npm run dev
 ```
 
-Open **http://localhost:3000**. `dev` starts the API, the separate worker and Next.js. It compiles the API once; restart after backend edits. The API binds to loopback by default. A separately managed worker can run with `npm run worker`. Stopping the browser does not stop scheduled/background work.
+Open **http://localhost:3000**. `dev` starts the API, the separate worker and Next.js. It compiles the API once; restart after backend edits. The API binds to loopback by default. A separately managed worker can run with `npm run worker`. Stopping the browser does not stop scheduled/background work. A service failure or Ctrl+C stops the local app process groups together. For this rollout, keep `COLLECTION_REGION=north` in `.env`; existing installations must add it explicitly. See [North-first update steps](docs/NORTH_COLLECTION.md).
 
 `import:verified` is optional: it loads **two real original GeM notices from AIIMS Bathinda, 27 ventilators requested, one buyer**, with source links and short evidence. No tender data is automatically fabricated. Without imports the dashboard has honest empty states. Known prices stay unknown. Delivery locations in these two records are inferred, so the confirmed-delivery view is intentionally empty. These records are not representative of the national market.
 
