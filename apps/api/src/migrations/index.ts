@@ -12,6 +12,7 @@ import { MainInsights1792412000000 } from "./main-insights";
 import { AiimsCoverage1792413000000 } from "./aiims-coverage";
 import { StateMedicalCoverage1792414000000 } from "./state-medical-coverage";
 import { OdishaCoverage1792415000000 } from "./odisha-coverage";
+import { MedicalRecall1792416000000 } from "./medical-recall";
 export const migrations = [
   Initial1792400000000,
   Documents1792405000000,
@@ -27,4 +28,5 @@ export const migrations = [
   AiimsCoverage1792413000000,
   StateMedicalCoverage1792414000000,
   OdishaCoverage1792415000000,
+  MedicalRecall1792416000000,
 ];

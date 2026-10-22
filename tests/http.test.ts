@@ -424,6 +424,69 @@ test("reviewed collected native reference reaches existing analytics through HTT
     409,
   );
 });
+test("worker reclassification refreshes collected notices after alias edits without resetting review or observation age", async () => {
+  await new Collection(
+    db,
+    async () =>
+      raipur("SYNTHETIC Zeta clinical device", "", "GEM/2026/B/777777"),
+    0,
+  ).run("aiims-raipur");
+  const [notice] = await db.query(
+    "SELECT * FROM discovered_notice WHERE bid_number='GEM/2026/B/777777'",
+  );
+  assert.equal(notice.medical_candidate, false);
+  await db.query(
+    "UPDATE discovered_notice SET review_status='dismissed',last_seen='2026-10-19T00:00:00Z' WHERE id=$1",
+    [notice.id],
+  );
+  const [product] = await db.query(
+    "SELECT aliases FROM product WHERE id='patient-monitors'",
+  );
+  try {
+    await db.query(
+      "UPDATE product SET aliases=aliases || '[\"Zeta clinical device\"]'::jsonb WHERE id='patient-monitors'",
+    );
+    const response = await request("admin/reclassify", {});
+    assert.equal(response.status, 201);
+    const { jobId } = await response.json();
+    await waitFor(
+      async () =>
+        (await db.query("SELECT status FROM job WHERE id=$1", [jobId]))[0]
+          ?.status === "succeeded",
+    );
+    const [updated] = await db.query(
+      "SELECT * FROM discovered_notice WHERE id=$1",
+      [notice.id],
+    );
+    assert.equal(updated.medical_candidate, true);
+    assert.deepEqual(updated.products, ["patient-monitors"]);
+    assert.equal(updated.review_status, "dismissed");
+    assert.equal(
+      new Date(updated.last_seen).toISOString(),
+      "2026-10-19T00:00:00.000Z",
+    );
+    await new Collection(
+      db,
+      async () =>
+        raipur("SYNTHETIC Zeta clinical device", "", "GEM/2026/B/777777"),
+      0,
+    ).run("aiims-raipur");
+    assert.equal(
+      (
+        await db.query(
+          "SELECT review_status FROM discovered_notice WHERE id=$1",
+          [notice.id],
+        )
+      )[0].review_status,
+      "dismissed",
+    );
+  } finally {
+    await db.query(
+      "UPDATE product SET aliases=$1 WHERE id='patient-monitors'",
+      [JSON.stringify(product.aliases)],
+    );
+  }
+});
 test("logout invalidates browser cookie", async () => {
   const r = await request("auth/logout", {});
   assert.equal(r.status, 201);

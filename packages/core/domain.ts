@@ -226,23 +226,14 @@ export interface Rule {
 }
 const excluded =
   /\b(repair(?:s|ing)?|maintenance|servicing|annual maintenance contract|comprehensive maintenance contract|amc|cmc|civil works?|construction|renovation|consumables?|reagents?|medicines?|drugs?|pharmaceuticals?|accessor(?:y|ies)|spares?|probes?|circuits?|tubing|syringes|cables?|sensors?|batteries|parts|refill)\b/i;
-export function classify(name: string, rules: Rule[]) {
+// Literal vocabulary recognition does not decide whether a notice requests
+// equipment, a service or consumables. That decision belongs to classify().
+export function equipmentAliasMatches(name: string, rules: Rule[]): Rule[] {
   const n = name
     .toLowerCase()
     .normalize("NFKC")
     .replace(/[^\p{L}\p{N}\p{M}]+/gu, " ")
     .trim();
-  const exclusionScope = n
-    .split(/\b(?:with|including|along with)\b/)[0]
-    .replace(/\b(?:lab|laboratory) medicine\b/g, "laboratory department");
-  if (excluded.test(exclusionScope))
-    return {
-      productId: null,
-      confidence: 1,
-      reason:
-        "Service, construction, accessory or consumable; excluded from equipment demand",
-      review: false,
-    };
   const matches = rules.flatMap((r) =>
     r.aliases.flatMap((alias) => {
       const phrase = alias
@@ -276,7 +267,26 @@ export function classify(name: string, rules: Rule[]) {
           other.end - other.start > m.end - m.start,
       ),
   );
-  const hits = [...new Map(distinct.map((m) => [m.rule.id, m.rule])).values()];
+  return [...new Map(distinct.map((m) => [m.rule.id, m.rule])).values()];
+}
+export function classify(name: string, rules: Rule[]) {
+  const n = name
+    .toLowerCase()
+    .normalize("NFKC")
+    .replace(/[^\p{L}\p{N}\p{M}]+/gu, " ")
+    .trim();
+  const exclusionScope = n
+    .split(/\b(?:with|including|along with)\b/)[0]
+    .replace(/\b(?:lab|laboratory) medicine\b/g, "laboratory department");
+  if (excluded.test(exclusionScope))
+    return {
+      productId: null,
+      confidence: 1,
+      reason:
+        "Service, construction, accessory or consumable; excluded from equipment demand",
+      review: false,
+    };
+  const hits = equipmentAliasMatches(name, rules);
   if (hits.length === 1)
     return {
       productId: hits[0].id,

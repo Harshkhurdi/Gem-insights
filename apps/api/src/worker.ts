@@ -3,6 +3,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { connect, db } from "./database";
 import { Documents } from "./documents/service";
 import { Ingestion } from "./ingestion";
+import { refreshNoticeClassifications } from "./collection/classification";
 import { classify } from "../../../packages/core/domain";
 import { Collection } from "./collection/service";
 import { NoticeDocuments } from "./collection/document-fetch";
@@ -93,6 +94,7 @@ async function reclassify() {
       }
       after = items.at(-1).id;
     }
+    await refreshNoticeClassifications(m);
   });
 }
 async function start() {

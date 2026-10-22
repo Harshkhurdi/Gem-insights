@@ -3,6 +3,7 @@ import { publicLink, isNoticeAttachment } from "./links";
 import {
   digest,
   classify,
+  equipmentAliasMatches,
   Rule,
   stateName,
 } from "../../../../packages/core/domain";
@@ -76,21 +77,29 @@ export function noticeClassification(
   const c = classify(title, classificationRules);
   const products = classificationRules
     .filter((r) => classify(title, [r]).productId)
-    .map((r) => r.id);
+    .map((r) => r.id)
+    .sort();
   const titleMedical =
-    !!products.length ||
+    !!equipmentAliasMatches(title, classificationRules).length ||
     /\b(medical|hospital|surgical|diagnostic|laboratory|healthcare|equipment|analy[sz]er|incubator|dialysis|ophthalmic|dental|cbct|tomography|laser|psychiatr\w*|orthop\w*|patholog\w*|nephro\w*|physio\w*|oncolog\w*|cardio\w*|neurolog\w*|elisa|assay|reagents?|consumables?|pharma\w*|medicines?|drugs?|sutures?|catheters?|endotracheal|nasogastric|gauze|haemo\w*|hemo\w*|microbiolog\w*|biochem\w*|immuno\w*|prosthe\w*|implants?|endoscop\w*|gastro\w*|otolaryng\w*|urolog\w*|anaesthe\w*|anesthe\w*)\b/i.test(
       title,
     ) ||
     /\b(pacemakers?|dysphagia|infusion|syringes?|needles?|gloves?|dressings?|neonat\w*|echocardi\w*|laparoscop\w*|surger\w*|injections?|chemotherap\w*|intra[- ]?ocular|platelet\w*|patient\s+care|blood\s+(?:collection|bank)|pulse\s+oximet\w*|molecular\s+biology|scrub\s+suits?|(?:ot|operating\s+theatre)\s+(?:towels?|tables?|lights?))\b/i.test(
       title,
     );
+  // Specific clinical supply/research terms can establish a provisional
+  // medical signal without claiming an equipment purchase or item quantity.
+  const clinicalSupply =
+    /\b(?:sterili[sz]ation containers?|(?:dna|rna|nucleic acid|ngs) sequencing|nucleic acid (?:isolation|extraction)|genotyp\w*|autopsy instruments?)\b/i.test(
+      title,
+    ) || /\binj(?:\.|\s)\s*[a-z]/i.test(title);
   return {
-    medical: titleMedical || source?.clinicalCategory === true,
+    medical:
+      titleMedical || clinicalSupply || source?.clinicalCategory === true,
     products,
     reason: c.productId
       ? "Equipment candidate from listing title; verify original line items and quantities"
-      : titleMedical
+      : titleMedical || clinicalSupply
         ? "Possible clinical procurement from listing title; verify medical scope and original item evidence"
         : source?.clinicalCategory
           ? "Clinical notice from the official drug/surgical tender category; original items and quantities require review"
