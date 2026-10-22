@@ -1,3 +1,5 @@
+> Latest update: [Delhi/Bathinda collection](AIIMS_COLLECTION.md) raises coverage to 20 public-listing profiles, 63 registered targets and a 5,669-observation baseline. The counts below describe the preceding institution rollout.
+
 # Medical institution coverage
 
 The local collector now has **15 working public listing profiles** and 60 registered source targets. The included discovery baseline has **4,642 real listing records**, up from 2,305. Records can overlap across current/archive pages and portals; they are not a count of unique bids, purchases or equipment units. All 36 state/UT targets remain registered, with incomplete actual collection coverage.

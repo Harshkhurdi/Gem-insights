@@ -16,6 +16,8 @@ export interface SourceDefinition {
     | "gmch-notices"
     | "rishikesh"
     | "kmscl"
+    | "aiims-delhi"
+    | "bathinda"
     | null;
   buyerName?: string;
   scope: string;
@@ -138,16 +140,38 @@ export const SOURCES: SourceDefinition[] = [
   source(
     "aiims-delhi",
     "AIIMS New Delhi",
-    "https://tenders.aiims.edu/",
+    "https://www.aiims.edu/index.php/en/tenders",
     "institution",
     ["Delhi"],
+    "aiims-delhi",
+    "Public current tender listing. Publishing dates are explicit; article links retain original/amendment evidence. Buyer/publisher location only; not confirmed delivery.",
   ),
+  ...(
+    [
+      ["open", "Global/open", "global-open-tender"],
+      ["proprietary", "Proprietary", "proprietary-tender"],
+      ["limited", "Short-rate/limited", "short-rate-limited-enquiry"],
+    ] as const
+  ).map(([id, name, path]) => ({
+    ...source(
+      `aiims-delhi-archive-${id}`,
+      `AIIMS New Delhi ${name} archive`,
+      `https://www.aiims.edu/index.php/en/tenders/archive-tender/${path}`,
+      "institution",
+      ["Delhi"],
+      "aiims-delhi",
+      "Public paginated archive, including amendments. Opening Date is not verified publication; quantities and delivery locations require original review. Checkpoint resumes bounded backfill.",
+    ),
+    buyerName: "AIIMS New Delhi",
+  })),
   source(
     "aiims-bathinda",
     "AIIMS Bathinda",
-    "https://aiimsbathinda.edu.in/",
+    "https://aiimsbathinda.edu.in/Procurements.aspx?FXoLDJ=ydRRTTxkdt6Trx91pX1+cA%3D%3D&JnH7tY=ni6p7uJmUYh6NtRIoH1zej6ayg0V9vON2iB6aRQlYRo%3D",
     "institution",
     ["Punjab"],
+    "bathinda",
+    "Public procurement table with original and amendment attachments, including historical records. Start Date is not verified publication. Mixed procurement categories; no inferred quantities.",
   ),
   source(
     "aiims-bilaspur",

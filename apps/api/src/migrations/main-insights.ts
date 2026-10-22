@@ -1,8 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class MainInsights1792412000000 implements MigrationInterface {
-  async up(q: QueryRunner) {
-    await q.query(`
+export function mainInsightViews(listingIdentityCases = "") {
+  return `
 CREATE VIEW insight_record AS
 WITH reviewed AS (
   SELECT t.*,o.name AS buyer_name,o.state AS buyer_state,o.district AS buyer_district,o.type AS buyer_type,
@@ -14,6 +13,7 @@ WITH reviewed AS (
   SELECT n.*,coalesce(linked.identity,
     CASE WHEN n.source_portal='gem' AND n.bid_number IS NOT NULL THEN 'gem:'||upper(regexp_replace(n.bid_number,'\\s','','g'))
       WHEN n.bid_number ~ '^\\d{4}_[A-Za-z0-9]+_\\d+(_\\d+)?$' THEN 'cppp:'||n.bid_number
+      ${listingIdentityCases}
       WHEN n.source_url ~* '\\.(pdf|docx?|xlsx?|zip)([?#]|$)' THEN 'document:'||split_part(n.source_url,'#',1)
       ELSE 'listing:'||n.source_id||':'||n.external_key END) AS identity
   FROM discovered_notice n LEFT JOIN LATERAL (
@@ -73,7 +73,12 @@ FROM insight_record r LEFT JOIN line_item l ON r.evidence_level='reviewed' AND l
 LEFT JOIN product actual ON actual.id=l.product_id
 LEFT JOIN LATERAL (SELECT p.* FROM product p WHERE r.evidence_level='listing' AND r.products ? p.id) candidate ON true
 WHERE r.evidence_level='listing' OR l.id IS NOT NULL;
-    `);
+    `;
+}
+
+export class MainInsights1792412000000 implements MigrationInterface {
+  async up(q: QueryRunner) {
+    await q.query(mainInsightViews());
   }
   async down() {
     throw new Error(
