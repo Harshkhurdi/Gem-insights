@@ -4,6 +4,15 @@ import { SOURCES } from "../collection/registry";
 import { refreshNoticeClassifications } from "../collection/classification";
 import { mainInsightViews } from "./main-insights";
 import { aiimsListingIdentity } from "./aiims-coverage";
+export const northListingIdentity =
+  aiimsListingIdentity +
+  `
+      WHEN n.source_id IN ('aiims-jammu','aiims-jammu-open','aiims-jammu-quotations')
+        AND n.source_url ~* '[.](pdf|docx?|xlsx?|zip)([?#]|$)'
+      THEN 'jammu-document:'||split_part(n.source_url,'#',1)||':'||md5(n.title)
+      WHEN n.source_id='jkmscl' AND n.source_url ~* '[.](pdf|docx?|xlsx?|zip)([?#]|$)'
+      THEN 'jkmscl-document:'||coalesce(n.bid_number,'')||':'||split_part(n.source_url,'#',1)||':'||md5(n.title)
+    `;
 export class NorthCoverage1792417000000 implements MigrationInterface {
   async up(q: Pick<QueryRunner, "query">) {
     for (const s of SOURCES.filter(
@@ -50,18 +59,7 @@ export class NorthCoverage1792417000000 implements MigrationInterface {
     // Jammu demonstrably reuses PDF paths for unrelated titles. Exact title +
     // document pairs can group across its profiles; conflicting titles cannot.
     await q.query("DROP VIEW insight_line; DROP VIEW insight_record");
-    await q.query(
-      mainInsightViews(
-        aiimsListingIdentity +
-          `
-      WHEN n.source_id IN ('aiims-jammu','aiims-jammu-open','aiims-jammu-quotations')
-        AND n.source_url ~* '[.](pdf|docx?|xlsx?|zip)([?#]|$)'
-      THEN 'jammu-document:'||split_part(n.source_url,'#',1)||':'||md5(n.title)
-      WHEN n.source_id='jkmscl' AND n.source_url ~* '[.](pdf|docx?|xlsx?|zip)([?#]|$)'
-      THEN 'jkmscl-document:'||coalesce(n.bid_number,'')||':'||split_part(n.source_url,'#',1)||':'||md5(n.title)
-    `,
-      ),
-    );
+    await q.query(mainInsightViews(northListingIdentity));
   }
   async down() {
     throw new Error(

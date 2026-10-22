@@ -225,7 +225,7 @@ export interface Rule {
   aliases: string[];
 }
 const excluded =
-  /\b(repair(?:s|ing)?|maintenance|servicing|annual maintenance contract|comprehensive maintenance contract|amc|cmc|civil works?|construction|renovation|consumables?|reagents?|medicines?|drugs?|pharmaceuticals?|accessor(?:y|ies)|spares?|probes?|circuits?|tubing|syringes|cables?|sensors?|batteries|parts|refill)\b/i;
+  /\b(repair(?:s|ing)?|maintenance|servicing|annual maintenance contract|comprehensive maintenance contract|amc|cmc|civil works?|electrical (?:work|wiring|connections?|points?)|(?:\d+|three|single) phase power|construction|renovation|consumables?|reagents?|medicines?|drugs?|pharmaceuticals?|accessor(?:y|ies)|spares?|probes?|circuits?|tubing|syringes|cables?|sensors?|batteries|parts|refill)\b/i;
 // Literal vocabulary recognition does not decide whether a notice requests
 // equipment, a service or consumables. That decision belongs to classify().
 export function equipmentAliasMatches(name: string, rules: Rule[]): Rule[] {

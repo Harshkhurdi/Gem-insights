@@ -15,7 +15,8 @@ import {
   kmsclNoticeLinks,
 } from "./institution-parsers";
 import { jkmsclEntries } from "./jkmscl";
-import { northernLinks } from "./northern-links";
+import { upInstitutionEntries } from "./up-institutions";
+import { NorthernEntry, northernLinks } from "./northern-links";
 export interface Notice {
   key: string;
   bidNumber: string | null;
@@ -83,7 +84,7 @@ export function noticeClassification(
     .sort();
   const titleMedical =
     !!equipmentAliasMatches(title, classificationRules).length ||
-    /\b(medical|hospital|surgical|diagnostic|laboratory|healthcare|equipments?|analy[sz]er|incubator|dialysis|ophthalmic|dental|cbct|tomography|laser|psychiatr\w*|orthop\w*|patholog\w*|nephro\w*|physio\w*|oncolog\w*|cardio\w*|neurolog\w*|elisa|assay|reagents?|consumables?|pharma\w*|medicines?|drugs?|sutures?|catheters?|endotracheal|nasogastric|gauze|haemo\w*|hemo\w*|microbiolog\w*|biochem\w*|immuno\w*|prosthe\w*|implants?|endoscop\w*|gastro\w*|otolaryng\w*|urolog\w*|anaesthe\w*|anesthe\w*)\b/i.test(
+    /\b(medical|hospital|surgical|diagnostic|mri|laboratory|healthcare|equipments?|analy[sz]er|incubator|dialysis|ophthalmic|ophthalmolog\w*|gyn[ae]*colog\w*|pa?ediatric\w*|pulmonolog\w*|dental|cbct|tomography|laser|psychiatr\w*|orthop\w*|patholog\w*|nephro\w*|physio\w*|oncolog\w*|cardio\w*|neurolog\w*|elisa|assay|reagents?|consumables?|pharma\w*|medicines?|drugs?|sutures?|catheters?|endotracheal|nasogastric|gauze|haemo\w*|hemo\w*|microbiolog\w*|biochem\w*|immuno\w*|prosthe\w*|implants?|endoscop\w*|gastro\w*|otolaryng\w*|urolog\w*|anaesthe\w*|anesthe\w*)\b/i.test(
       title,
     ) ||
     /\b(pacemakers?|dysphagia|infusion|syringes?|needles?|gloves?|dressings?|neonat\w*|echocardi\w*|laparoscop\w*|surger\w*|injections?|chemotherap\w*|intra[- ]?ocular|platelet\w*|patient\s+care|blood\s+(?:collection|bank)|pulse\s+oximet\w*|molecular\s+biology|scrub\s+suits?|(?:ot|operating\s+theatre)\s+(?:towels?|tables?|lights?))\b/i.test(
@@ -92,7 +93,7 @@ export function noticeClassification(
   // Specific clinical supply/research terms can establish a provisional
   // medical signal without claiming an equipment purchase or item quantity.
   const clinicalSupply =
-    /\b(?:sterili[sz]ation containers?|(?:dna|rna|nucleic acid|ngs) sequencing|nucleic acid (?:isolation|extraction)|genotyp\w*|autopsy instruments?)\b/i.test(
+    /\b(?:parenteral nutrition|cholecalciferol|sterili[sz]ation containers?|(?:dna|rna|nucleic acid|ngs) sequencing|nucleic acid (?:isolation|extraction)|genotyp\w*|autopsy instruments?)\b/i.test(
       title,
     ) || /\binj(?:\.|\s)\s*[a-z]/i.test(title);
   return {
@@ -119,6 +120,11 @@ export function pageAllowed(url: string, source: SourceDefinition) {
         (!u.searchParams.has("start") ||
           (u.searchParams.getAll("start").length === 1 &&
             /^\d+$/.test(u.searchParams.get("start")!))))) &&
+    (source.adapter !== "raebareli" ||
+      ([...u.searchParams.keys()].every((k) => k === "page") &&
+        (!u.searchParams.has("page") ||
+          (u.searchParams.getAll("page").length === 1 &&
+            /^[1-9]\d*$/.test(u.searchParams.get("page")!))))) &&
     (source.adapter !== "bathinda" || u.search === base.search) &&
     (![
       "rmsc",
@@ -130,6 +136,7 @@ export function pageAllowed(url: string, source: SourceDefinition) {
       "kgmu",
       "kcgmc",
       "s3waas",
+      "gorakhpur",
     ].includes(source.adapter || "") ||
       u.search === base.search) &&
     (source.adapter !== "rishikesh" ||
@@ -152,7 +159,10 @@ export function noticeKey(
   if (source.adapter === "cppp" && reference) return reference;
   // This publisher reuses some PDF URLs for unrelated tender titles. Preserve
   // each row's title context instead of silently dropping one at collection.
-  if (["jammu", "jkmscl"].includes(source.adapter || "") && title) {
+  if (
+    ["jammu", "jkmscl", "gorakhpur"].includes(source.adapter || "") &&
+    title
+  ) {
     const identity = digest(url + "#" + title);
     return reference ? reference + "#" + identity.slice(0, 20) : identity;
   }
@@ -168,6 +178,7 @@ export function noticeKey(
       "kgmu",
       "kcgmc",
       "s3waas",
+      "raebareli",
     ].includes(source.adapter || "") &&
     url === source.url &&
     title
@@ -184,15 +195,24 @@ export function parseListing(
   const $ = load(html);
   if (/captcha|access denied|verify you are human/i.test($("title").text()))
     throw new Error("Source access challenge; assisted import required");
-  if (["skims", "nhm-ladakh", "jkmscl"].includes(source.adapter || "")) {
-    const entries =
-      source.adapter === "jkmscl"
+  if (
+    ["skims", "nhm-ladakh", "jkmscl", "raebareli", "gorakhpur"].includes(
+      source.adapter || "",
+    )
+  ) {
+    const entries: NorthernEntry[] = ["raebareli", "gorakhpur"].includes(
+      source.adapter || "",
+    )
+      ? upInstitutionEntries(html, source, pageUrl)
+      : source.adapter === "jkmscl"
         ? jkmsclEntries(html, pageUrl)
         : northernLinks(html, source, pageUrl);
     const notices = entries.map((entry) => {
       const title = entry.title.slice(0, 2000),
         { url, documents } = entry;
-      const gem = title
+      const gem = [entry.reference, title]
+        .filter(Boolean)
+        .join(" ")
         .match(/GEM\s*\/\s*\d{4}\s*\/\s*[BR]\s*\/\s*\d+/i)?.[0]
         .replace(/\s/g, "")
         .toUpperCase();
@@ -208,7 +228,9 @@ export function parseListing(
         title: title.slice(0, 2000),
         url,
         documents,
-        publishedAt: null,
+        publishedAt: entry.publishedText
+          ? listingDate(entry.publishedText)
+          : null,
         closingDate: entry.closingText ? listingDate(entry.closingText) : null,
         buyer: source.buyerName || source.name,
         state: source.states[0] || null,
@@ -217,9 +239,18 @@ export function parseListing(
     });
     return {
       notices: [...new Map(notices.map((n) => [n.key, n])).values()],
-      next: source.adapter === "skims" ? listingNext($, source, pageUrl) : null,
+      next: ["skims", "raebareli"].includes(source.adapter || "")
+        ? listingNext($, source, pageUrl)
+        : null,
     };
   }
+  if (
+    source.adapter === "s3waas" &&
+    /^(?:Past )?Tenders$/.test(clean($("h1").first().text())) &&
+    clean($("#no-results-message").text()) ===
+      "Sorry, no notice matched this category."
+  )
+    return { notices: [], next: null };
   const notices: Notice[] = [];
   const table = $("table")
     .filter((_, el) => {
@@ -617,6 +648,14 @@ function listingNext(
         $(a).attr("rel") === "next" ||
         $(a).parent().hasClass("pager__item--next"),
     )
+    .filter(
+      (_, a) =>
+        !(
+          source.adapter === "raebareli" &&
+          $(a).parent().attr("aria-disabled") === "true" &&
+          $(a).attr("aria-hidden") === "true"
+        ),
+    )
     .first();
   const next = publicLink(nextAnchor.attr("href"), pageUrl);
   if (nextAnchor.length && (!next || !pageAllowed(next, source)))
@@ -630,5 +669,12 @@ function listingNext(
       Number(new URL(pageUrl).searchParams.get("start") || 0)
   )
     throw new Error("Non-advancing archive offset; collection incomplete");
+  if (
+    next &&
+    source.adapter === "raebareli" &&
+    Number(new URL(next).searchParams.get("page") || 1) <=
+      Number(new URL(pageUrl).searchParams.get("page") || 1)
+  )
+    throw new Error("Non-advancing Raebareli page; collection incomplete");
   return next;
 }
