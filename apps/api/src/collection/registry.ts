@@ -20,6 +20,7 @@ export interface SourceDefinition {
     | "bathinda"
     | "rmsc"
     | "upums"
+    | "bhubaneswar"
     | null;
   buyerName?: string;
   clinicalCategory?: boolean;
@@ -166,6 +167,23 @@ export const SOURCES: SourceDefinition[] = [
       "Public paginated archive, including amendments. Opening Date is not verified publication; quantities and delivery locations require original review. Checkpoint resumes bounded backfill.",
     ),
     buyerName: "AIIMS New Delhi",
+  })),
+  ...(
+    [
+      ["aiims-bhubaneswar", "current tenders", "tenders"],
+      ["aiims-bhubaneswar-archive", "tender archive", "tenders-archive"],
+    ] as const
+  ).map(([id, label, path]) => ({
+    ...source(
+      id,
+      `AIIMS Bhubaneswar ${label}`,
+      `https://aiimsbhubaneswar.nic.in/${path}/`,
+      "institution",
+      ["Odisha"],
+      "bhubaneswar",
+      "Public current/archive tender table with explicit Publishing Date and Closing Date. Original, corrigendum, cancellation and award attachments are retained; a listing is not proof of an active bid or awarded purchase. Publisher location only; quantities require original review.",
+    ),
+    buyerName: "AIIMS Bhubaneswar",
   })),
   source(
     "aiims-bathinda",

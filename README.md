@@ -4,7 +4,7 @@ A **new independent project** for understanding requested government procurement
 
 Implemented with Next.js App Router, TypeScript, Material UI, TanStack Query, NestJS, TypeORM and PostgreSQL. It has a separate durable worker and a database-backed taxonomy. It uses no external LLM or paid AI API.
 
-**Public-listing collection now supports 23 profiles across CPPP central/state listings, RMSC, UPUMS, AIIMS New Delhi, AIIMS Bathinda, AIIMS Raipur, ICMR, AIIMS Bilaspur, AIIMS Rishikesh, HLL, GMCH and KMSCL.** Collected notices now appear immediately in the **main insights**, with medical/clinical signals selected by default. Review enriches item quantities and values; it no longer blocks visibility. See [main insight definitions and upgrade steps](docs/MAIN_INSIGHTS.md). Open **Tender Collection** to manage sources and item processing. The registry tracks targets across all 36 states/UTs; the implemented profiles remain partial coverage. See [Rajasthan/UP collection](docs/STATE_MEDICAL_COLLECTION.md) for the latest sources, [Delhi/Bathinda collection](docs/AIIMS_COLLECTION.md) and [institution coverage](docs/INSTITUTION_COVERAGE.md) for earlier rollouts and [linked GeM PDF extraction](docs/NATIONAL_COLLECTION_EXPANSION.md). See [local collection guide](docs/LOCAL_COLLECTION.md).
+**Public-listing collection now supports 25 profiles across CPPP central/state listings, AIIMS Bhubaneswar, RMSC, UPUMS, AIIMS New Delhi, AIIMS Bathinda, AIIMS Raipur, ICMR, AIIMS Bilaspur, AIIMS Rishikesh, HLL, GMCH and KMSCL.** Collected notices now appear immediately in the **main insights**, with medical/clinical signals selected by default. Review enriches item quantities and values; it no longer blocks visibility. See [main insight definitions and upgrade steps](docs/MAIN_INSIGHTS.md). Open **Tender Collection** to manage sources and item processing. The registry tracks targets across all 36 states/UTs; the implemented profiles remain partial coverage. See [Odisha collection](docs/ODISHA_COLLECTION.md) for the latest sources, [Rajasthan/UP collection](docs/STATE_MEDICAL_COLLECTION.md), [Delhi/Bathinda collection](docs/AIIMS_COLLECTION.md) and [institution coverage](docs/INSTITUTION_COVERAGE.md) for earlier rollouts and [linked GeM PDF extraction](docs/NATIONAL_COLLECTION_EXPANSION.md). See [local collection guide](docs/LOCAL_COLLECTION.md).
 
 **Live GeM scraping is disabled.** Public pages were reachable, but authorized bulk access and reproduction rights were not verified. Authorized CSV/JSON imports are the working ingestion path. See [source research](SOURCE_RESEARCH.md).
 
@@ -31,7 +31,7 @@ For an existing PostgreSQL instance, create a new `gem_intelligence` database an
 npm run build -w @gem/api
 npm run migrate
 npm run import:verified
-# Optional: load the 9,673 real listing observations into main insights
+# Optional: load the 11,538 real listing observations into main insights
 npm run import:discoveries
 npm run dev
 ```

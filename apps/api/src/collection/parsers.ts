@@ -109,7 +109,7 @@ export function pageAllowed(url: string, source: SourceDefinition) {
           (u.searchParams.getAll("start").length === 1 &&
             /^\d+$/.test(u.searchParams.get("start")!))))) &&
     (source.adapter !== "bathinda" || u.search === base.search) &&
-    (!["rmsc", "upums"].includes(source.adapter || "") ||
+    (!["rmsc", "upums", "bhubaneswar"].includes(source.adapter || "") ||
       u.search === base.search) &&
     (source.adapter !== "rishikesh" ||
       u.searchParams.get("page_id") === base.searchParams.get("page_id")) &&
@@ -131,7 +131,9 @@ export function noticeKey(
   if (source.adapter === "cppp" && reference) return reference;
   // Missing historical links lead to the listing; titles distinguish its rows.
   if (
-    ["rishikesh", "bathinda", "rmsc", "upums"].includes(source.adapter || "") &&
+    ["rishikesh", "bathinda", "rmsc", "upums", "bhubaneswar"].includes(
+      source.adapter || "",
+    ) &&
     url === source.url &&
     title
   )
@@ -205,7 +207,37 @@ export function parseListing(
       explicitState: string | null =
         source.states.length === 1 ? source.states[0] : null;
     let primary: string | null = null;
-    if (source.adapter === "rmsc" && cells.length >= 6) {
+    if (source.adapter === "bhubaneswar") {
+      if (cells.length !== 8) {
+        if (
+          cells.length === 1 &&
+          /no (?:records|tenders|data)/i.test(cells.text())
+        )
+          return;
+        throw new Error(
+          "AIIMS Bhubaneswar tender row changed; expected eight columns",
+        );
+      }
+      title = clean(cells.eq(1).text());
+      publishedAt = listingDate(cells.eq(2).text());
+      closingDate = listingDate(cells.eq(3).text());
+      buyer = source.buyerName || source.name;
+      // The original column establishes identity. Later cancellation, award or
+      // corrigendum links stay as evidence and must not replace that identity.
+      primary =
+        cells
+          .eq(4)
+          .find("a[href]")
+          .toArray()
+          .map((a) => publicLink($(a).attr("href"), pageUrl))
+          .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+      // Historical rows can have an original document but no title. Keep
+      // that evidence with an explicit missing-title label, without guessing
+      // a clinical category from the institution or the PDF filename.
+      if (!title && primary !== source.url)
+        title = "Untitled procurement notice (source title missing)";
+      ref = title.match(/\b\d{4}_[A-Za-z0-9]+_\d+(?:_\d+)?\b/)?.[0] || "";
+    } else if (source.adapter === "rmsc" && cells.length >= 6) {
       const name = clean(cells.eq(0).text()),
         description = clean(cells.eq(3).text());
       title =
