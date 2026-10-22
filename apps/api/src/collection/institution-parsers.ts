@@ -7,6 +7,16 @@ export function tableMatches(
   adapter: SourceDefinition["adapter"],
 ) {
   switch (adapter) {
+    case "bhubaneswar":
+      return (
+        /Title/.test(headers) &&
+        /Publishing Date/.test(headers) &&
+        /Closing Date/.test(headers) &&
+        /Download/.test(headers) &&
+        /Corrigendum/.test(headers) &&
+        /Cancellation/.test(headers) &&
+        /Award of Contract/.test(headers)
+      );
     case "rmsc":
       return (
         /Name/.test(headers) &&
