@@ -95,7 +95,7 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
     [
       "ultrasound",
       "Ultrasound systems",
-      ["ultrasound", "ultrasonography", "sonography system"],
+      ["ultrasound", "ultrasonography", "sonography system", "usg machine"],
     ],
     [
       "x-ray",

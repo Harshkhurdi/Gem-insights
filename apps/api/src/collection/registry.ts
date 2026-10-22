@@ -20,6 +20,8 @@ export interface SourceDefinition {
     | "bathinda"
     | "rmsc"
     | "upums"
+    | "raebareli"
+    | "gorakhpur"
     | "jkmscl"
     | "jammu"
     | "nhm-ladakh"
@@ -369,6 +371,100 @@ export const SOURCES: SourceDefinition[] = [
     ["Jammu and Kashmir"],
     "jkmscl",
     "Corporation public tender/notice list and linked older archive. Row-spanned references, notice types and original documents retained. Closing Date is a listing claim; publication dates and item quantities remain unknown. Amendments and evaluation notices are not all open bids.",
+  ),
+  ...(
+    [
+      ["aiims-raebareli", "current tenders", "current/tenders"],
+      ["aiims-raebareli-archive", "archived tenders", "archived/tenders"],
+      ["aiims-raebareli-quotations", "current quotations", "current/quotation"],
+      [
+        "aiims-raebareli-quotations-archive",
+        "archived quotations",
+        "archived/quotation",
+      ],
+      ["aiims-raebareli-pac", "PAC notices", "current/pac"],
+    ] as const
+  ).map(([id, label, path]) => ({
+    ...source(
+      id,
+      `AIIMS Raebareli — ${label}`,
+      `https://aiimsrbl.edu.in/${path}`,
+      "institution",
+      ["Uttar Pradesh"],
+      "raebareli",
+      "Public procurement cards with explicit references and original PDF download routes. Only labelled publication/closing dates are asserted; PAC objection windows are not bid dates. Bounded archive backfill; published sidebar totals do not prove collected counts.",
+    ),
+    buyerName: "AIIMS Raebareli",
+  })),
+  ...(
+    [
+      ["aiims-gorakhpur", "current tenders", "tenders"],
+      ["aiims-gorakhpur-quotations", "current quotations", "quotation"],
+      [
+        "aiims-gorakhpur-quotations-archive",
+        "archived quotations",
+        "archived-quotations",
+      ],
+      ["aiims-gorakhpur-pac", "PAC notices", "pac"],
+    ] as const
+  ).map(([id, label, path]) => ({
+    ...source(
+      id,
+      `AIIMS Gorakhpur — ${label}`,
+      `https://aiimsgorakhpur.edu.in/${path}/`,
+      "institution",
+      ["Uttar Pradesh"],
+      "gorakhpur",
+      "Public procurement table and original attachments, including mixed works/services and amendments. Generic Start/End listing dates do not establish original bid dates. PDF paths can be reused; title context is retained. Browser-only table pagination is already present in the downloaded HTML.",
+    ),
+    buyerName: "AIIMS Gorakhpur",
+  })),
+  ...(
+    [
+      ["uttarakhand-health", "current tenders", "notice-category/tenders"],
+      [
+        "uttarakhand-health-archive",
+        "archived tenders",
+        "past-notices/tenders",
+      ],
+    ] as const
+  ).map(([id, label, path]) =>
+    source(
+      id,
+      `Uttarakhand Health Department — ${label}`,
+      `https://health.uk.gov.in/${path}/`,
+      "institution",
+      ["Uttarakhand"],
+      "s3waas",
+      "Public health department procurement listing. The publisher explicitly reported no matching notices on 22 October 2026; this is an empty observed listing, not zero statewide demand or complete coverage. Future unfamiliar layouts fail visibly.",
+    ),
+  ),
+  source(
+    "phsc",
+    "Punjab Health Systems Corporation",
+    "https://phsc.punjab.gov.in/",
+    "institution",
+    ["Punjab"],
+    null,
+    "Northern priority target. Public homepage returned HTTP 503 on 22 October 2026; procurement listing access/layout requires validation before enabling collection.",
+  ),
+  source(
+    "safdarjung",
+    "VMMC and Safdarjung Hospital",
+    "https://vmmc-sjh.mohfw.gov.in/tenders",
+    "institution",
+    ["Delhi"],
+    null,
+    "Public current/archive pages reached on 22 October 2026. Mixed tenders, awards, disposal auctions and procured-equipment reports require lifecycle separation before using them as requested-demand signals; automatic collection remains disabled.",
+  ),
+  source(
+    "aiims-gorakhpur-archive",
+    "AIIMS Gorakhpur archived tenders",
+    "https://aiimsgorakhpur.edu.in/archived-tenders/",
+    "institution",
+    ["Uttar Pradesh"],
+    null,
+    "Public archive page reached but contained no procurement table and no explicit no-notices state on 22 October 2026. It is not counted as a successful empty collection; current tenders and quotation archives are separate profiles.",
   ),
   source(
     "sgpgims",

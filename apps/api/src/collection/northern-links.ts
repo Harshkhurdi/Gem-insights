@@ -8,6 +8,7 @@ export interface NorthernEntry {
   documents: string[];
   reference?: string | null;
   closingText?: string;
+  publishedText?: string;
 }
 export function northernLinks(
   html: string,
