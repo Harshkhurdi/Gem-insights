@@ -80,6 +80,9 @@ export function noticeClassification(
     !!products.length ||
     /\b(medical|hospital|surgical|diagnostic|laboratory|healthcare|equipment|analy[sz]er|incubator|dialysis|ophthalmic|dental|cbct|tomography|laser|psychiatr\w*|orthop\w*|patholog\w*|nephro\w*|physio\w*|oncolog\w*|cardio\w*|neurolog\w*|elisa|assay|reagents?|consumables?|pharma\w*|medicines?|drugs?|sutures?|catheters?|endotracheal|nasogastric|gauze|haemo\w*|hemo\w*|microbiolog\w*|biochem\w*|immuno\w*|prosthe\w*|implants?|endoscop\w*|gastro\w*|otolaryng\w*|urolog\w*|anaesthe\w*|anesthe\w*)\b/i.test(
       title,
+    ) ||
+    /\b(pacemakers?|dysphagia|infusion|syringes?|needles?|gloves?|dressings?|neonat\w*|echocardi\w*|laparoscop\w*|surger\w*|injections?|chemotherap\w*|intra[- ]?ocular|platelet\w*|patient\s+care|blood\s+(?:collection|bank)|pulse\s+oximet\w*|molecular\s+biology|scrub\s+suits?|(?:ot|operating\s+theatre)\s+(?:towels?|tables?|lights?))\b/i.test(
+      title,
     );
   return {
     medical,
@@ -97,6 +100,12 @@ export function pageAllowed(url: string, source: SourceDefinition) {
     base = new URL(source.url);
   return (
     u.origin === base.origin &&
+    (source.adapter !== "aiims-delhi" ||
+      ([...u.searchParams.keys()].every((k) => k === "start") &&
+        (!u.searchParams.has("start") ||
+          (u.searchParams.getAll("start").length === 1 &&
+            /^\d+$/.test(u.searchParams.get("start")!))))) &&
+    (source.adapter !== "bathinda" || u.search === base.search) &&
     (source.adapter !== "rishikesh" ||
       u.searchParams.get("page_id") === base.searchParams.get("page_id")) &&
     (u.pathname === base.pathname ||
@@ -116,7 +125,11 @@ export function noticeKey(
   // can reuse a file/reference number for several different notice documents.
   if (source.adapter === "cppp" && reference) return reference;
   // Missing historical links lead to the listing; titles distinguish its rows.
-  if (source.adapter === "rishikesh" && url === source.url && title)
+  if (
+    ["rishikesh", "bathinda"].includes(source.adapter || "") &&
+    url === source.url &&
+    title
+  )
     url += "#" + digest(title);
   return reference ? reference + "#" + digest(url).slice(0, 20) : digest(url);
 }
@@ -187,7 +200,54 @@ export function parseListing(
       explicitState: string | null =
         source.states.length === 1 ? source.states[0] : null;
     let primary: string | null = null;
-    if (source.adapter === "raipur" && cells.length >= 6) {
+    if (source.adapter === "aiims-delhi" && cells.length >= 4) {
+      const current = /Date of Publishing/.test(clean(table.find("th").text()));
+      const titleCell = cells.eq(current ? 2 : 1);
+      title = clean(titleCell.text());
+      // Public EHS notices can contain patient names/IDs; retain procurement
+      // wording without copying those identifiers into the research dataset.
+      title = title
+        .replace(
+          /\bfor\s+EHS\s+beneficiar(?:y|ies)\b.*?(?=\bunder\s+PAC\b|$)/i,
+          "for an EHS beneficiary ",
+        )
+        .trim();
+      ref = title.match(/\b\d{4}_[A-Za-z0-9]+_\d+(?:_\d+)?\b/)?.[0] || "";
+      publishedAt = current ? listingDate(cells.eq(3).text()) : null;
+      closingDate = listingDate(cells.eq(current ? 4 : 3).text());
+      buyer = source.buyerName || source.name;
+      primary = publicLink(
+        titleCell.find("a[href]").first().attr("href"),
+        pageUrl,
+      );
+      if (!primary || new URL(primary).origin !== new URL(source.url).origin)
+        throw new Error(
+          "AIIMS Delhi tender lacks an official detail link; layout may have changed",
+        );
+    } else if (source.adapter === "bathinda" && cells.length >= 6) {
+      ref = clean(cells.eq(1).text());
+      title = clean(cells.eq(2).text());
+      closingDate = listingDate(cells.eq(4).text());
+      buyer = source.buyerName || source.name;
+      const links = cells
+        .eq(5)
+        .find("a[href]")
+        .toArray()
+        .map((a) => ({
+          url: publicLink($(a).attr("href"), pageUrl),
+          label: clean($(a).text()),
+        }))
+        .filter((a) => a.url && isNoticeAttachment(a.url));
+      // Originals often follow several newly added corrigenda. Do not make a
+      // newly inserted amendment replace the source identity of a native bid.
+      primary =
+        links.find(
+          (a) =>
+            !/corrigendum|amendment|extension|clarification/i.test(a.label),
+        )?.url ||
+        links[0]?.url ||
+        source.url;
+    } else if (source.adapter === "raipur" && cells.length >= 6) {
       ref = clean(cells.eq(1).text());
       title = clean(cells.eq(2).text());
       publishedAt = listingDate(cells.eq(3).text());
@@ -329,6 +389,13 @@ export function parseListing(
     throw new Error("Unsupported pagination link; collection incomplete");
   if (next && pageAllowed(next, source) && next === pageUrl)
     throw new Error("Non-advancing pagination link; collection incomplete");
+  if (
+    next &&
+    source.adapter === "aiims-delhi" &&
+    Number(new URL(next).searchParams.get("start") || 0) <=
+      Number(new URL(pageUrl).searchParams.get("start") || 0)
+  )
+    throw new Error("Non-advancing archive offset; collection incomplete");
   return {
     notices: [...new Map(notices.map((n) => [n.key, n])).values()],
     next: next && pageAllowed(next, source) && next !== pageUrl ? next : null,

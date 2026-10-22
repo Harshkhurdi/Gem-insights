@@ -7,6 +7,19 @@ export function tableMatches(
   adapter: SourceDefinition["adapter"],
 ) {
   switch (adapter) {
+    case "aiims-delhi":
+      return (
+        /Title/.test(headers) &&
+        /Closing/.test(headers) &&
+        /Date of Publishing|Opening Date/.test(headers)
+      );
+    case "bathinda":
+      return (
+        /Tender Ref\./.test(headers) &&
+        /Start Date/.test(headers) &&
+        /End Date/.test(headers) &&
+        /Related Links/.test(headers)
+      );
     case "raipur":
       return (
         /Tender[.\s]*No\.?/i.test(headers) && /Publishing Date/i.test(headers)
