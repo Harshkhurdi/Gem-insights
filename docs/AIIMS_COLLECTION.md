@@ -1,3 +1,5 @@
+> Latest update: [Rajasthan/UP collection](STATE_MEDICAL_COLLECTION.md) adds RMSC and UPUMS, bringing the app to 23 public-listing profiles and a 9,673-observation baseline. Counts below describe the preceding Delhi/Bathinda rollout.
+
 # Delhi and Bathinda collection
 
 The application now has **20 automatic public-listing profiles** and **63 registered source targets**. This update enables AIIMS New Delhi's current listing and three published archive categories, plus AIIMS Bathinda's public procurement table. Collected signals flow into the existing main insights immediately. Registered targets and archive page counts do not establish complete national coverage.

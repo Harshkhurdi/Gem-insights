@@ -18,8 +18,11 @@ export interface SourceDefinition {
     | "kmscl"
     | "aiims-delhi"
     | "bathinda"
+    | "rmsc"
+    | "upums"
     | null;
   buyerName?: string;
+  clinicalCategory?: boolean;
   scope: string;
 }
 const source = (
@@ -300,6 +303,38 @@ export const SOURCES: SourceDefinition[] = [
     ["Kerala"],
     "kmscl",
     "Public notices include equipment, amendments, evaluation/price-opening and running-contract notices. Native references, dates and quantities require original review; these are not all open tenders.",
+  ),
+  ...(
+    [
+      [
+        "rmsc-equipment",
+        "Equipment and instruments",
+        "Equipment-Instrument-Tenders",
+        false,
+      ],
+      ["rmsc-drugs", "Drug and surgical notices", "Drug-Tenders", true],
+    ] as const
+  ).map(([id, label, path, clinicalCategory]) => ({
+    ...source(
+      id,
+      `Rajasthan Medical Services Corporation — ${label}`,
+      `https://rmsc.health.rajasthan.gov.in/content/raj/medical/rajasthan-medical-services-corporation-ltd-/en/Tenders/${path}.html`,
+      "institution",
+      ["Rajasthan"],
+      "rmsc",
+      "Public tender/notice table, including originals, amendments, evaluations and historical notices. Name and description are retained together. From/To and Upload Date do not establish original publication or bid closing; dates and quantities require original review.",
+    ),
+    buyerName: "Rajasthan Medical Services Corporation",
+    clinicalCategory,
+  })),
+  source(
+    "upums",
+    "Uttar Pradesh University of Medical Sciences",
+    "https://www.upums.ac.in/tender",
+    "institution",
+    ["Uttar Pradesh"],
+    "upums",
+    "Public tender table with explicit Published Date and original attachments. Mixed clinical, equipment and other procurement; closing dates, quantities and delivery locations require original review.",
   ),
 ];
 export function getSource(id: string) {

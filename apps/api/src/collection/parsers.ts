@@ -71,12 +71,13 @@ export function listingDate(v: string): string | null {
 export function noticeClassification(
   title: string,
   classificationRules: Rule[] = rules,
+  source?: SourceDefinition,
 ) {
   const c = classify(title, classificationRules);
   const products = classificationRules
     .filter((r) => classify(title, [r]).productId)
     .map((r) => r.id);
-  const medical =
+  const titleMedical =
     !!products.length ||
     /\b(medical|hospital|surgical|diagnostic|laboratory|healthcare|equipment|analy[sz]er|incubator|dialysis|ophthalmic|dental|cbct|tomography|laser|psychiatr\w*|orthop\w*|patholog\w*|nephro\w*|physio\w*|oncolog\w*|cardio\w*|neurolog\w*|elisa|assay|reagents?|consumables?|pharma\w*|medicines?|drugs?|sutures?|catheters?|endotracheal|nasogastric|gauze|haemo\w*|hemo\w*|microbiolog\w*|biochem\w*|immuno\w*|prosthe\w*|implants?|endoscop\w*|gastro\w*|otolaryng\w*|urolog\w*|anaesthe\w*|anesthe\w*)\b/i.test(
       title,
@@ -85,13 +86,15 @@ export function noticeClassification(
       title,
     );
   return {
-    medical,
+    medical: titleMedical || source?.clinicalCategory === true,
     products,
     reason: c.productId
       ? "Equipment candidate from listing title; verify original line items and quantities"
-      : medical
+      : titleMedical
         ? "Possible clinical procurement from listing title; verify medical scope and original item evidence"
-        : c.reason,
+        : source?.clinicalCategory
+          ? "Clinical notice from the official drug/surgical tender category; original items and quantities require review"
+          : c.reason,
   };
 }
 export { publicLink } from "./links";
@@ -106,6 +109,8 @@ export function pageAllowed(url: string, source: SourceDefinition) {
           (u.searchParams.getAll("start").length === 1 &&
             /^\d+$/.test(u.searchParams.get("start")!))))) &&
     (source.adapter !== "bathinda" || u.search === base.search) &&
+    (!["rmsc", "upums"].includes(source.adapter || "") ||
+      u.search === base.search) &&
     (source.adapter !== "rishikesh" ||
       u.searchParams.get("page_id") === base.searchParams.get("page_id")) &&
     (u.pathname === base.pathname ||
@@ -126,7 +131,7 @@ export function noticeKey(
   if (source.adapter === "cppp" && reference) return reference;
   // Missing historical links lead to the listing; titles distinguish its rows.
   if (
-    ["rishikesh", "bathinda"].includes(source.adapter || "") &&
+    ["rishikesh", "bathinda", "rmsc", "upums"].includes(source.adapter || "") &&
     url === source.url &&
     title
   )
@@ -176,7 +181,7 @@ export function parseListing(
               closingDate: null,
               buyer: source.buyerName || source.name,
               state: source.states[0] || null,
-              ...noticeClassification(title, classificationRules),
+              ...noticeClassification(title, classificationRules, source),
             }))
             .map((n) => [n.key, n]),
         ).values(),
@@ -200,7 +205,41 @@ export function parseListing(
       explicitState: string | null =
         source.states.length === 1 ? source.states[0] : null;
     let primary: string | null = null;
-    if (source.adapter === "aiims-delhi" && cells.length >= 4) {
+    if (source.adapter === "rmsc" && cells.length >= 6) {
+      const name = clean(cells.eq(0).text()),
+        description = clean(cells.eq(3).text());
+      title =
+        name + (description && description !== name ? " — " + description : "");
+      // Generic From/To fields and bulk Upload Date timestamps are not proof
+      // of the original publication date or the submission deadline.
+      buyer = source.buyerName || source.name;
+      const article = publicLink(
+        cells.eq(0).find("a[href]").first().attr("href"),
+        pageUrl,
+      );
+      primary =
+        article && new URL(article).pathname !== new URL(source.url).pathname
+          ? article
+          : cells
+              .eq(4)
+              .find("a[href]")
+              .toArray()
+              .map((a) => publicLink($(a).attr("href"), pageUrl))
+              .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+      ref = title.match(/\b\d{4}_[A-Za-z0-9]+_\d+(?:_\d+)?\b/)?.[0] || "";
+    } else if (source.adapter === "upums" && cells.length >= 4) {
+      title = clean(cells.eq(1).text());
+      publishedAt = listingDate(cells.eq(2).text());
+      buyer = source.buyerName || source.name;
+      primary =
+        cells
+          .eq(3)
+          .find("a[href]")
+          .toArray()
+          .map((a) => publicLink($(a).attr("href"), pageUrl))
+          .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+      ref = title.match(/\b\d{4}_[A-Za-z0-9]+_\d+(?:_\d+)?\b/)?.[0] || "";
+    } else if (source.adapter === "aiims-delhi" && cells.length >= 4) {
       const current = /Date of Publishing/.test(clean(table.find("th").text()));
       const titleCell = cells.eq(current ? 2 : 1);
       title = clean(titleCell.text());
@@ -364,7 +403,7 @@ export function parseListing(
       closingDate,
       buyer,
       state: explicitState,
-      ...noticeClassification(title, classificationRules),
+      ...noticeClassification(title, classificationRules, source),
     });
   });
   if (

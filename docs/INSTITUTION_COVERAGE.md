@@ -1,4 +1,4 @@
-> Latest update: [Delhi/Bathinda collection](AIIMS_COLLECTION.md) raises coverage to 20 public-listing profiles, 63 registered targets and a 5,669-observation baseline. The counts below describe the preceding institution rollout.
+> Latest update: [Rajasthan/UP collection](STATE_MEDICAL_COLLECTION.md) raises coverage to 23 public-listing profiles, 66 registered targets and a 9,673-observation baseline. The counts below describe the preceding institution rollout.
 
 # Medical institution coverage
 

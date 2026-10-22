@@ -1,3 +1,5 @@
+> Latest coverage and baseline: [Rajasthan/UP collection](STATE_MEDICAL_COLLECTION.md) documents 23 public-listing profiles, 66 registered targets and 9,673 observations. Source counts below describe an earlier rollout.
+
 > Later update: [institution coverage](INSTITUTION_COVERAGE.md) adds AIIMS Rishikesh and KMSCL, bringing the current totals to 15 profiles and 4,642 listing records. The 11-profile counts below describe the preceding increment.
 
 # National collection expansion

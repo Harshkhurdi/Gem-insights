@@ -1,6 +1,6 @@
 > Main-project integration: collected notices now appear automatically in the overview, product, buyer, geography, trend and explorer pages. See [main insights](MAIN_INSIGHTS.md). Item review adds verified detail; it does not block visibility.
 
-> Current update: [Delhi/Bathinda collection](AIIMS_COLLECTION.md) brings collection to 20 working listing profiles and a 5,669-record discovery snapshot. Word/Excel/ZIP attachments and published amendment pointers remain review links; supported same-host GeM PDFs can be extracted locally. This supersedes earlier source and notice counts below.
+> Current update: [Rajasthan/UP collection](STATE_MEDICAL_COLLECTION.md) brings collection to 23 working listing profiles and a 9,673-record discovery snapshot. Word/Excel/ZIP attachments and published amendment pointers remain review links; supported same-host GeM PDFs can be extracted locally. This supersedes earlier source and notice counts below.
 
 # Local collection and medical demand workflow
 
@@ -33,7 +33,7 @@ Supported adapters:
 
 The collector follows published Next links within that source's listing path. Each job has a 25-page budget, 2-second delay between pages, 30-second request timeouts and a 5 MB page limit. Each completed page commits its observations and checkpoint atomically. A failed request retains completed work. A job reaching its page budget resumes after 15 minutes. A successful end-of-list run schedules the next refresh. HTTP/access/layout errors are visible in the source table and Data Coverage run history. Access challenges are not solved automatically.
 
-The initial rollout listed 52 targets and supported the three adapters above. The current registry has 63 targets and 20 automatic profiles; see the latest update at the top of this guide. Other URLs are planning/assisted-import targets, not proof of collection or individually validated coverage. Punjab, Chandigarh and Himachal Pradesh active-search pages presented CAPTCHA searches in this check. GeM direct collection remains unavailable; authorized feed and imports still work.
+The initial rollout listed 52 targets and supported the three adapters above. The current registry has 66 targets and 23 automatic profiles; see the latest update at the top of this guide. Other URLs are planning/assisted-import targets, not proof of collection or individually validated coverage. Punjab, Chandigarh and Himachal Pradesh active-search pages presented CAPTCHA searches in this check. GeM direct collection remains unavailable; authorized feed and imports still work.
 
 To collect from the command line against your configured local database:
 

@@ -1240,7 +1240,7 @@ function Dashboard() {
                 {number(stats.data?.listing_notices || 0)} listing records and{" "}
                 {number(stats.data?.reviewed_tenders || 0)} reviewed item
                 records in these filters. Collected notices appear immediately.
-                Title matches are provisional; quantities and values use item
+                Listing signals are provisional; quantities and values use item
                 records only. Known bid references and repeated document links
                 are grouped; amendments and unknown references can still
                 overlap.
@@ -1273,7 +1273,7 @@ function Dashboard() {
                     {
                       label: "Medical signals",
                       value: stats.data?.medical_tenders,
-                      sub: "Equipment and clinical title matches",
+                      sub: "Equipment and clinical listing signals",
                       click: () => go("Medical Equipment"),
                       icon: Stethoscope,
                     },

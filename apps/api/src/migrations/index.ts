@@ -10,6 +10,7 @@ import { CollectionExpansion1792410000000 } from "./collection-expansion";
 import { InstitutionCoverage1792411000000 } from "./institution-coverage";
 import { MainInsights1792412000000 } from "./main-insights";
 import { AiimsCoverage1792413000000 } from "./aiims-coverage";
+import { StateMedicalCoverage1792414000000 } from "./state-medical-coverage";
 export const migrations = [
   Initial1792400000000,
   Documents1792405000000,
@@ -23,4 +24,5 @@ export const migrations = [
   InstitutionCoverage1792411000000,
   MainInsights1792412000000,
   AiimsCoverage1792413000000,
+  StateMedicalCoverage1792414000000,
 ];
