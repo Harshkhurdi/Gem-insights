@@ -2620,7 +2620,7 @@ function Admin({
                     action(() => api("admin/reclassify", { method: "POST" }))
                   }
                 >
-                  Reclassify existing lines
+                  Reclassify items and collected notices
                 </Button>
               </div>
               <div className="view-tools">

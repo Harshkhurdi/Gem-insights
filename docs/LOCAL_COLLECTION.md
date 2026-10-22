@@ -1,8 +1,10 @@
+Latest classification update: [medical tender recognition](MEDICAL_CLASSIFICATION.md) expands equipment vocabulary and lets the worker refresh existing collected notices after alias edits.
+
 Latest coverage update: [Odisha collection](ODISHA_COLLECTION.md) adds AIIMS Bhubaneswar current/archive profiles.
 
 > Main-project integration: collected notices now appear automatically in the overview, product, buyer, geography, trend and explorer pages. See [main insights](MAIN_INSIGHTS.md). Item review adds verified detail; it does not block visibility.
 
-> Current update: [Rajasthan/UP collection](STATE_MEDICAL_COLLECTION.md) brings collection to 23 working listing profiles and a 9,673-record discovery snapshot. Word/Excel/ZIP attachments and published amendment pointers remain review links; supported same-host GeM PDFs can be extracted locally. This supersedes earlier source and notice counts below.
+> Earlier rollout: [Rajasthan/UP collection](STATE_MEDICAL_COLLECTION.md) brings collection to 23 working listing profiles and a 9,673-record discovery snapshot. Word/Excel/ZIP attachments and published amendment pointers remain review links; supported same-host GeM PDFs can be extracted locally. Those figures describe that rollout; the Odisha and classification updates linked above supersede them.
 
 # Local collection and medical demand workflow
 

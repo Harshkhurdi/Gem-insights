@@ -1,6 +1,27 @@
 export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
   "Critical Care": [
     [
+      "patient-warming",
+      "Patient warming systems",
+      [
+        "patient warming system",
+        "patient body warming system",
+        "conductive patient warming",
+        "forced air warming system",
+      ],
+    ],
+    [
+      "fluid-warmers",
+      "Blood and IV fluid warmers",
+      ["fluid warmer", "blood warmer", "blood and iv fluid warmer"],
+    ],
+    [
+      "pulse-oximeters",
+      "Pulse oximeters",
+      ["pulse oximeter", "pulse oxymeter", "pulseoximeter"],
+    ],
+    ["resuscitation-kits", "Resuscitation kits", ["resuscitation kit"]],
+    [
       "ventilators-other",
       "Ventilators (type unspecified)",
       ["ventilator", "ventilators"],
@@ -42,6 +63,7 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
         "multipara monitor",
         "bedside patient monitoring system",
         "high end multipara monitor",
+        "multi para monitor",
       ],
     ],
     ["defibrillators", "Defibrillators", ["defibrillator", "defibrillators"]],
@@ -78,7 +100,16 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
     [
       "x-ray",
       "X-ray systems",
-      ["x ray machine", "x ray system", "mobile x ray"],
+      [
+        "x ray machine",
+        "x ray system",
+        "mobile x ray",
+        "digital radiography system",
+        "computed radiography system",
+        "digital panoramic x ray unit",
+        "mobile digital radiography",
+        "x ray unit",
+      ],
     ],
     ["c-arm", "C-arm systems", ["c arm"]],
     ["ct", "CT scanners", ["ct scanner", "ct scan machine"]],
@@ -90,6 +121,17 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
     ["mammography", "Mammography systems", ["mammography"]],
   ],
   "Operation Theatre": [
+    ["laryngoscopes", "Laryngoscopes", ["laryngoscope", "video laryngoscope"]],
+    [
+      "surgical-retractors",
+      "Surgical retractor systems",
+      ["retractor system", "retractor set", "abdominal retractor"],
+    ],
+    [
+      "surgical-tourniquets",
+      "Surgical tourniquets",
+      ["electronic tourniquet", "digital tourniquet", "tourniquet set"],
+    ],
     [
       "anaesthesia",
       "Anaesthesia workstations",
@@ -131,6 +173,37 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
   ],
   "Laboratory Equipment": [
     [
+      "nucleic-acid-extraction",
+      "Nucleic acid extraction systems",
+      [
+        "nucleic acid extraction machine",
+        "nucleic acid extraction system",
+        "nucleic acid extractor",
+      ],
+    ],
+    [
+      "gene-sequencers",
+      "Gene sequencers",
+      [
+        "dna capillary sequencer",
+        "nanopore sequencer",
+        "nanopore sequencing system",
+        "dna and rna sequencing system",
+        "next generation sequencer",
+        "next generation sequencing machine",
+        "next generation sequencing system",
+        "miseq sequencer",
+        "nextseq 2000 sequencing system",
+        "pyrosequencer",
+      ],
+    ],
+    ["osmometers", "Osmometers", ["osmometer"]],
+    [
+      "electrophoresis",
+      "Electrophoresis systems",
+      ["electrophoresis system", "capillary zone electrophoresis"],
+    ],
+    [
       "urine-analyzers",
       "Urine analyzers",
       [
@@ -156,7 +229,14 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
     [
       "pcr",
       "PCR and real time PCR systems",
-      ["pcr machine", "real time pcr", "thermal cycler", "thermocycler"],
+      [
+        "pcr machine",
+        "real time pcr",
+        "thermal cycler",
+        "thermocycler",
+        "digital pcr system",
+        "pcr system",
+      ],
     ],
     [
       "flow-cytometry",
@@ -197,7 +277,7 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
     [
       "histopathology",
       "Histopathology processing equipment",
-      ["microtome", "tissue processor", "cryostat"],
+      ["microtome", "tissue processor", "cryostat", "micro tome"],
     ],
     [
       "hplc",
@@ -239,6 +319,11 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
   ],
   Cardiology: [
     [
+      "blood-pressure-monitors",
+      "Blood pressure monitors",
+      ["blood pressure monitor", "sphygmomanometer"],
+    ],
+    [
       "ecg",
       "ECG machines",
       ["ecg machine", "electrocardiograph", "electrocardiogram machine"],
@@ -279,6 +364,7 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
     ],
   ],
   "Maternal and Neonatal Care": [
+    ["bilirubinometers", "Bilirubinometers", ["bilirubinometer"]],
     [
       "neonatal-incubators",
       "Neonatal incubators",
@@ -287,7 +373,7 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
     [
       "radiant-warmers",
       "Infant radiant warmers",
-      ["radiant warmer", "infant warmer"],
+      ["radiant warmer", "infant warmer", "baby infant warmer"],
     ],
     [
       "phototherapy",
@@ -302,6 +388,8 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
     ["delivery-tables", "Delivery tables", ["delivery table", "labour table"]],
   ],
   Ophthalmology: [
+    ["retinoscopes", "Retinoscopes", ["retinoscope"]],
+    ["pachymeters", "Pachymeters", ["pachymeter"]],
     ["slit-lamps", "Slit lamps", ["slit lamp"]],
     [
       "ophthalmic-microscopes",
@@ -316,7 +404,12 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
     [
       "oct",
       "Optical coherence tomography systems",
-      ["optical coherence tomography", "oct machine"],
+      [
+        "optical coherence tomography",
+        "oct machine",
+        "anterior segment oct",
+        "oct based imaging system",
+      ],
     ],
     ["fundus-cameras", "Fundus cameras", ["fundus camera"]],
     ["tonometers", "Tonometers", ["tonometer"]],
@@ -359,7 +452,12 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
     ],
   ],
   Neurology: [
-    ["eeg", "EEG machines", ["eeg machine", "electroencephalograph"]],
+    ["nerve-monitors", "Nerve monitors", ["nerve monitor"]],
+    [
+      "eeg",
+      "EEG machines",
+      ["eeg machine", "electroencephalograph", "video eeg", "eeg system"],
+    ],
     [
       "emg",
       "EMG and nerve conduction systems",
@@ -423,10 +521,12 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
     ],
   ],
   "Surgical Specialties": [
+    ["dermatomes", "Dermatomes", ["dermatome"]],
+    ["manometry", "Manometry systems", ["manometry system"]],
     [
       "arthroscopy",
       "Arthroscopy systems",
-      ["arthroscopy system", "arthroscopic system"],
+      ["arthroscopy system", "arthroscopic system", "arthroscopysystem"],
     ],
     [
       "surgical-microscopes",
@@ -461,6 +561,17 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
       "ECMO systems",
       ["ecmo machine", "ecmo system", "extracorporeal membrane oxygenation"],
     ],
+  ],
+  "Blood Collection and Processing": [
+    [
+      "apheresis",
+      "Apheresis machines",
+      ["apheresis machine", "apheresis system", "blood cell separator"],
+    ],
+  ],
+  "Mortuary Equipment": [
+    ["autopsy-saws", "Autopsy saws", ["autopsy saw"]],
+    ["autopsy-tables", "Autopsy tables", ["autopsy table"]],
   ],
 };
 export const slug = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, "-");
