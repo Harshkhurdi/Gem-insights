@@ -262,6 +262,12 @@ export default function CollectionView() {
             listings. Listing candidates may include services, consumables and
             unrelated equipment. National completeness is unknown.
           </Alert>
+          {data?.collectionRegion === "north" && (
+            <p className="fine">
+              Bulk collection prioritizes northern sources and national feeds.
+              Other regional sources remain available individually.
+            </p>
+          )}
           <div className="view-tools">
             {auth.data?.authenticated ? (
               <Button

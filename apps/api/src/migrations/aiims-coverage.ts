@@ -3,6 +3,11 @@ import { SOURCES } from "../collection/registry";
 import { refreshNoticeClassifications } from "./institution-coverage";
 import { mainInsightViews } from "./main-insights";
 
+export const aiimsListingIdentity = `WHEN n.source_id IN ('aiims-delhi','aiims-delhi-archive-open','aiims-delhi-archive-proprietary','aiims-delhi-archive-limited')
+      AND n.source_url ~ '^https://www\\.aiims\\.edu/index\\.php/en/tenders(/archive-tender/(global-open-tender|proprietary-tender|short-rate-limited-enquiry))?\\?'
+      AND substring(n.source_url from '[?&]id=([0-9]+)') IS NOT NULL
+      THEN 'aiims-delhi:article:'||substring(n.source_url from '[?&]id=([0-9]+)')`;
+
 export class AiimsCoverage1792413000000 implements MigrationInterface {
   async up(q: Pick<QueryRunner, "query">) {
     for (const s of SOURCES.filter((s) =>
@@ -31,12 +36,7 @@ export class AiimsCoverage1792413000000 implements MigrationInterface {
     // the current-list route. Group by the explicit site article ID instead of
     // rewriting those links or inventing an official tender reference.
     await q.query("DROP VIEW insight_line; DROP VIEW insight_record");
-    await q.query(
-      mainInsightViews(`WHEN n.source_id IN ('aiims-delhi','aiims-delhi-archive-open','aiims-delhi-archive-proprietary','aiims-delhi-archive-limited')
-      AND n.source_url ~ '^https://www\\.aiims\\.edu/index\\.php/en/tenders(/archive-tender/(global-open-tender|proprietary-tender|short-rate-limited-enquiry))?\\?'
-      AND substring(n.source_url from '[?&]id=([0-9]+)') IS NOT NULL
-      THEN 'aiims-delhi:article:'||substring(n.source_url from '[?&]id=([0-9]+)')`),
-    );
+    await q.query(mainInsightViews(aiimsListingIdentity));
   }
   async down() {
     throw new Error(
