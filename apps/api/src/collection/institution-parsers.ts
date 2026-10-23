@@ -106,6 +106,31 @@ export function tableMatches(
         /Start Date/.test(headers) &&
         /Last Date/.test(headers)
       );
+    case "jodhpur":
+      return (
+        /Tender Reference/.test(headers) &&
+        /Tender Subject/.test(headers) &&
+        /Start Date/.test(headers) &&
+        /End Date/.test(headers)
+      );
+    case "sgpgims":
+      return (
+        /S\.?\s*No\.?/.test(headers) &&
+        /Description/.test(headers) &&
+        /View \/ Download/.test(headers)
+      );
+    case "phsc":
+      return (
+        /BID No/.test(headers) &&
+        /End Date/.test(headers) &&
+        /Subject of Tender/.test(headers)
+      );
+    case "hmscl":
+      return (
+        /Tender \/ Reference/.test(headers) &&
+        /Important Dates/.test(headers) &&
+        /Corrigendum/.test(headers)
+      );
     default:
       return false;
   }

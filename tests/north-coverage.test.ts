@@ -193,9 +193,9 @@ test("northern table layouts fail visibly instead of succeeding with silently mi
   }
 });
 test("north rollout adds thirteen profiles without enabling inaccessible targets", () => {
-  assert.equal(SOURCES.filter((s) => s.adapter).length, 49);
-  assert.equal(SOURCES.length, 101);
-  for (const id of ["hmscl", "uhsr", "aiims-jodhpur", "bfuhs", "pgimer"])
+  assert.equal(SOURCES.filter((s) => s.adapter).length, 54);
+  assert.equal(SOURCES.length, 102);
+  for (const id of ["uhsr", "bfuhs", "pgimer", "rmlh"])
     assert.equal(getSource(id).adapter, null);
 });
 const url = process.env.TEST_DATABASE_URL;
@@ -327,11 +327,17 @@ test("north migration preserves pauses, existing reviews and unrelated backfill;
       .review_status,
     "dismissed",
   );
-  for (const id of ["hmscl", "uhsr", "aiims-jodhpur", "bfuhs"])
+  for (const id of ["uhsr", "bfuhs", "pgimer"])
     assert.equal(
       (await db.query("SELECT enabled FROM source WHERE id=$1", [id]))[0]
         .enabled,
       false,
+    );
+  for (const id of ["hmscl", "aiims-jodhpur"])
+    assert.equal(
+      (await db.query("SELECT enabled FROM source WHERE id=$1", [id]))[0]
+        .enabled,
+      true,
     );
 });
 
@@ -340,17 +346,17 @@ test("north-first bulk queue and scheduling exclude southern profiles while expl
   process.env.COLLECTION_REGION = "north";
   try {
     const sources = collectionSources();
-    assert.equal(sources.length, 44);
+    assert.equal(sources.length, 49);
     assert.ok(sources.some((s) => s.id === "nhm-ladakh"));
     assert.ok(!sources.some((s) => s.id === "kmscl"));
     assert.ok(!sources.some((s) => s.id === "aiims-bhubaneswar"));
     assert.equal(collectionRegion(), "north");
     assert.throws(() => collectionRegion("invalid"), /must be/);
     const c = new Collection(db);
-    assert.equal((await c.queue()).queued, 44);
+    assert.equal((await c.queue()).queued, 49);
     await db.query("TRUNCATE job");
     await c.schedule();
-    assert.equal((await db.query("SELECT count(*)::int n FROM job"))[0].n, 44);
+    assert.equal((await db.query("SELECT count(*)::int n FROM job"))[0].n, 49);
     assert.equal((await c.queue("kmscl")).queued, 1);
     assert.equal((await c.summary()).collectionRegion, "north");
   } finally {
