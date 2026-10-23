@@ -13,6 +13,12 @@ import {
   MenuItem,
   TextField,
 } from "@mui/material";
+import {
+  NOTICE_KINDS,
+  NON_DEMAND_NOTICE_KINDS,
+  NoticeKind,
+  noticeKindLabels,
+} from "../../../../packages/core/notice-kind";
 import { exportCSV } from "../../../../packages/core/csv";
 async function api(path: string, body?: unknown, method = "POST") {
   const r = await fetch(
@@ -59,7 +65,8 @@ export default function CollectionView() {
     [state, setState] = useState(""),
     [medical, setMedical] = useState("true"),
     [status, setStatus] = useState(""),
-    [product, setProduct] = useState("");
+    [product, setProduct] = useState(""),
+    [kind, setKind] = useState("");
   const [page, setPage] = useState(1),
     [selected, setSelected] = useState<any>(null),
     [raw, setRaw] = useState(""),
@@ -76,6 +83,7 @@ export default function CollectionView() {
     ...(medical ? { medical } : {}),
     ...(status ? { status } : {}),
     ...(product ? { product } : {}),
+    ...(kind ? { kind } : {}),
   });
   const notices = useQuery({
     queryKey: ["collection-notices", params.toString()],
@@ -195,6 +203,8 @@ export default function CollectionView() {
       portal: n.source_portal,
       reference: n.bid_number,
       title: n.title,
+      noticeType:
+        noticeKindLabels[n.raw?.kind as NoticeKind] || noticeKindLabels.unknown,
       url: n.source_url,
       published: n.published_at,
       closingDate: n.closing_date,
@@ -307,10 +317,14 @@ export default function CollectionView() {
       <section className="panel">
         <div className="panel-head">
           <div>
-            <h2>Discovered tenders</h2>
+            <h2>Discovered notices</h2>
             <p>
               Broad discovery keeps unknown products available for review. These
               counts do not add unverified quantities to demand analytics.
+              Across collection, {data?.counts.non_demand || 0} cancellation,
+              award/order, disposal, purchase-report and procurement-guidance
+              notices are retained here and excluded from listing-demand
+              metrics.
             </p>
           </div>
         </div>
@@ -336,6 +350,22 @@ export default function CollectionView() {
             {data?.sources.map((s: any) => (
               <MenuItem key={s.id} value={s.id}>
                 {s.name}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            select
+            label="Notice type"
+            value={kind}
+            onChange={(e) => {
+              setKind(e.target.value);
+              setPage(1);
+            }}
+          >
+            <MenuItem value="">All notice types</MenuItem>
+            {NOTICE_KINDS.map((k) => (
+              <MenuItem key={k} value={k}>
+                {noticeKindLabels[k]}
               </MenuItem>
             ))}
           </TextField>
@@ -433,6 +463,13 @@ export default function CollectionView() {
                     <small>
                       {n.bid_number || "No published reference"} ·{" "}
                       {n.source_name}
+                    </small>
+                    <small>
+                      {noticeKindLabels[n.raw?.kind as NoticeKind] ||
+                        noticeKindLabels.unknown}
+                      {NON_DEMAND_NOTICE_KINDS.some((k) => k === n.raw?.kind)
+                        ? " · Excluded from listing demand"
+                        : ""}
                     </small>
                     <small>{n.classification_reason}</small>
                     <small>

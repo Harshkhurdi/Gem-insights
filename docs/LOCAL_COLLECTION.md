@@ -1,6 +1,6 @@
 Latest classification update: [medical tender recognition](MEDICAL_CLASSIFICATION.md) expands equipment vocabulary and lets the worker refresh existing collected notices after alias edits.
 
-Latest coverage update: [Raebareli/Gorakhpur expansion](NORTH_PUBLIC_SOURCES.md) adds eleven profiles, with 49 automatic profiles, 101 registered targets and a 16,656-observation snapshot. Set `COLLECTION_REGION=north` in existing installations to prioritize North before South.
+Latest coverage update: [notice types and Safdarjung collection](NOTICE_TYPES.md) adds two profiles, with 51 automatic profiles, 102 registered targets and a 16,782-observation snapshot. Non-demand notices remain searchable but are excluded from listing-demand metrics. Set `COLLECTION_REGION=north` in existing installations to prioritize North before South.
 
 > Main-project integration: collected notices now appear automatically in the overview, product, buyer, geography, trend and explorer pages. See [main insights](MAIN_INSIGHTS.md). Item review adds verified detail; it does not block visibility.
 
@@ -37,7 +37,7 @@ Supported adapters:
 
 The collector follows published Next links within that source's listing path. Each job has a 25-page budget, 2-second delay between pages, 30-second request timeouts and a 5 MB page limit. Each completed page commits its observations and checkpoint atomically. A failed request retains completed work. A job reaching its page budget resumes after 15 minutes. A successful end-of-list run schedules the next refresh. HTTP/access/layout errors are visible in the source table and Data Coverage run history. Access challenges are not solved automatically.
 
-The initial rollout listed 52 targets and supported the three adapters above. The current registry has 101 targets and 49 automatic profiles; see the latest update at the top of this guide. Other URLs are planning/assisted-import targets, not proof of collection or individually validated coverage. Punjab, Chandigarh and Himachal Pradesh active-search pages presented CAPTCHA searches in this check. GeM direct collection remains unavailable; authorized feed and imports still work.
+The initial rollout listed 52 targets and supported the three adapters above. The current registry has 102 targets and 51 automatic profiles; see the latest update at the top of this guide. Other URLs are planning/assisted-import targets, not proof of collection or individually validated coverage. Punjab, Chandigarh and Himachal Pradesh active-search pages presented CAPTCHA searches in this check. GeM direct collection remains unavailable; authorized feed and imports still work.
 
 To collect from the command line against your configured local database:
 

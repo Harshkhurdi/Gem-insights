@@ -1,4 +1,6 @@
 import { load } from "cheerio";
+import { noticeKind, NoticeKind } from "../../../../packages/core/notice-kind";
+import { safdarjungEntries } from "./safdarjung";
 import { publicLink, isNoticeAttachment } from "./links";
 import {
   digest,
@@ -31,6 +33,7 @@ export interface Notice {
   medical: boolean;
   products: string[];
   reason: string;
+  kind?: NoticeKind;
 }
 const rules = Object.values(taxonomy)
   .flat()
@@ -97,6 +100,7 @@ export function noticeClassification(
       title,
     ) || /\binj(?:\.|\s)\s*[a-z]/i.test(title);
   return {
+    kind: noticeKind(title),
     medical:
       titleMedical || clinicalSupply || source?.clinicalCategory === true,
     products,
@@ -137,6 +141,7 @@ export function pageAllowed(url: string, source: SourceDefinition) {
       "kcgmc",
       "s3waas",
       "gorakhpur",
+      "safdarjung",
     ].includes(source.adapter || "") ||
       u.search === base.search) &&
     (source.adapter !== "rishikesh" ||
@@ -160,7 +165,9 @@ export function noticeKey(
   // This publisher reuses some PDF URLs for unrelated tender titles. Preserve
   // each row's title context instead of silently dropping one at collection.
   if (
-    ["jammu", "jkmscl", "gorakhpur"].includes(source.adapter || "") &&
+    ["jammu", "jkmscl", "gorakhpur", "safdarjung"].includes(
+      source.adapter || "",
+    ) &&
     title
   ) {
     const identity = digest(url + "#" + title);
@@ -196,17 +203,23 @@ export function parseListing(
   if (/captcha|access denied|verify you are human/i.test($("title").text()))
     throw new Error("Source access challenge; assisted import required");
   if (
-    ["skims", "nhm-ladakh", "jkmscl", "raebareli", "gorakhpur"].includes(
-      source.adapter || "",
-    )
+    [
+      "skims",
+      "nhm-ladakh",
+      "jkmscl",
+      "raebareli",
+      "gorakhpur",
+      "safdarjung",
+    ].includes(source.adapter || "")
   ) {
-    const entries: NorthernEntry[] = ["raebareli", "gorakhpur"].includes(
-      source.adapter || "",
-    )
-      ? upInstitutionEntries(html, source, pageUrl)
-      : source.adapter === "jkmscl"
-        ? jkmsclEntries(html, pageUrl)
-        : northernLinks(html, source, pageUrl);
+    const entries: NorthernEntry[] =
+      source.adapter === "safdarjung"
+        ? safdarjungEntries(html, source, pageUrl)
+        : ["raebareli", "gorakhpur"].includes(source.adapter || "")
+          ? upInstitutionEntries(html, source, pageUrl)
+          : source.adapter === "jkmscl"
+            ? jkmsclEntries(html, pageUrl)
+            : northernLinks(html, source, pageUrl);
     const notices = entries.map((entry) => {
       const title = entry.title.slice(0, 2000),
         { url, documents } = entry;

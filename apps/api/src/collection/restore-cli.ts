@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { gunzipSync } from "node:zlib";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { NOTICE_KINDS } from "../../../../packages/core/notice-kind";
 import { connect, db } from "../database";
 import { Collection } from "./service";
 import { getSource } from "./registry";
@@ -27,6 +28,7 @@ const notice = z
     medical: z.boolean(),
     products: z.array(z.string()),
     reason: z.string().max(2000),
+    kind: z.enum(NOTICE_KINDS).optional(),
   })
   .strict();
 async function main() {

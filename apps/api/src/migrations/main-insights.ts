@@ -1,4 +1,5 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
+import { NON_DEMAND_NOTICE_KINDS } from "../../../../packages/core/notice-kind";
 
 export function mainInsightViews(listingIdentityCases = "") {
   return `
@@ -20,7 +21,7 @@ WITH reviewed AS (
     SELECT r.identity FROM reviewed r WHERE r.id=n.tender_id OR
       (n.bid_number IS NOT NULL AND r.source_portal=n.source_portal AND r.bid_number=n.bid_number AND r.source_url=n.source_url)
     ORDER BY (r.id=n.tender_id) DESC NULLS LAST,r.last_checked DESC,r.id LIMIT 1
-  ) linked ON true WHERE n.review_status<>'dismissed'
+  ) linked ON true WHERE n.review_status<>'dismissed' AND coalesce(n.raw->>'kind','unknown') NOT IN (${NON_DEMAND_NOTICE_KINDS.map((k) => `'${k}'`).join(",")})
 ), origins AS (
   SELECT identity,array_agg(DISTINCT source_id) FILTER(WHERE source_id IS NOT NULL) AS source_ids FROM (
     SELECT identity,source_id FROM reviewed UNION ALL SELECT identity,source_id FROM listing_base

@@ -193,8 +193,8 @@ test("northern table layouts fail visibly instead of succeeding with silently mi
   }
 });
 test("north rollout adds thirteen profiles without enabling inaccessible targets", () => {
-  assert.equal(SOURCES.filter((s) => s.adapter).length, 49);
-  assert.equal(SOURCES.length, 101);
+  assert.equal(SOURCES.filter((s) => s.adapter).length, 51);
+  assert.equal(SOURCES.length, 102);
   for (const id of ["hmscl", "uhsr", "aiims-jodhpur", "bfuhs", "pgimer"])
     assert.equal(getSource(id).adapter, null);
 });
@@ -340,17 +340,17 @@ test("north-first bulk queue and scheduling exclude southern profiles while expl
   process.env.COLLECTION_REGION = "north";
   try {
     const sources = collectionSources();
-    assert.equal(sources.length, 44);
+    assert.equal(sources.length, 46);
     assert.ok(sources.some((s) => s.id === "nhm-ladakh"));
     assert.ok(!sources.some((s) => s.id === "kmscl"));
     assert.ok(!sources.some((s) => s.id === "aiims-bhubaneswar"));
     assert.equal(collectionRegion(), "north");
     assert.throws(() => collectionRegion("invalid"), /must be/);
     const c = new Collection(db);
-    assert.equal((await c.queue()).queued, 44);
+    assert.equal((await c.queue()).queued, 46);
     await db.query("TRUNCATE job");
     await c.schedule();
-    assert.equal((await db.query("SELECT count(*)::int n FROM job"))[0].n, 44);
+    assert.equal((await db.query("SELECT count(*)::int n FROM job"))[0].n, 46);
     assert.equal((await c.queue("kmscl")).queued, 1);
     assert.equal((await c.summary()).collectionRegion, "north");
   } finally {

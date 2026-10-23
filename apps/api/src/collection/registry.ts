@@ -20,6 +20,7 @@ export interface SourceDefinition {
     | "bathinda"
     | "rmsc"
     | "upums"
+    | "safdarjung"
     | "raebareli"
     | "gorakhpur"
     | "jkmscl"
@@ -448,15 +449,23 @@ export const SOURCES: SourceDefinition[] = [
     null,
     "Northern priority target. Public homepage returned HTTP 503 on 22 October 2026; procurement listing access/layout requires validation before enabling collection.",
   ),
-  source(
-    "safdarjung",
-    "VMMC and Safdarjung Hospital",
-    "https://vmmc-sjh.mohfw.gov.in/tenders",
-    "institution",
-    ["Delhi"],
-    null,
-    "Public current/archive pages reached on 22 October 2026. Mixed tenders, awards, disposal auctions and procured-equipment reports require lifecycle separation before using them as requested-demand signals; automatic collection remains disabled.",
-  ),
+  ...(
+    [
+      ["safdarjung", "current procurement notices", "tenders"],
+      ["safdarjung-archive", "archived procurement notices", "archive-tenders"],
+    ] as const
+  ).map(([id, label, path]) => ({
+    ...source(
+      id,
+      `VMMC and Safdarjung Hospital — ${label}`,
+      `https://vmmc-sjh.mohfw.gov.in/${path}`,
+      "institution",
+      ["Delhi"],
+      "safdarjung",
+      "Public mixed procurement table, validated against captures from 22 October 2026. Date is not verified original publication. Awards/orders, disposal auctions, cancellations and purchase reports stay in collection but are excluded from listing-demand metrics. Access returned HTTP 503 on 23 October 2026; failures remain visible, with normal bounded retry scheduling.",
+    ),
+    buyerName: "VMMC and Safdarjung Hospital",
+  })),
   source(
     "aiims-gorakhpur-archive",
     "AIIMS Gorakhpur archived tenders",

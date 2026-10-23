@@ -1,3 +1,4 @@
+import { NOTICE_KINDS } from "../../../../packages/core/notice-kind";
 import {
   Body,
   Controller,
@@ -42,6 +43,7 @@ export class CollectionController {
           .transform((v) => v === "true")
           .optional(),
         status: z.enum(["pending", "approved", "dismissed"]).optional(),
+        kind: z.enum(NOTICE_KINDS).optional(),
         product: z.string().max(100).optional(),
         page: z.coerce.number().int().min(1).max(100000).default(1),
       })

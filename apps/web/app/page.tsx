@@ -1124,7 +1124,7 @@ function Dashboard() {
                   value={f.evidence || "all"}
                   onChange={(e) => change("evidence", e.target.value)}
                 >
-                  <MenuItem value="all">All collected notices</MenuItem>
+                  <MenuItem value="all">All demand evidence</MenuItem>
                   <MenuItem value="reviewed">Reviewed item records</MenuItem>
                   <MenuItem value="listing">Listing signals</MenuItem>
                 </TextField>
@@ -1239,11 +1239,13 @@ function Dashboard() {
               <Alert severity="info" className="insight-evidence-note">
                 {number(stats.data?.listing_notices || 0)} listing records and{" "}
                 {number(stats.data?.reviewed_tenders || 0)} reviewed item
-                records in these filters. Collected notices appear immediately.
-                Listing signals are provisional; quantities and values use item
-                records only. Known bid references and repeated document links
-                are grouped; amendments and unknown references can still
-                overlap.
+                records in these filters. Collected demand notices appear
+                immediately. Listing signals are provisional; quantities and
+                values use item records only. Known bid references and repeated
+                document links are grouped; amendments and unknown references
+                can still overlap. Cancellation, award/order, disposal,
+                purchase-report and procurement-guidance listings remain
+                searchable in Tender Collection and are excluded here.
               </Alert>
             )}
             {stats.isLoading && (

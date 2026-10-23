@@ -1,3 +1,7 @@
+import {
+  NoticeKind,
+  NON_DEMAND_NOTICE_KINDS,
+} from "../../../../packages/core/notice-kind";
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { DataSource, EntityManager } from "typeorm";
@@ -309,7 +313,7 @@ export class Collection {
         `SELECT s.*,count(n.id)::int AS notices,count(n.id) FILTER(WHERE n.medical_candidate)::int AS medical_candidates FROM source s LEFT JOIN discovered_notice n ON n.source_id=s.id WHERE s.listing_url IS NOT NULL GROUP BY s.id ORDER BY (s.adapter IS NOT NULL) DESC,s.name`,
       ),
       this.db.query(
-        `SELECT count(*)::int AS notices,count(*) FILTER(WHERE medical_candidate)::int AS medical_candidates,count(*) FILTER(WHERE review_status='pending')::int AS pending,count(*) FILTER(WHERE review_status='approved')::int AS approved FROM discovered_notice`,
+        `SELECT count(*)::int AS notices,count(*) FILTER(WHERE medical_candidate)::int AS medical_candidates,count(*) FILTER(WHERE review_status='pending')::int AS pending,count(*) FILTER(WHERE review_status='approved')::int AS approved,count(*) FILTER(WHERE coalesce(raw->>'kind','unknown') IN (${NON_DEMAND_NOTICE_KINDS.map((k) => `'${k}'`).join(",")}))::int AS non_demand FROM discovered_notice`,
       ),
       this.db.query(
         `SELECT buyer_state,count(*)::int AS notices FROM discovered_notice GROUP BY buyer_state`,
@@ -341,6 +345,7 @@ export class Collection {
     medical?: boolean;
     status?: string;
     product?: string;
+    kind?: NoticeKind;
     page: number;
   }) {
     const params: unknown[] = [];
@@ -357,6 +362,7 @@ export class Collection {
     if (q.state) where.push(`n.buyer_state=${add(q.state)}`);
     if (q.medical != null) where.push(`n.medical_candidate=${add(q.medical)}`);
     if (q.status) where.push(`n.review_status=${add(q.status)}`);
+    if (q.kind) where.push(`coalesce(n.raw->>'kind','unknown')=${add(q.kind)}`);
     if (q.product) where.push(`n.products ? ${add(q.product)}`);
     const clause = where.join(" AND ");
     const total = (

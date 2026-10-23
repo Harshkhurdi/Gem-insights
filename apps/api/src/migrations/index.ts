@@ -15,6 +15,7 @@ import { OdishaCoverage1792415000000 } from "./odisha-coverage";
 import { MedicalRecall1792416000000 } from "./medical-recall";
 import { NorthCoverage1792417000000 } from "./north-coverage";
 import { NorthPublicSources1792418000000 } from "./north-public-sources";
+import { NoticeLifecycle1792419000000 } from "./notice-lifecycle";
 export const migrations = [
   Initial1792400000000,
   Documents1792405000000,
@@ -33,4 +34,5 @@ export const migrations = [
   MedicalRecall1792416000000,
   NorthCoverage1792417000000,
   NorthPublicSources1792418000000,
+  NoticeLifecycle1792419000000,
 ];

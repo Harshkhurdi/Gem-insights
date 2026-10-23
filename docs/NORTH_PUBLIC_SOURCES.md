@@ -1,5 +1,7 @@
 # Raebareli, Gorakhpur and Uttarakhand collection
 
+Latest update: [notice types and Safdarjung](NOTICE_TYPES.md) adds two profiles and separates non-demand records. The counts and validation below describe the preceding rollout.
+
 This North-first update adds **11 automated profiles**, taking the registry to **49 automated public listings and 101 registered targets**. It adds **1,660 real listing observations**. North remains the active rollout; South expansion is on hold.
 
 | Institution / list | Captured observations | Date treatment |

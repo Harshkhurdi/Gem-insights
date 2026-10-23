@@ -1,6 +1,6 @@
 # North-first collection
 
-Latest expansion: [Raebareli, Gorakhpur and Uttarakhand](NORTH_PUBLIC_SOURCES.md) brings the project to 49 automated profiles and 16,656 observations. The counts and validations below describe the earlier North rollout.
+Latest update: [notice types and Safdarjung](NOTICE_TYPES.md) brings the project to 51 automated profiles and 16,782 observations. [Raebareli, Gorakhpur and Uttarakhand](NORTH_PUBLIC_SOURCES.md) describes the preceding expansion. The counts and validations below describe the earlier North rollout.
 
 The current rollout adds 13 public-listing profiles, taking the project to **38 automatic profiles and 87 registered targets**. It covers additional public evidence from AIIMS Jammu (three lists), JKMSCL, SKIMS Srinagar (four categories), NHM Ladakh, KGMU, KCGMC Karnal (current/archive) and Haryana Health. These observations appear immediately in the main insights. Northern coverage remains partial; South expansion is on hold.
 
