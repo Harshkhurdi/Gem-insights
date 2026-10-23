@@ -17,6 +17,7 @@ import {
 import { jkmsclEntries } from "./jkmscl";
 import { upInstitutionEntries } from "./up-institutions";
 import { NorthernEntry, northernLinks } from "./northern-links";
+import { bhopalEntries, bhopalRealDate } from "./central-institutions";
 export interface Notice {
   key: string;
   bidNumber: string | null;
@@ -200,6 +201,8 @@ export function noticeKey(
       "sgpgims",
       "phsc",
       "hmscl",
+      "bhopal",
+      "cgmscl",
     ].includes(source.adapter || "") &&
     url === source.url &&
     title
@@ -217,17 +220,23 @@ export function parseListing(
   if (/captcha|access denied|verify you are human/i.test($("title").text()))
     throw new Error("Source access challenge; assisted import required");
   if (
-    ["skims", "nhm-ladakh", "jkmscl", "raebareli", "gorakhpur"].includes(
-      source.adapter || "",
-    )
+    [
+      "skims",
+      "nhm-ladakh",
+      "jkmscl",
+      "raebareli",
+      "gorakhpur",
+      "bhopal",
+    ].includes(source.adapter || "")
   ) {
-    const entries: NorthernEntry[] = ["raebareli", "gorakhpur"].includes(
-      source.adapter || "",
-    )
-      ? upInstitutionEntries(html, source, pageUrl)
-      : source.adapter === "jkmscl"
-        ? jkmsclEntries(html, pageUrl)
-        : northernLinks(html, source, pageUrl);
+    const entries: NorthernEntry[] =
+      source.adapter === "bhopal"
+        ? bhopalEntries(html, pageUrl)
+        : ["raebareli", "gorakhpur"].includes(source.adapter || "")
+          ? upInstitutionEntries(html, source, pageUrl)
+          : source.adapter === "jkmscl"
+            ? jkmsclEntries(html, pageUrl)
+            : northernLinks(html, source, pageUrl);
     const notices = entries.map((entry) => {
       const title = entry.title.slice(0, 2000),
         { url, documents } = entry;
@@ -242,6 +251,12 @@ export function parseListing(
         entry.reference ||
         title.match(/\b\d{4}_[A-Za-z0-9]+_\d+(?:_\d+)?\b/)?.[0] ||
         null;
+      // Bhopal renders placeholder epoch dates beside portal references; an
+      // implausible date is not a publication or closing claim.
+      const entryDate = (text?: string | null) => {
+        const d = text ? listingDate(text) : null;
+        return source.adapter === "bhopal" && !bhopalRealDate(d) ? null : d;
+      };
       return {
         key: noticeKey(source, reference, url, title),
         bidNumber: reference,
@@ -249,10 +264,8 @@ export function parseListing(
         title: title.slice(0, 2000),
         url,
         documents,
-        publishedAt: entry.publishedText
-          ? listingDate(entry.publishedText)
-          : null,
-        closingDate: entry.closingText ? listingDate(entry.closingText) : null,
+        publishedAt: entryDate(entry.publishedText),
+        closingDate: entryDate(entry.closingText),
         buyer: source.buyerName || source.name,
         state: source.states[0] || null,
         ...noticeClassification(title, classificationRules, source),
@@ -666,6 +679,30 @@ export function parseListing(
           .toArray()
           .map((a) => publicLink($(a).attr("href"), pageUrl))
           .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+    } else if (source.adapter === "cgmscl") {
+      if (cells.length !== 4)
+        throw new Error("CGMSCL row changed; expected four columns");
+      // The reference text is the labelled span; the second column is only a
+      // new-item icon and never carries procurement facts.
+      title = clean(cells.eq(2).text());
+      buyer = source.buyerName || source.name;
+      const detail = $(row)
+        .attr("onclick")
+        ?.match(/AttachmentList\.aspx\?a=\d+/)?.[0];
+      primary = detail ? publicLink(detail, pageUrl) || source.url : source.url;
+      if (primary !== source.url && !primary.includes("AttachmentList.aspx"))
+        throw new Error(
+          "CGMSCL detail link is not its official attachment list",
+        );
+      // This publisher prints GeM bid numbers without separator slashes
+      // ("GEM 2026 B 8053870"). Normalize separators of the publisher's own
+      // rendering; never construct a reference that is not printed.
+      const gemNoSlash = title.match(
+        /GEM\s*\/?\s*(\d{4})\s*\/?\s*([BR])\s*\/?\s*(\d{4,})/i,
+      );
+      ref = gemNoSlash
+        ? `GEM/${gemNoSlash[1]}/${gemNoSlash[2].toUpperCase()}/${gemNoSlash[3]}`
+        : (title.match(/\b\d{2,4}\/[A-Z]{2,}\/[A-Z0-9\/-]+/)?.[0] ?? "");
     } else if (source.adapter === "hmscl") {
       // The publisher's explicit empty state spans the table in one cell.
       if (

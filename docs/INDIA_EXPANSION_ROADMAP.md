@@ -21,9 +21,12 @@ Status vocabulary: **Implemented** (automated collector validated against the li
 
 National profiles: CPPP central + state mirror, ICMR, HLL. Remaining northern work: recheck blocked targets (BFUHS, IGMC, RML, UHSR, PGIMER), Safdarjung lifecycle separation, historical archive backfills.
 
-## Phase 2 — Central India (next)
+## Phase 2 — Central India (implemented 2026-10-23)
 
-Madhya Pradesh and Chhattisgarh. Known targets: AIIMS Bhopal, MP health procurement, state portals (`mptenders`), Chhattisgarh health agencies; AIIMS Raipur already implemented. Not started.
+| State | Implemented | Assisted/Blocked | Status |
+| --- | --- | --- | --- |
+| Madhya Pradesh | AIIMS Bhopal (1,856 obs, history to 2014) | MPPHSCL (session-bound listings); mptenders NIC portal registered | Partial |
+| Chhattisgarh | AIIMS Raipur ×2 (earlier); CGMSCL equipment (989 obs, 194 GeM refs) | CGMSCL drug/QC/civil/other pages (future); state NIC portal registered | Partial, improved 2026-10-23 |
 
 ## Phase 3 — South India
 
@@ -43,3 +46,4 @@ Regional scheduling beyond `north`, national rankings/map/institution intelligen
 | --- | --- | ---: |
 | 2026-10-22 | Raebareli/Gorakhpur/Uttarakhand expansion (49 profiles, 16,656-observation baseline) | 298 |
 | 2026-10-23 | Source recovery: AIIMS Jodhpur, SGPGIMS, PHSC ×2, HMSCL; PGIMER recheck documented (54 profiles, 102 targets) | 313 |
+| 2026-10-23 | Central India: AIIMS Bhopal + CGMSCL equipment + cystoscope family; MPPHSCL registered assisted (56 profiles, 105 targets) | 322 |

@@ -34,6 +34,8 @@ export interface SourceDefinition {
     | "sgpgims"
     | "phsc"
     | "hmscl"
+    | "bhopal"
+    | "cgmscl"
     | null;
   buyerName?: string;
   clinicalCategory?: boolean;
@@ -154,6 +156,39 @@ export const SOURCES: SourceDefinition[] = [
       [state],
     ),
   ),
+  {
+    ...source(
+      "cgmscl-equipment",
+      "Chhattisgarh Medical Services Corporation — equipment tenders",
+      "https://www.cgmsc.gov.in/cgmscl/Home/TenderEquip.aspx",
+      "institution",
+      ["Chhattisgarh"],
+      "cgmscl",
+      "Public equipment-tender table (drug, quality-control, civil and other category pages exist separately and are not collected yet). Titles carry native references and GeM bid numbers, sometimes without separator slashes; separator normalization only never invents a reference. Row detail/attachment pages are plain links retained as evidence; listing scans do not fetch their content. No explicit dates on this listing; quantities require original review.",
+    ),
+    buyerName: "Chhattisgarh Medical Services Corporation",
+  },
+  source(
+    "mpphscl",
+    "Madhya Pradesh Public Health Services Corporation",
+    "https://mpphscl.mp.gov.in/",
+    "institution",
+    ["Madhya Pradesh"],
+    null,
+    "Priority central target. Homepage reachable on 23 October 2026, but tender listing links (TenderALL.aspx) returned HTTP 403 and content pages redirect to a session error page; the encoded navigation tokens appear session-bound. Assisted source review or an official flat listing is required before automated collection. AIIMS Bhopal and the state portal provide separate partial coverage.",
+  ),
+  {
+    ...source(
+      "aiims-bhopal",
+      "AIIMS Bhopal procurement sections",
+      "https://www.aiimsbhopal.edu.in/index_controller/manualTender",
+      "institution",
+      ["Madhya Pradesh"],
+      "bhopal",
+      "Public procurement page whose medical sections are collected: manual tenders, medical-college and hospital e-tenders, expressions of interest and NIQ quotations, with labelled publication/closing dates, native references and original/corrigendum documents. Engineering (civil/electrical) sections and vendor lists are excluded from requested-demand collection. Placeholder epoch dates beside portal references are not bid dates; quantities require original review.",
+    ),
+    buyerName: "AIIMS Bhopal",
+  },
   source(
     "aiims-delhi",
     "AIIMS New Delhi",
