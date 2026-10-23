@@ -29,6 +29,8 @@ npm run collect -- north
 
 ## Northern coverage and remaining work
 
+Four previously blocked targets were recovered on 23 October 2026 — AIIMS Jodhpur, SGPGIMS, PHSC Punjab and HMSCL equipment now collect, and PGIMER was rechecked as form-flow-only; see [northern source recovery](NORTH_SOURCE_RECOVERY.md). The table below describes the earlier 22 October state and its still-open items.
+
 | State / UT | Implemented evidence | Remaining priority work |
 | --- | --- | --- |
 | Delhi | AIIMS current and three archives | RML Hospital listing returned HTTP 503; broader hospital/state-portal coverage and archive backfill |

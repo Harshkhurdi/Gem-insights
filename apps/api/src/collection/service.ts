@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
+import { request as httpsRequest, Agent as HttpsAgent } from "node:https";
+import sslConstants from "node:constants";
 import { DataSource, EntityManager } from "typeorm";
 import {
   digest,
@@ -11,7 +13,67 @@ import { getSource } from "./registry";
 import { Notice, pageAllowed, parseListing } from "./parsers";
 import { collectionRegion, collectionSources } from "./regions";
 
+// Some official state health sites (currently PHSC Punjab) still require TLS
+// legacy renegotiation, which Node's default fetch rejects as unsafe. A
+// compatibility path is restricted to these explicit public listing hosts;
+// it changes the TLS mode only and adds no access bypass.
+const LEGACY_TLS_HOSTS = new Set(["phsc.punjab.gov.in"]);
+const legacyTlsAgent = new HttpsAgent({
+  secureOptions: sslConstants.SSL_OP_LEGACY_SERVER_CONNECT,
+});
+function fetchLegacyListing(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const req = httpsRequest(
+      url,
+      {
+        agent: legacyTlsAgent,
+        timeout: 30000,
+        headers: {
+          Accept: "text/html",
+          "User-Agent":
+            "GemInsights/0.2 (public procurement metadata; local research)",
+        },
+      },
+      (res) => {
+        if (res.statusCode !== 200) {
+          res.resume();
+          reject(
+            new Error(
+              `Source returned HTTP ${res.statusCode}; no access bypass attempted`,
+            ),
+          );
+          return;
+        }
+        if (
+          !/text\/html|application\/xhtml/i.test(
+            res.headers["content-type"] || "",
+          )
+        ) {
+          res.resume();
+          reject(new Error("Expected HTML listing"));
+          return;
+        }
+        const chunks: Buffer[] = [];
+        let size = 0;
+        res.on("data", (chunk: Buffer) => {
+          size += chunk.length;
+          if (size > 5_000_000) {
+            req.destroy(new Error("Listing exceeds 5 MB page budget"));
+            return;
+          }
+          chunks.push(chunk);
+        });
+        res.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+      },
+    );
+    req.on("timeout", () => req.destroy(new Error("Listing timed out")));
+    req.on("error", reject);
+    req.end();
+  });
+}
 export async function fetchListing(url: string): Promise<string> {
+  if (LEGACY_TLS_HOSTS.has(new URL(url).hostname))
+    return fetchLegacyListing(url);
   const response = await fetch(url, {
     redirect: "error",
     signal: AbortSignal.timeout(30000),

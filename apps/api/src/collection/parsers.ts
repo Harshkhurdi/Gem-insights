@@ -125,6 +125,21 @@ export function pageAllowed(url: string, source: SourceDefinition) {
         (!u.searchParams.has("page") ||
           (u.searchParams.getAll("page").length === 1 &&
             /^[1-9]\d*$/.test(u.searchParams.get("page")!))))) &&
+    (source.adapter !== "jodhpur" ||
+      ([...u.searchParams.keys()].every(
+        (k) =>
+          k === "page" ||
+          (k === "search" && u.searchParams.get("search") === ""),
+      ) &&
+        (!u.searchParams.has("search") || u.searchParams.has("page")) &&
+        (!u.searchParams.has("page") ||
+          (u.searchParams.getAll("page").length === 1 &&
+            /^[1-9]\d*$/.test(u.searchParams.get("page")!))))) &&
+    (source.adapter !== "phsc" ||
+      ([...u.searchParams.keys()].every((k) => k === "page") &&
+        (!u.searchParams.has("page") ||
+          (u.searchParams.getAll("page").length === 1 &&
+            /^\d+$/.test(u.searchParams.get("page")!))))) &&
     (source.adapter !== "bathinda" || u.search === base.search) &&
     (![
       "rmsc",
@@ -137,6 +152,8 @@ export function pageAllowed(url: string, source: SourceDefinition) {
       "kcgmc",
       "s3waas",
       "gorakhpur",
+      "sgpgims",
+      "hmscl",
     ].includes(source.adapter || "") ||
       u.search === base.search) &&
     (source.adapter !== "rishikesh" ||
@@ -179,6 +196,10 @@ export function noticeKey(
       "kcgmc",
       "s3waas",
       "raebareli",
+      "jodhpur",
+      "sgpgims",
+      "phsc",
+      "hmscl",
     ].includes(source.adapter || "") &&
     url === source.url &&
     title
@@ -580,6 +601,99 @@ export function parseListing(
       if (!primary && title) {
         primary = source.url;
       }
+    } else if (source.adapter === "jodhpur") {
+      if (cells.length !== 5)
+        throw new Error("AIIMS Jodhpur row changed; expected five columns");
+      ref = clean(cells.eq(0).text());
+      title = clean(cells.eq(1).clone().find("a").remove().end().text());
+      // Generic Start/End listing dates are not asserted as original
+      // publication; End is retained only as a listed closing claim.
+      closingDate = listingDate(cells.eq(3).text());
+      buyer = source.buyerName || source.name;
+      primary =
+        cells
+          .eq(1)
+          .find("a[href]")
+          .toArray()
+          .map((a) => publicLink($(a).attr("href"), pageUrl))
+          .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+    } else if (source.adapter === "sgpgims") {
+      if (cells.length !== 3)
+        throw new Error("SGPGIMS row changed; expected three columns");
+      title = clean(cells.eq(1).text());
+      ref = "";
+      buyer = source.buyerName || source.name;
+      primary =
+        cells
+          .eq(2)
+          .find("a[href]")
+          .toArray()
+          .map((a) => publicLink($(a).attr("href"), pageUrl))
+          .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+    } else if (source.adapter === "phsc") {
+      if (cells.length !== 5)
+        throw new Error("PHSC row changed; expected five columns");
+      // Current and archived tables order their columns differently; follow the
+      // published header order instead of fixed positions.
+      const headerTexts = table
+        .find("th")
+        .toArray()
+        .map((th) => clean($(th).text()));
+      const at = (label: RegExp) => headerTexts.findIndex((h) => label.test(h));
+      const bid = at(/BID No/),
+        end = at(/End Date/),
+        subject = at(/Subject of Tender/);
+      if (bid < 0 || end < 0 || subject < 0)
+        throw new Error("PHSC columns changed; reference or subject missing");
+      // Native BID numbers are published with inconsistent inner spacing. The
+      // meaningful subject is the linked phrase; trailing format/size chrome
+      // after it is publisher interface detail, not notice content.
+      ref = clean(cells.eq(bid).text()).replace(/\s*\/\s*/g, "/");
+      const subjectCell = cells.eq(subject);
+      title =
+        clean(subjectCell.find("a[href]").first().text()) ||
+        clean(subjectCell.clone().find("a").remove().end().text()).replace(
+          /\s*\(\s*Format\s*:[^)]*\)\s*$/i,
+          "",
+        );
+      // Generic Start/End listing dates are not asserted as publication.
+      closingDate = listingDate(cells.eq(end).text());
+      buyer = source.buyerName || source.name;
+      primary =
+        cells
+          .eq(subject)
+          .find("a[href]")
+          .toArray()
+          .map((a) => publicLink($(a).attr("href"), pageUrl))
+          .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+    } else if (source.adapter === "hmscl") {
+      // The publisher's explicit empty state spans the table in one cell.
+      if (
+        cells.length === 1 &&
+        /no published tenders/i.test(clean(cells.text()))
+      )
+        return;
+      if (cells.length !== 7)
+        throw new Error("HMSCL row changed; expected seven columns");
+      ref = clean(cells.eq(1).text());
+      title = clean(cells.eq(2).text());
+      buyer = source.buyerName || source.name;
+      // Important Dates is free text without a parseable explicit layout; no
+      // bid date is invented from it.
+      primary =
+        cells
+          .eq(5)
+          .find("a[href]")
+          .toArray()
+          .map((a) => publicLink($(a).attr("href"), pageUrl))
+          .find((u) => !!u && isNoticeAttachment(u)) ||
+        cells
+          .eq(6)
+          .find("a[href]")
+          .toArray()
+          .map((a) => publicLink($(a).attr("href"), pageUrl))
+          .find((u) => !!u && isNoticeAttachment(u)) ||
+        source.url;
     }
     if (!title || !primary) return;
     const gem = (ref + " " + title)
@@ -620,7 +734,7 @@ export function parseListing(
   });
   if (
     !notices.length &&
-    !/(?:no (?:records|tenders|data)\s*(?:found|available)|currently (?:tenders?|tender archives) are not available)/i.test(
+    !/(?:no (?:records|tenders|data)\s*(?:found|available)|no published tenders|currently (?:tenders?|tender archives) are not available)/i.test(
       table.text(),
     )
   )
@@ -676,5 +790,19 @@ function listingNext(
       Number(new URL(pageUrl).searchParams.get("page") || 1)
   )
     throw new Error("Non-advancing Raebareli page; collection incomplete");
+  if (
+    next &&
+    source.adapter === "jodhpur" &&
+    Number(new URL(next).searchParams.get("page") || 1) <=
+      Number(new URL(pageUrl).searchParams.get("page") || 1)
+  )
+    throw new Error("Non-advancing Jodhpur page; collection incomplete");
+  if (
+    next &&
+    source.adapter === "phsc" &&
+    Number(new URL(next).searchParams.get("page") || 0) <=
+      Number(new URL(pageUrl).searchParams.get("page") || 0)
+  )
+    throw new Error("Non-advancing PHSC page; collection incomplete");
   return next;
 }

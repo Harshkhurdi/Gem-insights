@@ -30,6 +30,10 @@ export interface SourceDefinition {
     | "s3waas"
     | "skims"
     | "bhubaneswar"
+    | "jodhpur"
+    | "sgpgims"
+    | "phsc"
+    | "hmscl"
     | null;
   buyerName?: string;
   clinicalCategory?: boolean;
@@ -242,6 +246,8 @@ export const SOURCES: SourceDefinition[] = [
     "https://pgimer.edu.in/",
     "institution",
     ["Chandigarh"],
+    null,
+    "Priority northern target. Homepage reachable on 23 October 2026; the tender listing is served through an interactive JSP search form (category/keyword selection) without a stable public listing URL. Assisted source review or an official flat listing is required before automated collection.",
   ),
   ...(
     [
@@ -439,15 +445,23 @@ export const SOURCES: SourceDefinition[] = [
       "Public health department procurement listing. The publisher explicitly reported no matching notices on 22 October 2026; this is an empty observed listing, not zero statewide demand or complete coverage. Future unfamiliar layouts fail visibly.",
     ),
   ),
-  source(
-    "phsc",
-    "Punjab Health Systems Corporation",
-    "https://phsc.punjab.gov.in/",
-    "institution",
-    ["Punjab"],
-    null,
-    "Northern priority target. Public homepage returned HTTP 503 on 22 October 2026; procurement listing access/layout requires validation before enabling collection.",
-  ),
+  ...(
+    [
+      ["phsc", "current procurement tenders", "en/tendersProcurement"],
+      ["phsc-archive", "archived tenders", "en/tenders-archive"],
+    ] as const
+  ).map(([id, label, path]) => ({
+    ...source(
+      id,
+      `Punjab Health Systems Corporation — ${label}`,
+      `https://phsc.punjab.gov.in/${path}`,
+      "institution",
+      ["Punjab"],
+      "phsc",
+      "Public procurement-wing tender table with explicit native BID numbers and linked original documents. Generic Start/End listing dates are not asserted as original publication; item quantities remain unknown until original review. First working Punjab source beyond AIIMS Bathinda; not complete statewide coverage.",
+    ),
+    buyerName: "Punjab Health Systems Corporation",
+  })),
   source(
     "safdarjung",
     "VMMC and Safdarjung Hospital",
@@ -466,15 +480,18 @@ export const SOURCES: SourceDefinition[] = [
     null,
     "Public archive page reached but contained no procurement table and no explicit no-notices state on 22 October 2026. It is not counted as a successful empty collection; current tenders and quotation archives are separate profiles.",
   ),
-  source(
-    "sgpgims",
-    "Sanjay Gandhi Postgraduate Institute of Medical Sciences",
-    "https://www.sgpgims.org.in/Home/Tender.html",
-    "institution",
-    ["Uttar Pradesh"],
-    null,
-    "Priority northern target; official tender listing returned HTTP 503 on 22 October 2026. Not enabled as a working collector; KGMU/UPUMS remain separate partial coverage.",
-  ),
+  {
+    ...source(
+      "sgpgims",
+      "Sanjay Gandhi Postgraduate Institute of Medical Sciences",
+      "https://www.sgpgims.org.in/Home/Tender.html",
+      "institution",
+      ["Uttar Pradesh"],
+      "sgpgims",
+      "Public tender table of notice descriptions with linked original PDF documents, including pre-bid notices and estate/auction notices alongside procurement. No explicit dates or native references on the listing; document links and titles establish identity. Item quantities remain unknown until original review.",
+    ),
+    buyerName: "Sanjay Gandhi Postgraduate Institute of Medical Sciences",
+  },
   source(
     "rmlh",
     "Dr Ram Manohar Lohia Hospital",
@@ -493,15 +510,18 @@ export const SOURCES: SourceDefinition[] = [
     null,
     "Priority northern target; official source identified. Homepage returned HTTP 503 on 22 October 2026; procurement listing still requires access/layout validation. AIIMS Bilaspur is separate partial coverage.",
   ),
-  source(
-    "hmscl",
-    "Haryana Medical Services Corporation",
-    "https://hmscl.org.in/",
-    "institution",
-    ["Haryana"],
-    null,
-    "Priority northern target; public request returned HTTP 503 on 22 October 2026. Automated collection not enabled; Haryana health/KCGMC profiles provide separate partial coverage.",
-  ),
+  {
+    ...source(
+      "hmscl",
+      "Haryana Medical Services Corporation — equipment tenders",
+      "https://hmscl.org.in/Page.aspx?slug=equipment-tenders",
+      "institution",
+      ["Haryana"],
+      "hmscl",
+      "Public equipment-tender table with reference, title, status, original documents and corrigendum links. The publisher explicitly reported no matching tenders on 23 October 2026; that is an empty observed listing, not zero statewide demand. Generic important-dates text is not parsed into bid dates without an explicit layout. Populated-row parsing fails visibly if the layout differs.",
+    ),
+    buyerName: "Haryana Medical Services Corporation",
+  },
   source(
     "uhsr",
     "University of Health Sciences Rohtak",
@@ -511,15 +531,18 @@ export const SOURCES: SourceDefinition[] = [
     null,
     "Priority northern target; official quotation page returned HTTP 503 on 22 October 2026. Assisted import/source review remains available.",
   ),
-  source(
-    "aiims-jodhpur",
-    "AIIMS Jodhpur",
-    "https://aiimsjodhpur.edu.in/tenders.php",
-    "institution",
-    ["Rajasthan"],
-    null,
-    "Priority northern target; official listing found but returned HTTP 503 on 22 October 2026. Not enabled as a working collector; RMSC is separate partial coverage.",
-  ),
+  {
+    ...source(
+      "aiims-jodhpur",
+      "AIIMS Jodhpur",
+      "https://aiimsjodhpur.edu.in/tenders.php",
+      "institution",
+      ["Rajasthan"],
+      "jodhpur",
+      "Public tender table with explicit tender references, including GeM bid numbers, and linked original documents. Generic Start/End listing dates are not asserted as original publication; quantities require original review.",
+    ),
+    buyerName: "AIIMS Jodhpur",
+  },
   source(
     "bfuhs",
     "Baba Farid University of Health Sciences",
