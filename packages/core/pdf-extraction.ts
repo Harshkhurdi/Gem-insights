@@ -327,7 +327,7 @@ export function extractTender(
         continue;
       }
       if (
-        /^(?:Technical Specifications|Specifications?|Specification Name|Consignees|Buyer Added|Additional Terms|GeMARPTS)/i.test(
+        /^(?:Technical Specifications|Specifications?|Specification Name|Consignees|Buyer Added|Additional Terms|Additional Specification Parameters|GeMARPTS)/i.test(
           joined,
         )
       ) {
@@ -372,6 +372,13 @@ export function extractTender(
       carry = null;
     }
   itemHeads.sort((a, b) => a.index - b.index);
+  if (
+    !itemHeads.length &&
+    /Bid Corrigendum|Corrigendum No/i.test(lines.map((l) => l.text).join(" "))
+  )
+    warnings.push(
+      "Corrigendum document: no BOQ/item section is present. Item identities and quantities remain in the original bid document; this corrigendum only amends its terms.",
+    );
   if (!itemHeads.length && category && !placeholderCategory) {
     const value = total?.match(
       /^([\d,.]+)\s*(pieces?|units?|nos?\.?|sets?|kits?)?\b/i,
