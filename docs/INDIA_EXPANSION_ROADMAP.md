@@ -41,6 +41,15 @@ National profiles: CPPP central + state mirror, ICMR, HLL. Remaining northern wo
 
 ## Phase 4 — East, West, Northeast, remaining UTs
 
+### East India (started 2026-10-24)
+
+| State | Implemented | Assisted/Blocked | Status |
+| --- | --- | --- | --- |
+| West Bengal | WBMSCL archive (6,820 obs, 4,485 medical, dates to 2018) | WB Health (client-side rendering) | Partial, new 2026-10-24 |
+| Bihar | — | SHS (unstructured link list, parser pending); BMSCL unreachable | Not started |
+| Jharkhand | — | health-procurement sites unreachable 2026-10-24 | Not started |
+| Odisha | AIIMS Bhubaneswar ×2 (earlier) | — | Partial |
+
 ### West India (started 2026-10-24)
 
 | State/UT | Implemented | Assisted/Blocked | Status |
@@ -65,3 +74,4 @@ Regional scheduling beyond `north`, national rankings/map/institution intelligen
 | 2026-10-24 | South India batch 1: AIIMS Mangalagiri + AIIMS Bibinagar + JIPMER with TLS chain completion (59 profiles, 107 targets) | 331 |
 | 2026-10-24 | South India batch 2: TNMSC notifications + 3 year archives; NIMHANS/NIMS registered assisted (63 profiles, 112 targets) | 333 |
 | 2026-10-24 | West India: GMSCL Gujarat + AIIMS Nagpur assisted; innermost-table selection fix (64 profiles, 114 targets) | 335 |
+| 2026-10-24 | East India: WBMSCL archive (6,820 obs); WB Health + Bihar SHS assisted (65 profiles, 117 targets) | 336 |

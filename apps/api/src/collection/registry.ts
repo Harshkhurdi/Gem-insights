@@ -41,6 +41,7 @@ export interface SourceDefinition {
     | "jipmer"
     | "tnmsc"
     | "gmscl"
+    | "wbmscl"
     | null;
   buyerName?: string;
   clinicalCategory?: boolean;
@@ -215,6 +216,36 @@ export const SOURCES: SourceDefinition[] = [
     ["Maharashtra"],
     null,
     "Priority western target. The tender route requires an account login (checked 24 October 2026); no public listing is exposed. Assisted source review or an official public listing is required; the Maharashtra NIC portal provides separate partial coverage.",
+  ),
+  {
+    ...source(
+      "wbmscl",
+      "West Bengal Medical Services Corporation — tenders",
+      "https://www.wbmsc.gov.in/tender.php",
+      "institution",
+      ["West Bengal"],
+      "wbmscl",
+      "Public tender archive table with native WBMSCL/NIT references, descriptions, original documents and explicit PUBLISH DATE values. Mixed procurement including works and services; item quantities require original review.",
+    ),
+    buyerName: "West Bengal Medical Services Corporation",
+  },
+  source(
+    "wb-health",
+    "West Bengal Health and Family Welfare Department",
+    "https://www.wbhealth.gov.in/tender/",
+    "institution",
+    ["West Bengal"],
+    null,
+    "Priority eastern target. The tender page renders its listing through client-side scripting and reports a loading state to direct HTTP (checked 24 October 2026). Assisted source review or an official flat listing is required; WBMSCL provides separate partial West Bengal coverage.",
+  ),
+  source(
+    "bihar-shs",
+    "Bihar State Health Society",
+    "http://statehealthsocietybihar.org/tender.html",
+    "institution",
+    ["Bihar"],
+    null,
+    "Priority eastern target. The public page is a large notice/PDF link list (hundreds of links with generic download labels) whose titles live in surrounding markup rather than a structured table; a dedicated parser is required before automated collection. Assisted source review remains available.",
   ),
   source(
     "nimhans",

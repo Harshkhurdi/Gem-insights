@@ -92,7 +92,7 @@ export async function fetchListing(url: string): Promise<string> {
     return fetchCompatibilityListing(url, chainFixAgent);
   const response = await fetch(url, {
     redirect: "error",
-    signal: AbortSignal.timeout(30000),
+    signal: AbortSignal.timeout(60000),
     headers: {
       Accept: "text/html",
       "User-Agent":
