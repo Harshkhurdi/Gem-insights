@@ -95,3 +95,4 @@ Regional scheduling now supports `north`, `central`, `south`, `east`, `west`, `n
 | 2026-10-24 | Overview collection-health strip + last-7-days KPI; Safdarjung lifecycle separation resolves its documented blocker (67 profiles, 118 targets) | 345 |
 | 2026-10-24 | Coverage extensions: AIIMS Guwahati official JSON feed + CGMSCL drug category; blocked-target recheck (BFUHS/IGMC/RMLH/UHSR unchanged) (69 profiles, 120 targets) | 347 |
 | 2026-10-24 | Extraction pilot: 6 WBMSCL GeM PDFs through the review flow; corrigendum warning + spec-row leak fixes from real-document feedback | 349 |
+| 2026-10-24 | Health-check fixes: Raipur pre-establishment dates unasserted (5 rows corrected), CLI region resolution fixed and live-verified, JKMSCL paused after publisher reversion | 351 |
