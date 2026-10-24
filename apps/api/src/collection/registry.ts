@@ -36,6 +36,9 @@ export interface SourceDefinition {
     | "hmscl"
     | "bhopal"
     | "cgmscl"
+    | "mangalagiri"
+    | "bibinagar"
+    | "jipmer"
     | null;
   buyerName?: string;
   clinicalCategory?: boolean;
@@ -594,9 +597,42 @@ export const SOURCES: SourceDefinition[] = [
     "institution",
     [],
   ),
-  source("jipmer", "JIPMER", "https://jipmer.edu.in/", "institution", [
-    "Puducherry",
-  ]),
+  {
+    ...source(
+      "jipmer",
+      "JIPMER Pondicherry tenders",
+      "https://jipmer.edu.in/tender",
+      "institution",
+      ["Puducherry"],
+      "jipmer",
+      "Public current tender table with explicit Date of Release and Last Date columns and linked original documents. Titles include department-level clinical procurement; item quantities require original review.",
+    ),
+    buyerName: "JIPMER",
+  },
+  {
+    ...source(
+      "aiims-mangalagiri",
+      "AIIMS Mangalagiri procurement register",
+      "https://www.aiimsmangalagiri.edu.in/procurements/",
+      "institution",
+      ["Andhra Pradesh"],
+      "mangalagiri",
+      "Public single-page procurement register with CPPP tender IDs, explicit publish dates, documents, corrigenda and purchase-order links. Award columns are lifecycle evidence, not requested-demand proof; quantities require original review.",
+    ),
+    buyerName: "AIIMS Mangalagiri",
+  },
+  {
+    ...source(
+      "aiims-bibinagar",
+      "AIIMS Bibinagar tenders",
+      "https://aiimsbibinagar.edu.in/tender.html",
+      "institution",
+      ["Telangana"],
+      "bibinagar",
+      "Public tender table with native AIIMS/BBN references, GeM bid numbers and linked original documents. Start/End listing dates are not asserted as original publication; End is retained as a listed closing claim.",
+    ),
+    buyerName: "AIIMS Bibinagar",
+  },
   source(
     "hll",
     "HLL Lifecare",

@@ -18,6 +18,7 @@ import { NorthPublicSources1792418000000 } from "./north-public-sources";
 import { NorthRecovery1792419000000 } from "./north-recovery";
 import { CentralCoverage1792420000000 } from "./central-coverage";
 import { CentralEquipment1792421000000 } from "./central-equipment";
+import { SouthCoverage1792422000000 } from "./south-coverage";
 export const migrations = [
   Initial1792400000000,
   Documents1792405000000,
@@ -39,4 +40,5 @@ export const migrations = [
   NorthRecovery1792419000000,
   CentralCoverage1792420000000,
   CentralEquipment1792421000000,
+  SouthCoverage1792422000000,
 ];

@@ -28,9 +28,16 @@ National profiles: CPPP central + state mirror, ICMR, HLL. Remaining northern wo
 | Madhya Pradesh | AIIMS Bhopal (1,856 obs, history to 2014) | MPPHSCL (session-bound listings); mptenders NIC portal registered | Partial |
 | Chhattisgarh | AIIMS Raipur ×2 (earlier); CGMSCL equipment (989 obs, 194 GeM refs) | CGMSCL drug/QC/civil/other pages (future); state NIC portal registered | Partial, improved 2026-10-23 |
 
-## Phase 3 — South India
+## Phase 3 — South India (started 2026-10-24)
 
-Karnataka, Tamil Nadu, Kerala, Andhra Pradesh, Telangana, Puducherry. Known targets: NIMHANS, TNMSC (registered), KMSCL (implemented), AIIMS Mangalagiri, AIIMS Bibinagar, NIMS, JIPMER (registered). Not started.
+| State/UT | Implemented | Assisted/Blocked | Status |
+| --- | --- | --- | --- |
+| Andhra Pradesh | AIIMS Mangalagiri (993 obs, CPPP IDs) | — | Partial, new 2026-10-24 |
+| Telangana | AIIMS Bibinagar (460 obs) | NIMS (encoded detail ids) | Partial, new 2026-10-24 |
+| Puducherry | JIPMER (399+ obs, archive backfilling) | — | Partial, new 2026-10-24 |
+| Kerala | KMSCL (earlier) | — | Partial |
+| Tamil Nadu | — | TNMSC (header-less table, next batch) | Not started |
+| Karnataka | — | NIMHANS (tender path unfound in first pass) | Not started |
 
 ## Phase 4 — East, West, Northeast, remaining UTs
 
@@ -47,3 +54,4 @@ Regional scheduling beyond `north`, national rankings/map/institution intelligen
 | 2026-10-22 | Raebareli/Gorakhpur/Uttarakhand expansion (49 profiles, 16,656-observation baseline) | 298 |
 | 2026-10-23 | Source recovery: AIIMS Jodhpur, SGPGIMS, PHSC ×2, HMSCL; PGIMER recheck documented (54 profiles, 102 targets) | 313 |
 | 2026-10-23 | Central India: AIIMS Bhopal + CGMSCL equipment + cystoscope family; MPPHSCL registered assisted (56 profiles, 105 targets) | 322 |
+| 2026-10-24 | South India batch 1: AIIMS Mangalagiri + AIIMS Bibinagar + JIPMER with TLS chain completion (59 profiles, 107 targets) | 331 |

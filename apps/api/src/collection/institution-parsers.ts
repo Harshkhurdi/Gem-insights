@@ -125,6 +125,28 @@ export function tableMatches(
         /End Date/.test(headers) &&
         /Subject of Tender/.test(headers)
       );
+    case "mangalagiri":
+      return (
+        /Sl No\.?/.test(headers) &&
+        /Tender ID/.test(headers) &&
+        /Publish Date/.test(headers) &&
+        /Corrigendum/.test(headers)
+      );
+    case "bibinagar":
+      return (
+        /S\.?\s*NO/i.test(headers) &&
+        /Tender Reference/.test(headers) &&
+        /Tender Title/.test(headers) &&
+        /Start Date/.test(headers) &&
+        /End Date/.test(headers)
+      );
+    case "jipmer":
+      return (
+        /S\.?\s*No\.?/i.test(headers) &&
+        /Title/.test(headers) &&
+        /Date of Release/.test(headers) &&
+        /Last Date/.test(headers)
+      );
     case "cgmscl":
       return (
         /S\.?\s*No\.?/.test(headers) &&

@@ -87,7 +87,7 @@ test("changed listing retains observations and resets dismissed review", async (
 });
 test("queue deduplicates per source, not across all sources", async () => {
   const c = collection();
-  assert.equal((await c.queue()).queued, 56);
+  assert.equal((await c.queue()).queued, 59);
   assert.equal((await c.queue()).queued, 0);
   await assert.rejects(c.queue("gem"));
 });

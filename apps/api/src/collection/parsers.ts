@@ -136,6 +136,11 @@ export function pageAllowed(url: string, source: SourceDefinition) {
         (!u.searchParams.has("page") ||
           (u.searchParams.getAll("page").length === 1 &&
             /^[1-9]\d*$/.test(u.searchParams.get("page")!))))) &&
+    (source.adapter !== "jipmer" ||
+      ([...u.searchParams.keys()].every((k) => k === "page") &&
+        (!u.searchParams.has("page") ||
+          (u.searchParams.getAll("page").length === 1 &&
+            /^\d+$/.test(u.searchParams.get("page")!))))) &&
     (source.adapter !== "phsc" ||
       ([...u.searchParams.keys()].every((k) => k === "page") &&
         (!u.searchParams.has("page") ||
@@ -203,6 +208,9 @@ export function noticeKey(
       "hmscl",
       "bhopal",
       "cgmscl",
+      "mangalagiri",
+      "bibinagar",
+      "jipmer",
     ].includes(source.adapter || "") &&
     url === source.url &&
     title
@@ -289,7 +297,7 @@ export function parseListing(
   const table = $("table")
     .filter((_, el) => {
       const headers = clean(
-        ["kgmu", "kcgmc"].includes(source.adapter || "")
+        ["kgmu", "kcgmc", "bibinagar"].includes(source.adapter || "")
           ? $(el).find("tr").first().children("td,th").text()
           : $(el).find("th").text(),
       );
@@ -679,6 +687,144 @@ export function parseListing(
           .toArray()
           .map((a) => publicLink($(a).attr("href"), pageUrl))
           .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+    } else if (source.adapter === "mangalagiri") {
+      if (cells.length !== 11)
+        throw new Error(
+          "AIIMS Mangalagiri row changed; expected eleven columns",
+        );
+      const headerTexts = table
+        .find("th")
+        .toArray()
+        .map((th: any) => clean($(th).text()));
+      const at = (label: RegExp) =>
+        headerTexts.findIndex((h: string) => label.test(h));
+      const idCol = at(/Tender ID/),
+        titleCol = at(/^Title$/),
+        docCol = at(/^Document$/),
+        publishCol = at(/Publish Date/),
+        corrigendumCol = at(/Corrigendum/),
+        poCol = at(/Purchase Order/);
+      if (idCol < 0 || titleCol < 0 || publishCol < 0)
+        throw new Error(
+          "Mangalagiri columns changed; identity columns missing",
+        );
+      // Titles are published trilingually; the English span is the notice text.
+      const titleCell = cells.eq(titleCol);
+      title =
+        clean(
+          titleCell
+            .clone()
+            .find(".hi,.tel")
+            .remove()
+            .end()
+            .find("a")
+            .remove()
+            .end()
+            .text(),
+        ) || clean(titleCell.find(".eng").first().text());
+      ref = clean(cells.eq(idCol).text());
+      publishedAt = listingDate(cells.eq(publishCol).text());
+      buyer = source.buyerName || source.name;
+      primary =
+        [docCol, corrigendumCol, poCol]
+          .filter((i) => i >= 0)
+          .flatMap((i) =>
+            cells
+              .eq(i)
+              .find("a[href]")
+              .toArray()
+              .map((a) => publicLink($(a).attr("href"), pageUrl)),
+          )
+          .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+    } else if (source.adapter === "bibinagar") {
+      // This publisher renders its header row with data cells, and some real
+      // rows omit one trailing column. Six-column rows keep fixed positions.
+      if (/^S\.?\s*NO$/i.test(clean(cells.eq(0).text()))) return;
+      if (cells.length !== 7 && cells.length !== 6) {
+        if (!clean($(row).text())) return;
+        throw new Error(
+          "AIIMS Bibinagar row changed; expected six or seven columns",
+        );
+      }
+      const headerTexts = table
+        .find("tr")
+        .first()
+        .children("td,th")
+        .toArray()
+        .map((c: any) => clean($(c).text()));
+      const at = (label: RegExp) =>
+        headerTexts.findIndex((h: string) => label.test(h));
+      const compact = cells.length === 6;
+      const refCol = compact ? 1 : at(/Tender Reference/),
+        titleCol = compact ? 2 : at(/Tender Title/),
+        endCol = compact ? 4 : at(/End Date/),
+        extCol = compact ? -1 : at(/Extension/i);
+      if (refCol < 0 || titleCol < 0 || endCol < 0)
+        throw new Error("Bibinagar columns changed; identity columns missing");
+      const titleCell = cells.eq(titleCol);
+      title =
+        clean(titleCell.find('a[href]:not([href="#"])').first().text()) ||
+        clean(titleCell.clone().find("a").remove().end().text());
+      // Generic Start/End listing dates are not asserted as publication.
+      closingDate = listingDate(cells.eq(endCol).text());
+      buyer = source.buyerName || source.name;
+      primary =
+        titleCell
+          .find('a[href]:not([href="#"])')
+          .toArray()
+          .map((a) => publicLink($(a).attr("href"), pageUrl))
+          .find((u) => !!u && isNoticeAttachment(u)) ||
+        (extCol >= 0
+          ? cells
+              .eq(extCol)
+              .find("a[href]")
+              .toArray()
+              .map((a) => publicLink($(a).attr("href"), pageUrl))
+              .find((u) => !!u && isNoticeAttachment(u))
+          : undefined) ||
+        source.url;
+      ref = clean(cells.eq(refCol).text());
+    } else if (source.adapter === "jipmer") {
+      if (cells.length !== 6)
+        throw new Error("JIPMER row changed; expected six columns");
+      const headerTexts = table
+        .find("th")
+        .toArray()
+        .map((th: any) => clean($(th).text()));
+      const at = (label: RegExp) =>
+        headerTexts.findIndex((h: string) => label.test(h));
+      const titleCol = at(/^Title$/),
+        downloadCol = at(/^Downloads$/),
+        noticeCol = at(/Tender Notice/),
+        releaseCol = at(/Date of Release/),
+        lastCol = at(/Last Date/);
+      if (titleCol < 0 || releaseCol < 0 || lastCol < 0)
+        throw new Error("JIPMER columns changed; identity columns missing");
+      const titleCell = cells.eq(titleCol);
+      title =
+        clean(titleCell.find("a[href]").first().text()) ||
+        clean(titleCell.clone().find("a").remove().end().text());
+      publishedAt = listingDate(cells.eq(releaseCol).text());
+      closingDate = listingDate(cells.eq(lastCol).text());
+      buyer = source.buyerName || source.name;
+      const detail = publicLink(
+        titleCell.find("a[href]").first().attr("href"),
+        pageUrl,
+      );
+      primary =
+        [downloadCol, noticeCol]
+          .filter((i) => i >= 0)
+          .flatMap((i) =>
+            cells
+              .eq(i)
+              .find("a[href]")
+              .toArray()
+              .map((a) => publicLink($(a).attr("href"), pageUrl)),
+          )
+          .find((u) => !!u && isNoticeAttachment(u)) ||
+        detail ||
+        source.url;
+      ref = "";
     } else if (source.adapter === "cgmscl") {
       if (cells.length !== 4)
         throw new Error("CGMSCL row changed; expected four columns");
@@ -834,6 +980,13 @@ function listingNext(
       Number(new URL(pageUrl).searchParams.get("page") || 1)
   )
     throw new Error("Non-advancing Jodhpur page; collection incomplete");
+  if (
+    next &&
+    source.adapter === "jipmer" &&
+    Number(new URL(next).searchParams.get("page") || 0) <=
+      Number(new URL(pageUrl).searchParams.get("page") || 0)
+  )
+    throw new Error("Non-advancing JIPMER page; collection incomplete");
   if (
     next &&
     source.adapter === "phsc" &&
