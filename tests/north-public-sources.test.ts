@@ -340,8 +340,8 @@ test("North bulk queue includes the eleven new profiles and keeps unresolved sou
   const old = process.env.COLLECTION_REGION;
   process.env.COLLECTION_REGION = "north";
   try {
-    assert.equal(SOURCES.filter((s) => s.adapter).length, 54);
-    assert.equal(SOURCES.length, 102);
+    assert.equal(SOURCES.filter((s) => s.adapter).length, 56);
+    assert.equal(SOURCES.length, 105);
     assert.equal((await new Collection(db).queue()).queued, 49);
     for (const id of ["safdarjung", "pgimer", "aiims-gorakhpur-archive"])
       assert.equal(

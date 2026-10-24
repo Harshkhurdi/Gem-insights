@@ -539,6 +539,11 @@ export const taxonomy: Record<string, Array<[string, string, string[]]>> = {
       ["robotic surgery system", "surgical robot"],
     ],
     ["urology-lasers", "Urology lasers", ["holmium laser", "thulium laser"]],
+    [
+      "cystoscopes",
+      "Cystoscopes",
+      ["cystoscope", "cystoscopy telescope", "cystoscopy system"],
+    ],
     ["lithotripters", "Lithotripters", ["lithotripter", "lithotripsy machine"]],
     [
       "bronchoscopy",

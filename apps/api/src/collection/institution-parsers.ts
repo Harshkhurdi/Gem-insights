@@ -125,6 +125,12 @@ export function tableMatches(
         /End Date/.test(headers) &&
         /Subject of Tender/.test(headers)
       );
+    case "cgmscl":
+      return (
+        /S\.?\s*No\.?/.test(headers) &&
+        /Tender Ref\./.test(headers) &&
+        /Attachments/i.test(headers)
+      );
     case "hmscl":
       return (
         /Tender \/ Reference/.test(headers) &&
