@@ -125,6 +125,8 @@ export function tableMatches(
         /End Date/.test(headers) &&
         /Subject of Tender/.test(headers)
       );
+    case "meghealth":
+      return /Tender/.test(headers) && /Date/.test(headers);
     case "wbmscl":
       return (
         /SL\s*NO/i.test(headers) &&

@@ -150,3 +150,11 @@ export const wbmsclRow = (
   `<tr><td>1</td><td><a href="${file}">${title}</a></td><td>${reference}</td><td>${published}</td></tr>`;
 export const wbmsclTable = (rows = wbmsclRow()) =>
   `<table><tr><th>SL NO</th><th>DESCRIPTION</th><th>TENDER NO</th><th>PUBLISH DATE</th></tr>${rows}</table>`;
+export const meghealthRow = (
+  title = "SYNTHETIC Supply and Installation of Sets of Equipments for Microbiology",
+  file = "tenders/notice.pdf",
+  date = "29/8/2025",
+) =>
+  `<tr><td><a href="${file}" target="_blank">${title}<img src="images/download.png"></a></td><td>${date}</td></tr>`;
+export const meghealthTable = (rows = meghealthRow()) =>
+  `<table><tr><th scope="col">Tender</th><th scope="col">Date</th></tr>${rows}</table>`;

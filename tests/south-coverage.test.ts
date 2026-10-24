@@ -23,6 +23,8 @@ import {
   gmsclRow,
   wbmsclTable,
   wbmsclRow,
+  meghealthTable,
+  meghealthRow,
 } from "./central-coverage-fixtures";
 const mgl = getSource("aiims-mangalagiri"),
   bib = getSource("aiims-bibinagar"),
@@ -164,8 +166,8 @@ test("CPPP-format Mangalagiri identities group with a reviewed-style CPPP refere
   assert.ok(grouped[0].n >= 1);
 });
 test("south migration registers three profiles and queue counts", async () => {
-  assert.equal(SOURCES.filter((s) => s.adapter).length, 65);
-  assert.equal(SOURCES.length, 117);
+  assert.equal(SOURCES.filter((s) => s.adapter).length, 66);
+  assert.equal(SOURCES.length, 118);
   for (const id of ["aiims-mangalagiri", "aiims-bibinagar", "jipmer"]) {
     const row = (
       await db.query("SELECT adapter,enabled FROM source WHERE id=$1", [id])
@@ -174,7 +176,7 @@ test("south migration registers three profiles and queue counts", async () => {
     assert.equal(row.enabled, true, id);
   }
   await db.query("TRUNCATE job");
-  assert.equal((await new Collection(db).queue()).queued, 65);
+  assert.equal((await new Collection(db).queue()).queued, 66);
 });
 test("TNMSC headerless rows keep native references, official files and no asserted dates", () => {
   const src = getSource("tnmsc");
@@ -299,4 +301,26 @@ test("WBMSCL keeps native references and explicit publish dates from its single 
     /expected four columns/,
   );
   assert.equal(pageAllowed("https://www.wbmsc.gov.in/other.php", src), false);
+});
+test("Meghalaya keeps notice titles and official files without asserting its undocumented date column", () => {
+  const src = getSource("meghealth");
+  const n = parseListing(meghealthTable(), src).notices[0];
+  assert.equal(
+    n.title,
+    "SYNTHETIC Supply and Installation of Sets of Equipments for Microbiology",
+  );
+  assert.equal(n.bidNumber, null);
+  assert.equal(n.publishedAt, null);
+  assert.equal(n.closingDate, null);
+  assert.equal(n.state, "Meghalaya");
+  assert.equal(n.url, "https://meghealth.gov.in/tenders/notice.pdf");
+  assert.throws(
+    () =>
+      parseListing(meghealthTable().replace(">Date</th>", ">Day</th>"), src),
+    /table missing/,
+  );
+  assert.throws(
+    () => parseListing(meghealthTable().replace("<td>29/8/2025</td>", ""), src),
+    /expected two columns/,
+  );
 });

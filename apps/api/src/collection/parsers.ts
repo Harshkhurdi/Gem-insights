@@ -163,6 +163,7 @@ export function pageAllowed(url: string, source: SourceDefinition) {
       "tnmsc",
       "gmscl",
       "wbmscl",
+      "meghealth",
     ].includes(source.adapter || "") ||
       u.search === base.search) &&
     (source.adapter !== "rishikesh" ||
@@ -217,6 +218,7 @@ export function noticeKey(
       "tnmsc",
       "gmscl",
       "wbmscl",
+      "meghealth",
     ].includes(source.adapter || "") &&
     url === source.url &&
     title
@@ -702,6 +704,22 @@ export function parseListing(
       primary =
         cells
           .eq(subject)
+          .find("a[href]")
+          .toArray()
+          .map((a) => publicLink($(a).attr("href"), pageUrl))
+          .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+    } else if (source.adapter === "meghealth") {
+      if (cells.length !== 2)
+        throw new Error("Meghalaya row changed; expected two columns");
+      const titleCell = cells.eq(0);
+      title =
+        clean(titleCell.find("a[href]").first().text()) ||
+        clean(titleCell.clone().find("a").remove().end().text());
+      buyer = source.buyerName || source.name;
+      // The single Date column is not documented by the publisher; it is not
+      // asserted as a publication or closing date.
+      primary =
+        titleCell
           .find("a[href]")
           .toArray()
           .map((a) => publicLink($(a).attr("href"), pageUrl))

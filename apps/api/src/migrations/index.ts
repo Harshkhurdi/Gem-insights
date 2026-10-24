@@ -22,6 +22,7 @@ import { SouthCoverage1792422000000 } from "./south-coverage";
 import { SouthTnmsc1792423000000 } from "./south-tnmsc";
 import { WestCoverage1792424000000 } from "./west-coverage";
 import { EastCoverage1792425000000 } from "./east-coverage";
+import { NortheastCoverage1792426000000 } from "./northeast-coverage";
 export const migrations = [
   Initial1792400000000,
   Documents1792405000000,
@@ -47,4 +48,5 @@ export const migrations = [
   SouthTnmsc1792423000000,
   WestCoverage1792424000000,
   EastCoverage1792425000000,
+  NortheastCoverage1792426000000,
 ];
