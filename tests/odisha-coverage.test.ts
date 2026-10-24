@@ -136,7 +136,7 @@ test("historical documents with missing source titles remain explicit unclassifi
   assert.match(n.url, /original.pdf$/);
 });
 test("registry includes two Odisha profiles with the same publisher", () => {
-  assert.equal(SOURCES.filter((s) => s.adapter).length, 66);
+  assert.equal(SOURCES.filter((s) => s.adapter).length, 67);
   assert.equal(SOURCES.length, 118);
   assert.equal(current.buyerName, archive.buyerName);
 });

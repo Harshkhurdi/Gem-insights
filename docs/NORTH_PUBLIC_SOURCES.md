@@ -59,7 +59,7 @@ npm run collect -- uttarakhand-health
 
 ## Remaining North gaps
 
-PHSC Punjab's homepage returned HTTP 503 in this environment and remains disabled pending source validation. Safdarjung's public current/archive lists are reachable, but mix tenders, awards, disposal auctions and reports of already-procured equipment. It remains an assisted target until that lifecycle distinction can prevent misleading requested-demand insights. Gorakhpur's separate archived-tender page has neither a procurement table nor an explicit no-notices state; it remains disabled rather than being counted as a successful empty read. Its current tenders and quotation archive are separate working profiles.
+PHSC Punjab's homepage returned HTTP 503 in this environment and remains disabled pending source validation. Safdarjung's mixed notice list is now collected with lifecycle separation (24 October 2026): only requested-demand rows (tenders, rate inquiries, EOIs, procurement notifications) are collected; awards, e-auctions and procured-equipment lists are excluded by their printed titles so they cannot inflate requested-demand signals. Gorakhpur's separate archived-tender page has neither a procurement table nor an explicit no-notices state; it remains disabled rather than being counted as a successful empty read. Its current tenders and quotation archive are separate working profiles.
 
 The [North coverage matrix](NORTH_COLLECTION.md) still applies. Other northern hospitals, state portals and historical backfills remain incomplete. These profiles do not establish complete North or national coverage.
 

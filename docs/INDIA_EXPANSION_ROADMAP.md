@@ -8,7 +8,7 @@ Status vocabulary: **Implemented** (automated collector validated against the li
 
 | State/UT | Implemented profiles | Assisted/Blocked targets | Status |
 | --- | --- | --- | --- |
-| Delhi | AIIMS Delhi current + 3 archives; CPPP | RML Hospital (connection failure), Safdarjung (lifecycle separation needed) | Partial |
+| Delhi | AIIMS Delhi current + 3 archives; CPPP; Safdarjung notices (lifecycle-separated) | RML Hospital (connection failure) | Partial, improved 2026-10-24 |
 | Punjab | AIIMS Bathinda; PHSC current + archive | BFUHS (connection failure) | Partial, improved 2026-10-23 |
 | Haryana | KCGMC current/archive; Haryana Health; HMSCL equipment | UHSR Rohtak (HTTP 503) | Partial, improved 2026-10-23 |
 | Chandigarh | GMCH current + proprietary notices | PGIMER (interactive-form listing) | Partial |
@@ -86,3 +86,4 @@ Regional scheduling now supports `north`, `central`, `south`, `east`, `west`, `n
 | 2026-10-24 | East India: WBMSCL archive (6,820 obs); WB Health + Bihar SHS assisted (65 profiles, 117 targets) | 336 |
 | 2026-10-24 | Northeast: Meghalaya HFW (57 obs); Assam NHM documented as award-side exclusion (66 profiles, 119 targets) | 337 |
 | 2026-10-24 | All-India regional scheduling: seven region values with backward compatibility (five scheduling regressions) | 342 |
+| 2026-10-24 | Overview collection-health strip + last-7-days KPI; Safdarjung lifecycle separation resolves its documented blocker (67 profiles, 118 targets) | 345 |

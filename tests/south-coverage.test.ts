@@ -25,6 +25,8 @@ import {
   wbmsclRow,
   meghealthTable,
   meghealthRow,
+  safdarjungTable,
+  safdarjungRow,
 } from "./central-coverage-fixtures";
 const mgl = getSource("aiims-mangalagiri"),
   bib = getSource("aiims-bibinagar"),
@@ -166,7 +168,7 @@ test("CPPP-format Mangalagiri identities group with a reviewed-style CPPP refere
   assert.ok(grouped[0].n >= 1);
 });
 test("south migration registers three profiles and queue counts", async () => {
-  assert.equal(SOURCES.filter((s) => s.adapter).length, 66);
+  assert.equal(SOURCES.filter((s) => s.adapter).length, 67);
   assert.equal(SOURCES.length, 118);
   for (const id of ["aiims-mangalagiri", "aiims-bibinagar", "jipmer"]) {
     const row = (
@@ -176,7 +178,7 @@ test("south migration registers three profiles and queue counts", async () => {
     assert.equal(row.enabled, true, id);
   }
   await db.query("TRUNCATE job");
-  assert.equal((await new Collection(db).queue()).queued, 66);
+  assert.equal((await new Collection(db).queue()).queued, 67);
 });
 test("TNMSC headerless rows keep native references, official files and no asserted dates", () => {
   const src = getSource("tnmsc");
@@ -322,5 +324,80 @@ test("Meghalaya keeps notice titles and official files without asserting its und
   assert.throws(
     () => parseListing(meghealthTable().replace("<td>29/8/2025</td>", ""), src),
     /expected two columns/,
+  );
+});
+test("Safdarjung lifecycle separation collects only requested-demand rows", () => {
+  const src = getSource("safdarjung");
+  const r = parseListing(
+    safdarjungTable(
+      safdarjungRow(
+        "Notice dated 07.04.2025 - Notice Inviting Tender for procurement of Group G (Blood Products)",
+        "/sites/default/files/nit.pdf",
+        "07/04/2025",
+      ) +
+        safdarjungRow(
+          "Notice dated 10.01.2025 - Award of Contract for Procurement of IV Fluid Items",
+          "/sites/default/files/award.pdf",
+          "10/01/2025",
+        ) +
+        safdarjungRow(
+          "Notice dated 03.10.2025 - E-Auction of Furniture and Miscellaneous Items",
+          "/sites/default/files/auction.pdf",
+          "03/10/2025",
+        ) +
+        safdarjungRow(
+          "List of Medical Equipments procured w.e.f. 01.04.2026",
+          "/sites/default/files/procured.pdf",
+          "30/06/2026",
+        ) +
+        safdarjungRow(
+          "Receipt No. 19363(2)/2022/M AND E STORE dated 11.10.2022 - Various Proformas for Request",
+          "/sites/default/files/proforma.pdf",
+          "11/10/2022",
+        ) +
+        safdarjungRow(
+          "Notice dated 11.12.2025 - Inviting Rate Inquiry of Implants at Sports Injury Centre",
+          "/sites/default/files/rate.pdf",
+          "11/12/2025",
+        ) +
+        safdarjungRow(
+          "E-TENDER NOTICE No. Q-1-MS(I.V.Fluid)/2022 dated 18.05.2022 - Notice Inviting Tender for IV Fluids",
+          "/sites/default/files/etender.pdf",
+          "18/05/2022",
+        ),
+    ),
+    src,
+  );
+  // Only the tender, rate-inquiry and e-tender rows stay; award, auction,
+  // procured-equipment and proforma rows are different lifecycle stages.
+  assert.equal(r.notices.length, 3);
+  const refs = r.notices.map((n) => n.title);
+  assert.ok(
+    refs.some((t) =>
+      t.includes("Notice Inviting Tender for procurement of Group G"),
+    ),
+  );
+  assert.ok(refs.some((t) => t.includes("Rate Inquiry")));
+  const etender = r.notices.find((n) => n.bidNumber)!;
+  assert.equal(etender.bidNumber, "Q-1-MS(I.V.Fluid)/2022");
+  assert.ok(r.notices.every((n) => n.publishedAt));
+  assert.ok(
+    r.notices.every((n) => !/Award|Auction|procured|Proformas/i.test(n.title)),
+  );
+  assert.throws(
+    () =>
+      parseListing(
+        safdarjungTable(safdarjungRow().replace("<td>07/04/2025</td>", "")),
+        src,
+      ),
+    /expected four columns/,
+  );
+  assert.throws(
+    () =>
+      parseListing(
+        safdarjungTable(safdarjungRow()).replace(">Title /", ">Subject /"),
+        src,
+      ),
+    /table missing/,
   );
 });

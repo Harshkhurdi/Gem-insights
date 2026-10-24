@@ -125,6 +125,12 @@ export function tableMatches(
         /End Date/.test(headers) &&
         /Subject of Tender/.test(headers)
       );
+    case "safdarjung":
+      return (
+        /Sr\.?\s*No\.?/.test(headers) &&
+        /Title/.test(headers) &&
+        /Download/.test(headers)
+      );
     case "meghealth":
       return /Tender/.test(headers) && /Date/.test(headers);
     case "wbmscl":
