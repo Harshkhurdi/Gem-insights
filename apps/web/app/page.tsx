@@ -664,6 +664,31 @@ function Dashboard() {
     queryKey: ["states", params],
     queryFn: () => api("geography/states?" + params),
   });
+  const collectionHealth = useMemo(() => {
+    const automated: any[] = (coverage.data?.sources || []).filter(
+      (s: any) => s.adapter,
+    );
+    const now = Date.now();
+    const fresh = automated.filter(
+      (s) => s.last_success && now - Date.parse(s.last_success) < 172800000,
+    ).length;
+    const failing = automated.filter((s) => s.last_error).length;
+    const pending = automated.filter(
+      (s) => !s.last_success && !s.last_error,
+    ).length;
+    const lastSuccess = automated
+      .map((s) => s.last_success)
+      .filter(Boolean)
+      .sort()
+      .at(-1);
+    return {
+      automated: automated.length,
+      fresh,
+      failing,
+      pending,
+      lastSuccess,
+    };
+  }, [coverage.data?.sources]);
   const buyers = useQuery({
     queryKey: ["buyers", params],
     queryFn: () => api("buyers?" + params),
@@ -1261,6 +1286,19 @@ function Dashboard() {
                   </span>
                   <small>Last checked: {timestamp(last)}</small>
                 </div>
+                {collectionHealth.automated > 0 && (
+                  <Alert severity="info">
+                    Collection health: {collectionHealth.fresh} of{" "}
+                    {collectionHealth.automated} automated sources collected
+                    successfully in the last 2 days
+                    {collectionHealth.failing > 0 &&
+                      `, ${collectionHealth.failing} reporting errors`}
+                    {collectionHealth.pending > 0 &&
+                      `, ${collectionHealth.pending} not yet collected`}
+                    . Failed or pending sources stay visible in Data Coverage;
+                    listings remain partial by design.
+                  </Alert>
+                )}
                 <div className="kpis">
                   {[
                     {
@@ -1297,6 +1335,13 @@ function Dashboard() {
                       sub: `${stats.data?.valued_tenders || 0} of ${stats.data?.tenders || 0} tenders valued`,
                       click: () => go("Tender Explorer"),
                       icon: ChartNoAxesCombined,
+                    },
+                    {
+                      label: "Published last 7 days",
+                      value: stats.data?.new_week,
+                      sub: "Dated records only; undated stay excluded",
+                      click: () => go("Demand Trends"),
+                      icon: Clock,
                     },
                   ].map((k) => (
                     <button className="kpi" key={k.label} onClick={k.click}>
