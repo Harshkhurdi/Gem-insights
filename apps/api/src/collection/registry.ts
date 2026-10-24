@@ -553,7 +553,7 @@ export const SOURCES: SourceDefinition[] = [
     "institution",
     ["Jammu and Kashmir"],
     "jkmscl",
-    "Corporation public tender/notice list and linked older archive. Row-spanned references, notice types and original documents retained. Closing Date is a listing claim; publication dates and item quantities remain unknown. Amendments and evaluation notices are not all open bids.",
+    "Corporation public tender/notice list and linked older archive. Row-spanned references, notice types and original documents retained. Closing Date is a listing claim; publication dates and item quantities remain unknown. Amendments and evaluation notices are not all open bids. PAUSED 24 October 2026: the publisher reverted the page to a template placeholder; collection fails visibly and historical observations are retained. Re-enable after the publisher restores the listing.",
   ),
   ...(
     [
