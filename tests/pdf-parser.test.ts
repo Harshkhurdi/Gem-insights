@@ -285,3 +285,55 @@ test("global GeM placeholder category is not an equipment line and bilingual dat
   assert.equal(r.record.items.length, 0);
   assert.ok(r.warnings.some((w) => /category ignored/.test(w)));
 });
+test("BOQ headers in common publisher variants activate table extraction", () => {
+  const variants = [
+    ["S.No.", "Item Name", "Quantity Required", "Unit"],
+    ["S.No.", "Product Description", "Quantity", "Unit"],
+    ["S.No.", "Item", "Qty.", "Unit"],
+  ];
+  for (const header of variants) {
+    const rows = [
+      { cells: header },
+      {
+        cells: ["1", "SYNTHETIC infusion pump", "7", "Nos."],
+      },
+    ];
+    const r = extractTender(
+      [
+        {
+          page: 1,
+          text: rows.map((row) => row.cells.join(" ")).join("\n"),
+          method: "embedded",
+          readable: true,
+          rows: rows as any,
+        },
+      ],
+      "https://example.org/synthetic-test.pdf",
+      rules,
+    );
+    assert.equal(r.record.items.length, 1, header.join("|"));
+    assert.equal(r.record.items[0].name, "SYNTHETIC infusion pump");
+    assert.equal(r.record.items[0].quantity, "7");
+    assert.equal(r.record.items[0].unit, "units");
+  }
+});
+test("a description-only header without a quantity column never activates table extraction", () => {
+  const rows = [
+    { cells: ["S.No.", "Description"] },
+    { cells: ["1", "SYNTHETIC specification text without quantity"] },
+  ];
+  const r = extractTender(
+    [
+      {
+        page: 1,
+        text: rows.map((row) => row.cells.join(" ")).join("\n"),
+        method: "embedded",
+        readable: true,
+        rows: rows as any,
+      },
+    ],
+    "https://example.org/synthetic-test.pdf",
+    rules,
+  );
+  assert.deepEqual(r.record.items, []);
+});

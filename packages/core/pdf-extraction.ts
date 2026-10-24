@@ -311,10 +311,12 @@ export function extractTender(
       const cells = row.cells.map(clean),
         joined = cells.join(" ");
       const name = cells.findIndex((s) =>
-        /^(?:Item Description|Product Name|वस्तु विवरण)$/i.test(s),
+        /^(?:Item Description|Item Name|Product Name|Product Description|Item|Description|वस्तु विवरण)$/i.test(
+          s,
+        ),
       );
       const quantity = cells.findIndex((s) =>
-        /^(?:Quantity|Qty\.?|मात्रा)$/i.test(s),
+        /^(?:Quantity|Quantity Required|Qty\.?|मात्रा)$/i.test(s),
       );
       if (name >= 0 && quantity >= 0) {
         columns = {
