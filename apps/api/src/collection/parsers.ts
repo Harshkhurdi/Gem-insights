@@ -164,6 +164,7 @@ export function pageAllowed(url: string, source: SourceDefinition) {
       "gmscl",
       "wbmscl",
       "meghealth",
+      "safdarjung",
     ].includes(source.adapter || "") ||
       u.search === base.search) &&
     (source.adapter !== "rishikesh" ||
@@ -219,6 +220,7 @@ export function noticeKey(
       "gmscl",
       "wbmscl",
       "meghealth",
+      "safdarjung",
     ].includes(source.adapter || "") &&
     url === source.url &&
     title
@@ -704,6 +706,44 @@ export function parseListing(
       primary =
         cells
           .eq(subject)
+          .find("a[href]")
+          .toArray()
+          .map((a) => publicLink($(a).attr("href"), pageUrl))
+          .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+    } else if (source.adapter === "safdarjung") {
+      if (cells.length !== 4)
+        throw new Error("Safdarjung row changed; expected four columns");
+      const titleCell = cells.eq(1);
+      const printed = clean(
+        titleCell.find("a[href]").first().text() || titleCell.text(),
+      );
+      // Lifecycle separation from printed titles: award, auction/disposal and
+      // procured-equipment rows are different stages, not requested demand.
+      if (
+        /\bE-?Auction\b/i.test(printed) ||
+        /Award of Contract/i.test(printed) ||
+        /\bProcured\b/i.test(printed) ||
+        /Proformas?/i.test(printed)
+      )
+        return;
+      // Without a demand marker a row stays out rather than being guessed in.
+      if (
+        !/(?:Tender|Notice Inviting|Online Open Tenders|Rate (?:Inquiry|Enquiry)|EOI|Expression of Interest|Notification for procurement|Procurement of|Quotation)/i.test(
+          printed,
+        )
+      )
+        return;
+      title = printed;
+      // The Date column is the notice's own printed date (corroborated by
+      // "Notice dated …" in the title); closing dates are not published here.
+      publishedAt = listingDate(cells.eq(2).text());
+      buyer = source.buyerName || source.name;
+      ref =
+        printed.match(
+          /\bNo\.\s*([A-Z0-9][A-Z0-9/()&.\-]{3,60}?)\s+dated/i,
+        )?.[1] || "";
+      primary =
+        titleCell
           .find("a[href]")
           .toArray()
           .map((a) => publicLink($(a).attr("href"), pageUrl))

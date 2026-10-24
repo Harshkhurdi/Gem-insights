@@ -92,8 +92,8 @@ test("regional selection covers every automated profile exactly once across regi
 });
 
 test("region counts match the validated registry state", () => {
-  assert.equal(collectionSources("all").length, 66);
-  assert.equal(regionalOf("north").length, 45);
+  assert.equal(collectionSources("all").length, 67);
+  assert.equal(regionalOf("north").length, 46);
   assert.equal(regionalOf("central").length, 4);
   assert.equal(regionalOf("south").length, 8);
   assert.equal(regionalOf("east").length, 3);

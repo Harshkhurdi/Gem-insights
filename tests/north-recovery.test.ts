@@ -335,16 +335,10 @@ test("North queue schedules the recovered profiles while unresolved targets stay
   const old = process.env.COLLECTION_REGION;
   process.env.COLLECTION_REGION = "north";
   try {
-    assert.equal(SOURCES.filter((s) => s.adapter).length, 66);
+    assert.equal(SOURCES.filter((s) => s.adapter).length, 67);
     assert.equal(SOURCES.length, 118);
-    assert.equal((await new Collection(db).queue()).queued, 49);
-    for (const id of [
-      "safdarjung",
-      "pgimer",
-      "aiims-gorakhpur-archive",
-      "rmlh",
-      "bfuhs",
-    ])
+    assert.equal((await new Collection(db).queue()).queued, 50);
+    for (const id of ["pgimer", "aiims-gorakhpur-archive", "rmlh", "bfuhs"])
       assert.equal(
         (await db.query("SELECT enabled FROM source WHERE id=$1", [id]))[0]
           .enabled,

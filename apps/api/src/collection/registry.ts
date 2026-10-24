@@ -43,6 +43,7 @@ export interface SourceDefinition {
     | "gmscl"
     | "wbmscl"
     | "meghealth"
+    | "safdarjung"
     | null;
   buyerName?: string;
   clinicalCategory?: boolean;
@@ -619,15 +620,18 @@ export const SOURCES: SourceDefinition[] = [
     ),
     buyerName: "Punjab Health Systems Corporation",
   })),
-  source(
-    "safdarjung",
-    "VMMC and Safdarjung Hospital",
-    "https://vmmc-sjh.mohfw.gov.in/tenders",
-    "institution",
-    ["Delhi"],
-    null,
-    "Public current/archive pages reached on 22 October 2026. Mixed tenders, awards, disposal auctions and procured-equipment reports require lifecycle separation before using them as requested-demand signals; automatic collection remains disabled.",
-  ),
+  {
+    ...source(
+      "safdarjung",
+      "VMMC and Safdarjung Hospital notices",
+      "https://vmmc-sjh.mohfw.gov.in/tenders",
+      "institution",
+      ["Delhi"],
+      "safdarjung",
+      "Public notice list with printed titles, notice dates and original PDFs. Lifecycle separation applies at collection: only requested-demand rows (tenders, online tenders, rate inquiries, EOIs and procurement notifications) are collected; award-of-contract rows, e-auction/disposal notices and procured-equipment lists are excluded by their printed titles so they cannot inflate requested-demand signals. Titles without a demand marker stay out rather than being guessed into scope.",
+    ),
+    buyerName: "VMMC and Safdarjung Hospital",
+  },
   source(
     "aiims-gorakhpur-archive",
     "AIIMS Gorakhpur archived tenders",

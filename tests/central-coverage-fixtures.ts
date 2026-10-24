@@ -158,3 +158,11 @@ export const meghealthRow = (
   `<tr><td><a href="${file}" target="_blank">${title}<img src="images/download.png"></a></td><td>${date}</td></tr>`;
 export const meghealthTable = (rows = meghealthRow()) =>
   `<table><tr><th scope="col">Tender</th><th scope="col">Date</th></tr>${rows}</table>`;
+export const safdarjungRow = (
+  title = "Notice dated 07.04.2025 - Notice Inviting Tender for procurement of Blood Products",
+  file = "/sites/default/files/notice.pdf",
+  date = "07/04/2025",
+) =>
+  `<tr><td>1</td><td><a href="${file}">${title}</a></td><td>${date}</td><td><a href="${file}">Download</a></td></tr>`;
+export const safdarjungTable = (rows: string) =>
+  `<table><tr><th>Sr. No. / क्रमांक</th><th>Title / शीर्षक</th><th>Date / तारीख</th><th>Download / डाउनलोड</th></tr>${rows}</table>`;

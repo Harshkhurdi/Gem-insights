@@ -188,16 +188,16 @@ test("central migration registers Bhopal enabled and the national queue counts i
   )[0];
   assert.equal(row.adapter, "bhopal");
   assert.equal(row.enabled, true);
-  assert.equal(SOURCES.filter((s) => s.adapter).length, 66);
+  assert.equal(SOURCES.filter((s) => s.adapter).length, 67);
   assert.equal(SOURCES.length, 118);
   const old = process.env.COLLECTION_REGION;
   process.env.COLLECTION_REGION = "north";
   try {
-    assert.equal((await new Collection(db).queue()).queued, 49);
+    assert.equal((await new Collection(db).queue()).queued, 50);
   } finally {
     if (old == null) delete process.env.COLLECTION_REGION;
     else process.env.COLLECTION_REGION = old;
   }
   await db.query("TRUNCATE job");
-  assert.equal((await new Collection(db).queue()).queued, 66);
+  assert.equal((await new Collection(db).queue()).queued, 67);
 });
