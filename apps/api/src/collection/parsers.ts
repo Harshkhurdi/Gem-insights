@@ -161,6 +161,7 @@ export function pageAllowed(url: string, source: SourceDefinition) {
       "sgpgims",
       "hmscl",
       "tnmsc",
+      "gmscl",
     ].includes(source.adapter || "") ||
       u.search === base.search) &&
     (source.adapter !== "rishikesh" ||
@@ -213,6 +214,7 @@ export function noticeKey(
       "bibinagar",
       "jipmer",
       "tnmsc",
+      "gmscl",
     ].includes(source.adapter || "") &&
     url === source.url &&
     title
@@ -303,7 +305,18 @@ export function parseListing(
           ? $(el).find("tr").first().children("td,th").text()
           : $(el).find("th").text(),
       );
-      return tableMatches(headers, source.adapter);
+      // Some publishers wrap the data table in layout containers whose
+      // nested header text would match; prefer the innermost matching table
+      // while keeping tables whose nested tables (for example amendment
+      // attachments) do not themselves match.
+      return (
+        !$(el)
+          .find("table")
+          .toArray()
+          .some((nested) =>
+            tableMatches(clean($(nested).find("th").text()), source.adapter),
+          ) && tableMatches(headers, source.adapter)
+      );
     })
     .first();
   if (source.adapter === "gmch-notices" || source.adapter === "kmscl") {
@@ -689,6 +702,44 @@ export function parseListing(
           .toArray()
           .map((a) => publicLink($(a).attr("href"), pageUrl))
           .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+    } else if (source.adapter === "gmscl") {
+      if (cells.length !== 9)
+        throw new Error("GMSCL row changed; expected nine columns");
+      const headerTexts = table
+        .find("th")
+        .toArray()
+        .map((th: any) => clean($(th).text()));
+      const at = (label: RegExp) =>
+        headerTexts.findIndex((h: string) => label.test(h));
+      const refCol = at(/Tender No\./),
+        titleCol = at(/^Description$/),
+        startCol = at(/^Start Date$/),
+        closingCol = at(/^Closing Date$/),
+        docCol = at(/^Tender Document$/),
+        allCol = at(/^All Documents$/);
+      if (refCol < 0 || titleCol < 0 || closingCol < 0 || docCol < 0)
+        throw new Error("GMSCL columns changed; identity columns missing");
+      ref = clean(cells.eq(refCol).text());
+      title = clean(cells.eq(titleCol).text());
+      // Generic Start Date is not asserted as publication; Closing Date is
+      // the publisher's listed closing claim.
+      closingDate = listingDate(cells.eq(closingCol).text());
+      buyer = source.buyerName || source.name;
+      const documentLinks = [
+        ...new Set(
+          [docCol, allCol]
+            .filter((i) => i >= 0)
+            .flatMap((i) =>
+              cells
+                .eq(i)
+                .find("a[href]")
+                .toArray()
+                .map((a) => publicLink($(a).attr("href"), pageUrl)),
+            ),
+        ),
+      ];
+      primary =
+        documentLinks.find((u) => !!u && isNoticeAttachment(u)) || source.url;
     } else if (source.adapter === "tnmsc") {
       if (cells.length !== 7)
         throw new Error("TNMSC row changed; expected seven columns");

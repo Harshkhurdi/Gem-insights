@@ -125,6 +125,14 @@ export function tableMatches(
         /End Date/.test(headers) &&
         /Subject of Tender/.test(headers)
       );
+    case "gmscl":
+      return (
+        /Sr\.?\s*No\.?/i.test(headers) &&
+        /Tender No\./.test(headers) &&
+        /Description/.test(headers) &&
+        /Tender Category/.test(headers) &&
+        /Closing Date/.test(headers)
+      );
     case "tnmsc":
       return (
         /Ref\. Code/.test(headers) &&

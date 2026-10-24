@@ -40,6 +40,7 @@ export interface SourceDefinition {
     | "bibinagar"
     | "jipmer"
     | "tnmsc"
+    | "gmscl"
     | null;
   buyerName?: string;
   clinicalCategory?: boolean;
@@ -194,6 +195,27 @@ export const SOURCES: SourceDefinition[] = [
     ),
     buyerName: "Tamil Nadu Medical Services Corporation",
   })),
+  {
+    ...source(
+      "gmscl",
+      "Gujarat Medical Services Corporation — tender section",
+      "https://gmscl.gujarat.gov.in/tender-section.htm",
+      "institution",
+      ["Gujarat"],
+      "gmscl",
+      "Public tender table with explicit native T.E.NO. references, category labels (drug, diagnostic, equipment procurement and others), explicit Start/Closing dates and linked original documents. Start Date is not asserted as publication; Closing Date is a listed closing claim. The publisher's rate-contract holder list is a separate page and is not collected yet.",
+    ),
+    buyerName: "Gujarat Medical Services Corporation",
+  },
+  source(
+    "aiims-nagpur",
+    "AIIMS Nagpur",
+    "https://aiimsnagpur.edu.in/tenders",
+    "institution",
+    ["Maharashtra"],
+    null,
+    "Priority western target. The tender route requires an account login (checked 24 October 2026); no public listing is exposed. Assisted source review or an official public listing is required; the Maharashtra NIC portal provides separate partial coverage.",
+  ),
   source(
     "nimhans",
     "NIMHANS Bengaluru",

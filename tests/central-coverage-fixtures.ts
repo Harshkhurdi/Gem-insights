@@ -131,3 +131,13 @@ export const tnmscRow = (
   `<tr><td>1</td><td>${nf}</td><td>${ref}</td><td>16/02/2026</td><td>${title}</td><td>16/10/2026</td><td><a href="${file}">Download</a></td></tr>`;
 export const tnmscTable = (rows = tnmscRow()) =>
   `<table><tr><th>S.No.</th><th>Ref. Code</th><th>Ref. No.</th><th>Ref. Date</th><th>Title</th><th>Date Of Publish</th><th>Documents</th></tr>${rows}</table>`;
+export const gmsclRow = (
+  reference = "T.E.NO.GMSCL/D-800/RC/2026-27 ITEM NO.1",
+  title = "SYNTHETIC Supply of Digital X-ray Machine on Rate Contract basis",
+  file = "/Portal/TenderDetails/1_87_1_D-800_Tender_Document.pdf",
+  category = "Equipment Procurement",
+  closing = "02/11/2026",
+) =>
+  `<tr><td>1</td><td>${reference}</td><td>${title}</td><td>${category}</td><td>Regular</td><td>17/10/2026</td><td>${closing}</td><td><a href="${file}">(2 MB)</a></td><td><a href="/Portal/TenderDetails/notice.pdf">Tender Notice</a></td></tr>`;
+export const gmsclTable = (rows = gmsclRow()) =>
+  `<table><tr><th>Sr.No</th><th>Tender No.</th><th>Description</th><th>Tender Category</th><th>Tender Type</th><th>Start Date</th><th>Closing Date</th><th>Tender Document</th><th>All Documents</th></tr>${rows}</table>`;
