@@ -24,6 +24,7 @@ import { WestCoverage1792424000000 } from "./west-coverage";
 import { EastCoverage1792425000000 } from "./east-coverage";
 import { NortheastCoverage1792426000000 } from "./northeast-coverage";
 import { SafdarjungLifecycle1792427000000 } from "./safdarjung-lifecycle";
+import { CoverageExtensions1792428000000 } from "./coverage-extensions";
 export const migrations = [
   Initial1792400000000,
   Documents1792405000000,
@@ -51,4 +52,5 @@ export const migrations = [
   EastCoverage1792425000000,
   NortheastCoverage1792426000000,
   SafdarjungLifecycle1792427000000,
+  CoverageExtensions1792428000000,
 ];

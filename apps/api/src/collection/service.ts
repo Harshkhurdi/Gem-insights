@@ -84,17 +84,19 @@ function fetchCompatibilityListing(
     req.end();
   });
 }
+const JSON_LISTING_HOSTS = new Set(["aiimsguwahati.ac.in"]);
 export async function fetchListing(url: string): Promise<string> {
   const hostname = new URL(url).hostname;
   if (LEGACY_TLS_HOSTS.has(hostname))
     return fetchCompatibilityListing(url, legacyTlsAgent);
   if (INCOMPLETE_CHAIN_HOSTS.has(hostname))
     return fetchCompatibilityListing(url, chainFixAgent);
+  const jsonListing = JSON_LISTING_HOSTS.has(hostname);
   const response = await fetch(url, {
     redirect: "error",
     signal: AbortSignal.timeout(60000),
     headers: {
-      Accept: "text/html",
+      Accept: jsonListing ? "application/json" : "text/html",
       "User-Agent":
         "GemInsights/0.2 (public procurement metadata; local research)",
     },
@@ -104,11 +106,17 @@ export async function fetchListing(url: string): Promise<string> {
       `Source returned HTTP ${response.status}; no access bypass attempted`,
     );
   if (
-    !/text\/html|application\/xhtml/i.test(
-      response.headers.get("content-type") || "",
-    )
+    jsonListing
+      ? !/application\/(?:json|ld\+json)|text\/plain/i.test(
+          response.headers.get("content-type") || "",
+        )
+      : !/text\/html|application\/xhtml/i.test(
+          response.headers.get("content-type") || "",
+        )
   )
-    throw new Error("Expected HTML listing");
+    throw new Error(
+      jsonListing ? "Expected JSON listing" : "Expected HTML listing",
+    );
   const reader = response.body?.getReader();
   if (!reader) throw new Error("Empty listing response");
   const chunks: Uint8Array[] = [];

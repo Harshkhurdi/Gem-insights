@@ -27,6 +27,9 @@ import {
   meghealthRow,
   safdarjungTable,
   safdarjungRow,
+  guwahatiFeed,
+  cgmsclTable,
+  cgmsclRow,
 } from "./central-coverage-fixtures";
 const mgl = getSource("aiims-mangalagiri"),
   bib = getSource("aiims-bibinagar"),
@@ -168,8 +171,8 @@ test("CPPP-format Mangalagiri identities group with a reviewed-style CPPP refere
   assert.ok(grouped[0].n >= 1);
 });
 test("south migration registers three profiles and queue counts", async () => {
-  assert.equal(SOURCES.filter((s) => s.adapter).length, 67);
-  assert.equal(SOURCES.length, 118);
+  assert.equal(SOURCES.filter((s) => s.adapter).length, 69);
+  assert.equal(SOURCES.length, 120);
   for (const id of ["aiims-mangalagiri", "aiims-bibinagar", "jipmer"]) {
     const row = (
       await db.query("SELECT adapter,enabled FROM source WHERE id=$1", [id])
@@ -178,7 +181,7 @@ test("south migration registers three profiles and queue counts", async () => {
     assert.equal(row.enabled, true, id);
   }
   await db.query("TRUNCATE job");
-  assert.equal((await new Collection(db).queue()).queued, 67);
+  assert.equal((await new Collection(db).queue()).queued, 69);
 });
 test("TNMSC headerless rows keep native references, official files and no asserted dates", () => {
   const src = getSource("tnmsc");
@@ -399,5 +402,51 @@ test("Safdarjung lifecycle separation collects only requested-demand rows", () =
         src,
       ),
     /table missing/,
+  );
+});
+test("AIIMS Guwahati JSON feed keeps advertisement numbers, publish dates and official-host documents", () => {
+  const src = getSource("aiims-guwahati");
+  const n = parseListing(guwahatiFeed(), src).notices[0];
+  assert.equal(n.bidNumber, "4-39/2022-23/AIIMS/GHY/PROC.-VE/III/2354");
+  assert.equal(n.portal, "institution");
+  assert.equal(
+    n.title,
+    "SYNTHETIC Request for Empanelment of suppliers of printing materials",
+  );
+  assert.equal(n.publishedAt, "2026-09-24");
+  assert.equal(n.state, "Assam");
+  assert.equal(n.buyer, "AIIMS Guwahati");
+  assert.equal(
+    n.url,
+    "https://aiimsguwahati.ac.in/viewfile.aspx?fname=b81f3aSYNTHETIC.pdf",
+  );
+  assert.equal(
+    pageAllowed("https://aiimsguwahati.ac.in/api/other", src),
+    false,
+  );
+  for (const bad of [
+    "not json",
+    JSON.stringify({ Other: [] }),
+    JSON.stringify({ Main: [{}] }),
+  ])
+    assert.throws(() => parseListing(bad, src), /JSON|changed|lacks/);
+});
+test("CGMSCL drug category adds clinical scope to the same publisher layout", () => {
+  const src = getSource("cgmscl-drugs");
+  const n = parseListing(
+    cgmsclTable(
+      cgmsclRow(
+        "Tender Ref. No.: 100/DRG/CGMSCL/2026-27, Dt.: 02/09/2026 SYNTHETIC supply of medicines",
+        "/cgmscl/Home/AttachmentList.aspx?a=1",
+      ),
+    ),
+    src,
+  ).notices[0];
+  assert.equal(n.bidNumber, "100/DRG/CGMSCL/2026-27");
+  assert.equal(n.medical, true);
+  assert.equal(n.state, "Chhattisgarh");
+  assert.equal(
+    n.url,
+    "https://www.cgmsc.gov.in/cgmscl/Home/AttachmentList.aspx?a=1",
   );
 });

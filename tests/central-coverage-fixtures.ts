@@ -166,3 +166,20 @@ export const safdarjungRow = (
   `<tr><td>1</td><td><a href="${file}">${title}</a></td><td>${date}</td><td><a href="${file}">Download</a></td></tr>`;
 export const safdarjungTable = (rows: string) =>
   `<table><tr><th>Sr. No. / क्रमांक</th><th>Title / शीर्षक</th><th>Date / तारीख</th><th>Download / डाउनलोड</th></tr>${rows}</table>`;
+export const guwahatiFeed = (
+  reference = "4-39/2022-23/AIIMS/GHY/PROC.-VE/III/2354",
+  title = "SYNTHETIC Request for Empanelment of suppliers of printing materials",
+  file = "viewfile.aspx?fname=b81f3aSYNTHETIC.pdf",
+  published = "24 Sep 2026",
+) =>
+  JSON.stringify({
+    Main: [
+      {
+        ItemID: 71068,
+        ItemTitle: title,
+        ItemDescription: reference,
+        Publishdate: published,
+        Filepath: file,
+      },
+    ],
+  });

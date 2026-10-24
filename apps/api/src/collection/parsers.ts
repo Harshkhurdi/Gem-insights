@@ -17,7 +17,11 @@ import {
 import { jkmsclEntries } from "./jkmscl";
 import { upInstitutionEntries } from "./up-institutions";
 import { NorthernEntry, northernLinks } from "./northern-links";
-import { bhopalEntries, bhopalRealDate } from "./central-institutions";
+import {
+  bhopalEntries,
+  bhopalRealDate,
+  guwahatiEntries,
+} from "./central-institutions";
 export interface Notice {
   key: string;
   bidNumber: string | null;
@@ -165,6 +169,7 @@ export function pageAllowed(url: string, source: SourceDefinition) {
       "wbmscl",
       "meghealth",
       "safdarjung",
+      "guwahati",
     ].includes(source.adapter || "") ||
       u.search === base.search) &&
     (source.adapter !== "rishikesh" ||
@@ -221,6 +226,7 @@ export function noticeKey(
       "wbmscl",
       "meghealth",
       "safdarjung",
+      "guwahati",
     ].includes(source.adapter || "") &&
     url === source.url &&
     title
@@ -245,16 +251,19 @@ export function parseListing(
       "raebareli",
       "gorakhpur",
       "bhopal",
+      "guwahati",
     ].includes(source.adapter || "")
   ) {
     const entries: NorthernEntry[] =
-      source.adapter === "bhopal"
-        ? bhopalEntries(html, pageUrl)
-        : ["raebareli", "gorakhpur"].includes(source.adapter || "")
-          ? upInstitutionEntries(html, source, pageUrl)
-          : source.adapter === "jkmscl"
-            ? jkmsclEntries(html, pageUrl)
-            : northernLinks(html, source, pageUrl);
+      source.adapter === "guwahati"
+        ? guwahatiEntries(html, pageUrl)
+        : source.adapter === "bhopal"
+          ? bhopalEntries(html, pageUrl)
+          : ["raebareli", "gorakhpur"].includes(source.adapter || "")
+            ? upInstitutionEntries(html, source, pageUrl)
+            : source.adapter === "jkmscl"
+              ? jkmsclEntries(html, pageUrl)
+              : northernLinks(html, source, pageUrl);
     const notices = entries.map((entry) => {
       const title = entry.title.slice(0, 2000),
         { url, documents } = entry;
