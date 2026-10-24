@@ -1,19 +1,23 @@
 import { connect, db } from "../database";
 import { Collection } from "./service";
 import { getSource } from "./registry";
-import { collectionSources } from "./regions";
+import {
+  COLLECTION_REGIONS,
+  collectionSources,
+  CollectionRegion,
+} from "./regions";
 async function main() {
   const id = process.argv[2];
   if (id && !["all", "north"].includes(id)) getSource(id);
   await connect();
   try {
     const collection = new Collection(db);
+    const isRegion =
+      id && (COLLECTION_REGIONS as readonly string[]).includes(id);
     const sources =
-      id && !["all", "north"].includes(id)
+      id && !isRegion
         ? [getSource(id)]
-        : collectionSources(
-            id === "north" ? "north" : id === "all" ? "all" : undefined,
-          );
+        : collectionSources(id as CollectionRegion | undefined);
     for (const s of sources) {
       try {
         console.log(
