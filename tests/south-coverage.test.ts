@@ -19,6 +19,8 @@ import {
   jipmerTable,
   tnmscTable,
   tnmscRow,
+  gmsclTable,
+  gmsclRow,
 } from "./central-coverage-fixtures";
 const mgl = getSource("aiims-mangalagiri"),
   bib = getSource("aiims-bibinagar"),
@@ -160,8 +162,8 @@ test("CPPP-format Mangalagiri identities group with a reviewed-style CPPP refere
   assert.ok(grouped[0].n >= 1);
 });
 test("south migration registers three profiles and queue counts", async () => {
-  assert.equal(SOURCES.filter((s) => s.adapter).length, 63);
-  assert.equal(SOURCES.length, 112);
+  assert.equal(SOURCES.filter((s) => s.adapter).length, 64);
+  assert.equal(SOURCES.length, 114);
   for (const id of ["aiims-mangalagiri", "aiims-bibinagar", "jipmer"]) {
     const row = (
       await db.query("SELECT adapter,enabled FROM source WHERE id=$1", [id])
@@ -170,7 +172,7 @@ test("south migration registers three profiles and queue counts", async () => {
     assert.equal(row.enabled, true, id);
   }
   await db.query("TRUNCATE job");
-  assert.equal((await new Collection(db).queue()).queued, 63);
+  assert.equal((await new Collection(db).queue()).queued, 64);
 });
 test("TNMSC headerless rows keep native references, official files and no asserted dates", () => {
   const src = getSource("tnmsc");
@@ -211,6 +213,61 @@ test("TNMSC layout guards and unrelated tables fail visibly", () => {
       "https://tnmsc.tn.gov.in/html/tenders.php?action=5&page=1",
       src,
     ),
+    false,
+  );
+});
+test("GMSCL keeps native references, category labels and closing-only dates with official documents", () => {
+  const src = getSource("gmscl");
+  const n = parseListing(gmsclTable(), src).notices[0];
+  assert.equal(n.bidNumber, "T.E.NO.GMSCL/D-800/RC/2026-27 ITEM NO.1");
+  assert.equal(n.portal, "institution");
+  assert.equal(
+    n.title,
+    "SYNTHETIC Supply of Digital X-ray Machine on Rate Contract basis",
+  );
+  assert.equal(n.publishedAt, null);
+  assert.equal(n.closingDate, "2026-11-02");
+  assert.equal(n.state, "Gujarat");
+  assert.equal(n.buyer, "Gujarat Medical Services Corporation");
+  assert.equal(
+    n.url,
+    "https://gmscl.gujarat.gov.in/Portal/TenderDetails/1_87_1_D-800_Tender_Document.pdf",
+  );
+  assert.ok(
+    n.documents.includes(
+      "https://gmscl.gujarat.gov.in/Portal/TenderDetails/notice.pdf",
+    ),
+  );
+  assert.deepEqual(n.products, ["x-ray"]);
+});
+test("GMSCL drug-category rows stay visible and layout guards hold", () => {
+  const src = getSource("gmscl");
+  const r = parseListing(
+    gmsclTable(
+      gmsclRow(
+        "T.E.NO.GMSCL/D-799/RC/2026-27",
+        "SYNTHETIC Tablhclorpheniramine maleate",
+        "/Portal/TenderDetails/1_86_1.pdf",
+        "Drug",
+      ),
+    ),
+    src,
+  );
+  assert.equal(r.notices.length, 1);
+  assert.throws(
+    () =>
+      parseListing(
+        gmsclTable().replace("<th>Description</th>", "<th>Detail</th>"),
+        src,
+      ),
+    /table missing/,
+  );
+  assert.throws(
+    () => parseListing(gmsclTable().replace("<td>Regular</td>", ""), src),
+    /expected nine columns/,
+  );
+  assert.equal(
+    pageAllowed("https://gmscl.gujarat.gov.in/other.htm", src),
     false,
   );
 });

@@ -41,6 +41,14 @@ National profiles: CPPP central + state mirror, ICMR, HLL. Remaining northern wo
 
 ## Phase 4 — East, West, Northeast, remaining UTs
 
+### West India (started 2026-10-24)
+
+| State/UT | Implemented | Assisted/Blocked | Status |
+| --- | --- | --- | --- |
+| Gujarat | GMSCL tender section (79 obs, 37 medical) | rate-contract holder list (awards, not demand) | Partial, new 2026-10-24 |
+| Maharashtra | — | AIIMS Nagpur (login wall); NIC portal registered | Not started |
+| Goa, DNH&DD | — | state pages unreachable 2026-10-24; NIC portals registered | Not started |
+
 AIIMS Bhubaneswar (Odisha) already implemented. Maharashtra, Gujarat, Goa, DNH&DD, West Bengal, Bihar, Jharkhand and the eight northeastern states plus A&N Islands and Lakshadweep are registered only as state portals. Not started.
 
 ## Phase 5 — All-India integration
@@ -56,3 +64,4 @@ Regional scheduling beyond `north`, national rankings/map/institution intelligen
 | 2026-10-23 | Central India: AIIMS Bhopal + CGMSCL equipment + cystoscope family; MPPHSCL registered assisted (56 profiles, 105 targets) | 322 |
 | 2026-10-24 | South India batch 1: AIIMS Mangalagiri + AIIMS Bibinagar + JIPMER with TLS chain completion (59 profiles, 107 targets) | 331 |
 | 2026-10-24 | South India batch 2: TNMSC notifications + 3 year archives; NIMHANS/NIMS registered assisted (63 profiles, 112 targets) | 333 |
+| 2026-10-24 | West India: GMSCL Gujarat + AIIMS Nagpur assisted; innermost-table selection fix (64 profiles, 114 targets) | 335 |
