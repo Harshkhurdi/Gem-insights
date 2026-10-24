@@ -41,6 +41,15 @@ National profiles: CPPP central + state mirror, ICMR, HLL. Remaining northern wo
 
 ## Phase 4 — East, West, Northeast, remaining UTs
 
+### Northeast India (started 2026-10-24)
+
+| State | Implemented | Assisted/Blocked | Status |
+| --- | --- | --- | --- |
+| Meghalaya | HFW tender notices (57 obs) | — | Partial, new 2026-10-24 |
+| Assam | — | NHM procurement page is award-side purchase orders (excluded by design) | Not started |
+| Mizoram | — | unstructured attachment list | Not started |
+| Arunachal, Manipur, Nagaland, Sikkim, Tripura | — | unreachable 2026-10-24; NIC portals registered | Not started |
+
 ### East India (started 2026-10-24)
 
 | State | Implemented | Assisted/Blocked | Status |
@@ -75,3 +84,4 @@ Regional scheduling beyond `north`, national rankings/map/institution intelligen
 | 2026-10-24 | South India batch 2: TNMSC notifications + 3 year archives; NIMHANS/NIMS registered assisted (63 profiles, 112 targets) | 333 |
 | 2026-10-24 | West India: GMSCL Gujarat + AIIMS Nagpur assisted; innermost-table selection fix (64 profiles, 114 targets) | 335 |
 | 2026-10-24 | East India: WBMSCL archive (6,820 obs); WB Health + Bihar SHS assisted (65 profiles, 117 targets) | 336 |
+| 2026-10-24 | Northeast: Meghalaya HFW (57 obs); Assam NHM documented as award-side exclusion (66 profiles, 119 targets) | 337 |

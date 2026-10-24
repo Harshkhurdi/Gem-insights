@@ -42,6 +42,7 @@ export interface SourceDefinition {
     | "tnmsc"
     | "gmscl"
     | "wbmscl"
+    | "meghealth"
     | null;
   buyerName?: string;
   clinicalCategory?: boolean;
@@ -247,6 +248,18 @@ export const SOURCES: SourceDefinition[] = [
     null,
     "Priority eastern target. The public page is a large notice/PDF link list (hundreds of links with generic download labels) whose titles live in surrounding markup rather than a structured table; a dedicated parser is required before automated collection. Assisted source review remains available.",
   ),
+  {
+    ...source(
+      "meghealth",
+      "Meghalaya Health and Family Welfare tenders",
+      "https://meghealth.gov.in/tenders.html",
+      "institution",
+      ["Meghalaya"],
+      "meghealth",
+      "Public tender notice list with linked original PDFs and a single Date column the publisher does not document; that date is not asserted as publication or closing. Cancellation, supply and installation notices are retained with their printed titles.",
+    ),
+    buyerName: "Meghalaya Health and Family Welfare Department",
+  },
   source(
     "nimhans",
     "NIMHANS Bengaluru",
