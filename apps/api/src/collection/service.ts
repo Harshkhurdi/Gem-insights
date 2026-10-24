@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { request as httpsRequest, Agent as HttpsAgent } from "node:https";
 import sslConstants from "node:constants";
+import { sectigoPublicServerDvR36 } from "./tls-intermediates";
+import { rootCertificates } from "node:tls";
 import { DataSource, EntityManager } from "typeorm";
 import {
   digest,
@@ -21,12 +23,23 @@ const LEGACY_TLS_HOSTS = new Set(["phsc.punjab.gov.in"]);
 const legacyTlsAgent = new HttpsAgent({
   secureOptions: sslConstants.SSL_OP_LEGACY_SERVER_CONNECT,
 });
-function fetchLegacyListing(url: string): Promise<string> {
+// Some official publishers serve only their leaf certificate without the
+// intermediate their issuer references. For these explicit hosts the named
+// public intermediate is bundled and verification stays fully enabled; every
+// other host continues to use Node's default trust store.
+const INCOMPLETE_CHAIN_HOSTS = new Set(["jipmer.edu.in"]);
+const chainFixAgent = new HttpsAgent({
+  ca: [...rootCertificates, sectigoPublicServerDvR36],
+});
+function fetchCompatibilityListing(
+  url: string,
+  agent: HttpsAgent,
+): Promise<string> {
   return new Promise((resolve, reject) => {
     const req = httpsRequest(
       url,
       {
-        agent: legacyTlsAgent,
+        agent,
         timeout: 30000,
         headers: {
           Accept: "text/html",
@@ -72,8 +85,11 @@ function fetchLegacyListing(url: string): Promise<string> {
   });
 }
 export async function fetchListing(url: string): Promise<string> {
-  if (LEGACY_TLS_HOSTS.has(new URL(url).hostname))
-    return fetchLegacyListing(url);
+  const hostname = new URL(url).hostname;
+  if (LEGACY_TLS_HOSTS.has(hostname))
+    return fetchCompatibilityListing(url, legacyTlsAgent);
+  if (INCOMPLETE_CHAIN_HOSTS.has(hostname))
+    return fetchCompatibilityListing(url, chainFixAgent);
   const response = await fetch(url, {
     redirect: "error",
     signal: AbortSignal.timeout(30000),
