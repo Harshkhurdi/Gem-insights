@@ -337,3 +337,40 @@ test("a description-only header without a quantity column never activates table 
   );
   assert.deepEqual(r.record.items, []);
 });
+test("corrigendum documents without a BOQ section explain their empty item list", () => {
+  const r = parse(
+    "Bid Number: GEM/2026/B/7977451\nBid Corrigendum\nGEM/2026/B/7977451-C1\nFollowing terms and conditions supersede all existing terms\nSYNTHETIC TEST ONLY",
+  );
+  assert.deepEqual(r.record.items, []);
+  assert.ok(
+    r.warnings.some((w) => /Corrigendum document/.test(w)),
+    "corrigendum warning expected",
+  );
+});
+test("additional specification parameter rows do not become items", () => {
+  const rows = [
+    { cells: ["S.No.", "Item Description", "Quantity", "Unit"] },
+    { cells: ["1", "SYNTHETIC infusion pump", "7", "Nos."] },
+    {
+      cells: [
+        "Additional Specification Parameters - SYNTHETIC infusion pump",
+        "1",
+      ],
+    },
+  ];
+  const r = extractTender(
+    [
+      {
+        page: 1,
+        text: rows.map((row) => row.cells.join(" ")).join("\n"),
+        method: "embedded",
+        readable: true,
+        rows: rows as any,
+      },
+    ],
+    "https://example.org/synthetic-test.pdf",
+    rules,
+  );
+  assert.equal(r.record.items.length, 1);
+  assert.equal(r.record.items[0].name, "SYNTHETIC infusion pump");
+});

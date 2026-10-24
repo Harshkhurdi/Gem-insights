@@ -69,6 +69,12 @@ National profiles: CPPP central + state mirror, ICMR, HLL. Remaining northern wo
 
 AIIMS Bhubaneswar (Odisha) already implemented. Maharashtra, Gujarat, Goa, DNH&DD, West Bengal, Bihar, Jharkhand and the eight northeastern states plus A&N Islands and Lakshadweep are registered only as state portals. Not started.
 
+## Parallel workstream — verified extraction (2026-10-24 pilot)
+
+A bounded pilot ran the designed notice-extraction flow end to end: six GeM-format bid documents linked on WBMSCL's own official host were queued through the operator API, downloaded with the existing safeguards (same-origin HTTPS PDFs only, 15 MiB cap, content not retained, drafts require human review), and processed locally with no external AI.
+
+Pilot results: six drafts produced, all pinned in review status with no analytical effect until reviewed. Two documents yielded item drafts (Digital Radiography System with quantity 1); two were corrigendum documents with no BOQ section (now explained by an explicit draft warning instead of a silent empty list, and specification-parameter rows no longer leak as items); the remaining drafts reflected documents whose item sections the current rules deliberately leave for review. Real-document accuracy remains unmeasured until an authorized annotated corpus exists; operator review of the six drafts is the next step, and further extraction improvement continues from real-document feedback like this pilot.
+
 ## Phase 5 — All-India integration (scheduling shipped 2026-10-24)
 
 Regional scheduling now supports `north`, `central`, `south`, `east`, `west`, `northeast` and `all` with full backward compatibility; regional selection covers every automated profile exactly once and keeps national feeds available in every region. National rankings/map/institution intelligence improvements remain open. The live operator configuration is unchanged (`all`); region values are opt-in via `COLLECTION_REGION` or `npm run collect -- <region>`. JKMSCL's publisher reverted to a template placeholder on 24 October 2026 — collection fails visibly and its 900+ historical observations are retained.
@@ -88,3 +94,4 @@ Regional scheduling now supports `north`, `central`, `south`, `east`, `west`, `n
 | 2026-10-24 | All-India regional scheduling: seven region values with backward compatibility (five scheduling regressions) | 342 |
 | 2026-10-24 | Overview collection-health strip + last-7-days KPI; Safdarjung lifecycle separation resolves its documented blocker (67 profiles, 118 targets) | 345 |
 | 2026-10-24 | Coverage extensions: AIIMS Guwahati official JSON feed + CGMSCL drug category; blocked-target recheck (BFUHS/IGMC/RMLH/UHSR unchanged) (69 profiles, 120 targets) | 347 |
+| 2026-10-24 | Extraction pilot: 6 WBMSCL GeM PDFs through the review flow; corrigendum warning + spec-row leak fixes from real-document feedback | 349 |
