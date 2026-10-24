@@ -26,7 +26,7 @@ National profiles: CPPP central + state mirror, ICMR, HLL. Remaining northern wo
 | State | Implemented | Assisted/Blocked | Status |
 | --- | --- | --- | --- |
 | Madhya Pradesh | AIIMS Bhopal (1,856 obs, history to 2014) | MPPHSCL (session-bound listings); mptenders NIC portal registered | Partial |
-| Chhattisgarh | AIIMS Raipur ×2 (earlier); CGMSCL equipment (989 obs, 194 GeM refs) | CGMSCL drug/QC/civil/other pages (future); state NIC portal registered | Partial, improved 2026-10-23 |
+| Chhattisgarh | AIIMS Raipur ×2 (earlier); CGMSCL equipment (989 obs) + CGMSCL drug tenders (735 obs, clinical category) | CGMSCL QC/civil/other pages; state NIC portal registered | Partial, improved 2026-10-24 |
 
 ## Phase 3 — South India (started 2026-10-24)
 
@@ -46,7 +46,7 @@ National profiles: CPPP central + state mirror, ICMR, HLL. Remaining northern wo
 | State | Implemented | Assisted/Blocked | Status |
 | --- | --- | --- | --- |
 | Meghalaya | HFW tender notices (57 obs) | — | Partial, new 2026-10-24 |
-| Assam | — | NHM procurement page is award-side purchase orders (excluded by design) | Not started |
+| Assam | AIIMS Guwahati via official JSON content feed (48 obs) | NHM procurement page is award-side purchase orders (excluded by design) | Partial, new 2026-10-24 |
 | Mizoram | — | unstructured attachment list | Not started |
 | Arunachal, Manipur, Nagaland, Sikkim, Tripura | — | unreachable 2026-10-24; NIC portals registered | Not started |
 
@@ -87,3 +87,4 @@ Regional scheduling now supports `north`, `central`, `south`, `east`, `west`, `n
 | 2026-10-24 | Northeast: Meghalaya HFW (57 obs); Assam NHM documented as award-side exclusion (66 profiles, 119 targets) | 337 |
 | 2026-10-24 | All-India regional scheduling: seven region values with backward compatibility (five scheduling regressions) | 342 |
 | 2026-10-24 | Overview collection-health strip + last-7-days KPI; Safdarjung lifecycle separation resolves its documented blocker (67 profiles, 118 targets) | 345 |
+| 2026-10-24 | Coverage extensions: AIIMS Guwahati official JSON feed + CGMSCL drug category; blocked-target recheck (BFUHS/IGMC/RMLH/UHSR unchanged) (69 profiles, 120 targets) | 347 |

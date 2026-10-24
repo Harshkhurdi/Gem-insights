@@ -193,8 +193,8 @@ test("northern table layouts fail visibly instead of succeeding with silently mi
   }
 });
 test("north rollout adds thirteen profiles without enabling inaccessible targets", () => {
-  assert.equal(SOURCES.filter((s) => s.adapter).length, 67);
-  assert.equal(SOURCES.length, 118);
+  assert.equal(SOURCES.filter((s) => s.adapter).length, 69);
+  assert.equal(SOURCES.length, 120);
   for (const id of ["uhsr", "bfuhs", "pgimer", "rmlh"])
     assert.equal(getSource(id).adapter, null);
 });

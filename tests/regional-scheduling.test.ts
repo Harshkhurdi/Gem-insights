@@ -24,7 +24,12 @@ test("every region keeps national feeds while selecting only its own states", ()
       exclude: ["gmscl", "wbmscl", "meghealth", "aiims-bhopal", "jipmer"],
     },
     central: {
-      include: ["aiims-bhopal", "cgmscl-equipment", "aiims-raipur"],
+      include: [
+        "aiims-bhopal",
+        "cgmscl-equipment",
+        "cgmscl-drugs",
+        "aiims-raipur",
+      ],
       exclude: ["aiims-delhi", "jipmer", "gmscl", "wbmscl"],
     },
     south: {
@@ -46,7 +51,7 @@ test("every region keeps national feeds while selecting only its own states", ()
       exclude: ["aiims-delhi", "wbmscl", "aiims-bhopal", "meghealth"],
     },
     northeast: {
-      include: ["meghealth"],
+      include: ["meghealth", "aiims-guwahati"],
       exclude: ["aiims-delhi", "wbmscl", "gmscl", "jipmer"],
     },
   };
@@ -92,11 +97,11 @@ test("regional selection covers every automated profile exactly once across regi
 });
 
 test("region counts match the validated registry state", () => {
-  assert.equal(collectionSources("all").length, 67);
+  assert.equal(collectionSources("all").length, 69);
   assert.equal(regionalOf("north").length, 46);
-  assert.equal(regionalOf("central").length, 4);
+  assert.equal(regionalOf("central").length, 5);
   assert.equal(regionalOf("south").length, 8);
   assert.equal(regionalOf("east").length, 3);
   assert.equal(regionalOf("west").length, 1);
-  assert.equal(regionalOf("northeast").length, 1);
+  assert.equal(regionalOf("northeast").length, 2);
 });

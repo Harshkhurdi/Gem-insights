@@ -116,3 +116,42 @@ export function bhopalEntries(html: string, pageUrl: string): NorthernEntry[] {
   return entries;
 }
 export const bhopalRealDate = isRealDate;
+
+// AIIMS Guwahati publishes its tender list through its site's own public
+// same-origin JSON content endpoint; records carry advertisement numbers,
+// titles, publish dates and official-host document paths.
+export function guwahatiEntries(
+  json: string,
+  pageUrl: string,
+): NorthernEntry[] {
+  let data: any;
+  try {
+    data = JSON.parse(json);
+  } catch {
+    throw new Error("AIIMS Guwahati feed is not valid JSON; layout changed");
+  }
+  const items = data?.Main;
+  if (!Array.isArray(items))
+    throw new Error(
+      "AIIMS Guwahati feed structure changed; Main array missing",
+    );
+  if (!items.length)
+    throw new Error("AIIMS Guwahati feed yielded no records; layout changed");
+  return items.map((item: any) => {
+    const title = clean(item.ItemTitle || "");
+    if (!title) throw new Error("AIIMS Guwahati record lacks its title");
+    // Filepath values are site-root relative; resolving them against the
+    // API path would point inside /api.
+    const file = item.Filepath
+      ? publicLink(String(item.Filepath), new URL("/", pageUrl).href)
+      : null;
+    return {
+      title,
+      reference: clean(item.ItemDescription || "") || null,
+      url: file || pageUrl,
+      documents: file ? [file] : [],
+      publishedText: clean(item.Publishdate || "") || undefined,
+      closingText: undefined,
+    };
+  });
+}

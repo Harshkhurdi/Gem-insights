@@ -44,6 +44,7 @@ export interface SourceDefinition {
     | "wbmscl"
     | "meghealth"
     | "safdarjung"
+    | "guwahati"
     | null;
   buyerName?: string;
   clinicalCategory?: boolean;
@@ -279,18 +280,36 @@ export const SOURCES: SourceDefinition[] = [
     null,
     "Priority southern target. The public site is a client-side application whose tender detail links use per-tender encoded ids; the listing route returns HTTP 404 to direct requests (checked 24 October 2026). Assisted source review is required; AIIMS Bibinagar provides separate partial Telangana coverage.",
   ),
-  {
+  ...(
+    [
+      [
+        "cgmscl-equipment",
+        "equipment tenders",
+        "TenderEquip.aspx",
+        "Public equipment-tender table. Titles carry native references and GeM bid numbers, sometimes without separator slashes; separator normalization only never invents a reference. Row detail/attachment pages are plain links retained as evidence; listing scans do not fetch their content. No explicit dates on this listing; quantities require original review.",
+        false,
+      ],
+      [
+        "cgmscl-drugs",
+        "drug tenders",
+        "TenderDrug.aspx",
+        "Public drug-tender table from the same publisher layout as the equipment page; the official drug category adds clinical scope to otherwise unclassified titles (as with RMSC drugs). Native references and GeM bid numbers are retained with separator normalization only; no explicit dates; quantities require original review.",
+        true,
+      ],
+    ] as const
+  ).map(([id, label, path, scopeText, clinicalCategory]) => ({
     ...source(
-      "cgmscl-equipment",
-      "Chhattisgarh Medical Services Corporation — equipment tenders",
-      "https://www.cgmsc.gov.in/cgmscl/Home/TenderEquip.aspx",
+      id,
+      `Chhattisgarh Medical Services Corporation — ${label}`,
+      `https://www.cgmsc.gov.in/cgmscl/Home/${path}`,
       "institution",
       ["Chhattisgarh"],
       "cgmscl",
-      "Public equipment-tender table (drug, quality-control, civil and other category pages exist separately and are not collected yet). Titles carry native references and GeM bid numbers, sometimes without separator slashes; separator normalization only never invents a reference. Row detail/attachment pages are plain links retained as evidence; listing scans do not fetch their content. No explicit dates on this listing; quantities require original review.",
+      scopeText,
     ),
     buyerName: "Chhattisgarh Medical Services Corporation",
-  },
+    clinicalCategory,
+  })),
   source(
     "mpphscl",
     "Madhya Pradesh Public Health Services Corporation",
@@ -631,6 +650,18 @@ export const SOURCES: SourceDefinition[] = [
       "Public notice list with printed titles, notice dates and original PDFs. Lifecycle separation applies at collection: only requested-demand rows (tenders, online tenders, rate inquiries, EOIs and procurement notifications) are collected; award-of-contract rows, e-auction/disposal notices and procured-equipment lists are excluded by their printed titles so they cannot inflate requested-demand signals. Titles without a demand marker stay out rather than being guessed into scope.",
     ),
     buyerName: "VMMC and Safdarjung Hospital",
+  },
+  {
+    ...source(
+      "aiims-guwahati",
+      "AIIMS Guwahati tender notices",
+      "https://aiimsguwahati.ac.in/api/fetchContent/tender",
+      "institution",
+      ["Assam"],
+      "guwahati",
+      "Official public content feed (same-origin JSON endpoint of the institute site) listing tender notices with advertisement numbers, titles, publish dates and official-host document links. The separate procurement-list page reports already-procured equipment (award side) and is deliberately not collected.",
+    ),
+    buyerName: "AIIMS Guwahati",
   },
   source(
     "aiims-gorakhpur-archive",
