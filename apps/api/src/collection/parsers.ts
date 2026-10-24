@@ -160,6 +160,7 @@ export function pageAllowed(url: string, source: SourceDefinition) {
       "gorakhpur",
       "sgpgims",
       "hmscl",
+      "tnmsc",
     ].includes(source.adapter || "") ||
       u.search === base.search) &&
     (source.adapter !== "rishikesh" ||
@@ -211,6 +212,7 @@ export function noticeKey(
       "mangalagiri",
       "bibinagar",
       "jipmer",
+      "tnmsc",
     ].includes(source.adapter || "") &&
     url === source.url &&
     title
@@ -297,7 +299,7 @@ export function parseListing(
   const table = $("table")
     .filter((_, el) => {
       const headers = clean(
-        ["kgmu", "kcgmc", "bibinagar"].includes(source.adapter || "")
+        ["kgmu", "kcgmc", "bibinagar", "tnmsc"].includes(source.adapter || "")
           ? $(el).find("tr").first().children("td,th").text()
           : $(el).find("th").text(),
       );
@@ -687,6 +689,32 @@ export function parseListing(
           .toArray()
           .map((a) => publicLink($(a).attr("href"), pageUrl))
           .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+    } else if (source.adapter === "tnmsc") {
+      if (cells.length !== 7)
+        throw new Error("TNMSC row changed; expected seven columns");
+      const headerTexts = table
+        .find("th")
+        .toArray()
+        .map((th: any) => clean($(th).text()));
+      const at = (label: RegExp) =>
+        headerTexts.findIndex((h: string) => label.test(h));
+      const refCol = at(/Ref\. No\./),
+        titleCol = at(/^Title$/),
+        docCol = at(/^Documents$/i);
+      if (refCol < 0 || titleCol < 0 || docCol < 0)
+        throw new Error("TNMSC columns changed; identity columns missing");
+      // The publisher documents neither date column (Ref. Date / Date Of
+      // Publish); they are not asserted as publication or closing claims.
+      ref = clean(cells.eq(refCol).text());
+      title = clean(cells.eq(titleCol).clone().find("a").remove().end().text());
+      buyer = source.buyerName || source.name;
+      primary =
+        publicLink(
+          cells.eq(docCol).find("a[href]").first().attr("href"),
+          pageUrl,
+        ) || source.url;
+      if (primary !== source.url && !primary.includes("linkfiles/"))
+        throw new Error("TNMSC original is not its official notice file");
     } else if (source.adapter === "mangalagiri") {
       if (cells.length !== 11)
         throw new Error(
