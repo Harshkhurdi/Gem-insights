@@ -15,6 +15,23 @@ const rules = Object.values(taxonomy)
   .map(([id, name, aliases]) => ({ id, name, aliases, category_id: "" }));
 import { raipur, icmr, cppp } from "./collection-fixtures";
 
+test("AIIMS Raipur epoch placeholders and pre-establishment dates stay unasserted", () => {
+  const html = raipur()
+    .replace(">20-10-2026<", ">01-01-1970<")
+    .replace(">05-11-2026<", ">02/03/2001<");
+  const n = parseListing(html, getSource("aiims-raipur")).notices[0];
+  assert.equal(n.publishedAt, null);
+  assert.equal(n.closingDate, null);
+  const ok = parseListing(
+    raipur("SYNTHETIC Patient monitors").replace(
+      ">05-11-2026<",
+      ">05-11-2026<",
+    ),
+    getSource("aiims-raipur"),
+  ).notices[0];
+  assert.equal(ok.publishedAt, "2026-10-20");
+  assert.equal(ok.closingDate, "2026-11-05");
+});
 test("registry tracks all 36 states/UTs without equating registration to live collection", () => {
   for (const state of STATES)
     assert.ok(

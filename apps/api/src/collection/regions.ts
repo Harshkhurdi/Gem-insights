@@ -1,4 +1,4 @@
-import { SOURCES } from "./registry";
+import { SOURCES, getSource } from "./registry";
 export const NORTH_STATES = [
   "Delhi",
   "Punjab",
@@ -80,4 +80,13 @@ export function collectionSources(region = collectionRegion()) {
         ? Number(!a.states.length) - Number(!b.states.length)
         : 0) || Number(a.adapter === "cppp") - Number(b.adapter === "cppp"),
   );
+}
+
+// CLI/queue target resolution: a region name selects its sources, anything
+// else is a single source id, and no argument means the configured region.
+export function collectionTargets(id?: string) {
+  if (!id) return collectionSources();
+  if ((COLLECTION_REGIONS as readonly string[]).includes(id))
+    return collectionSources(id as CollectionRegion);
+  return [getSource(id)];
 }

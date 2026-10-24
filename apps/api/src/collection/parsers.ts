@@ -572,8 +572,15 @@ export function parseListing(
     } else if (source.adapter === "raipur" && cells.length >= 6) {
       ref = clean(cells.eq(1).text());
       title = clean(cells.eq(2).text());
-      publishedAt = listingDate(cells.eq(3).text());
-      closingDate = listingDate(cells.eq(4).text());
+      // AIIMS Raipur was established in 2012; the publisher's archive prints
+      // epoch placeholders and shifted dates for some historical rows. Such
+      // values stay unasserted rather than fabricating impossible history.
+      const raipurDate = (text: string) => {
+        const d = listingDate(text);
+        return d && d >= "2012-01-01" ? d : null;
+      };
+      publishedAt = raipurDate(cells.eq(3).text());
+      closingDate = raipurDate(cells.eq(4).text());
       buyer = source.buyerName || source.name;
       primary = publicLink(
         cells.eq(5).find("a[href]").first().attr("href"),

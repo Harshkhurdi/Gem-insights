@@ -4,6 +4,7 @@ import {
   COLLECTION_REGIONS,
   collectionRegion,
   collectionSources,
+  collectionTargets,
 } from "../apps/api/src/collection/regions";
 import { SOURCES } from "../apps/api/src/collection/registry";
 
@@ -104,4 +105,22 @@ test("region counts match the validated registry state", () => {
   assert.equal(regionalOf("east").length, 3);
   assert.equal(regionalOf("west").length, 1);
   assert.equal(regionalOf("northeast").length, 2);
+});
+test("collectionTargets resolves regions, single sources and the configured default", () => {
+  assert.equal(
+    collectionTargets("west")
+      .map((s) => s.id)
+      .join(","),
+    "gmscl,icmr,hll,cppp,cppp-states",
+  );
+  assert.equal(collectionTargets("gmscl").length, 1);
+  assert.equal(collectionTargets().length, collectionSources().length);
+  assert.equal(
+    collectionTargets("all").length,
+    collectionSources("all").length,
+  );
+  assert.throws(
+    () => collectionTargets("not-a-source"),
+    /Unknown collection source/,
+  );
 });
