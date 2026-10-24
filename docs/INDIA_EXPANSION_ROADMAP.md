@@ -69,9 +69,9 @@ National profiles: CPPP central + state mirror, ICMR, HLL. Remaining northern wo
 
 AIIMS Bhubaneswar (Odisha) already implemented. Maharashtra, Gujarat, Goa, DNH&DD, West Bengal, Bihar, Jharkhand and the eight northeastern states plus A&N Islands and Lakshadweep are registered only as state portals. Not started.
 
-## Phase 5 — All-India integration
+## Phase 5 — All-India integration (scheduling shipped 2026-10-24)
 
-Regional scheduling beyond `north`, national rankings/map/institution intelligence improvements. Not started.
+Regional scheduling now supports `north`, `central`, `south`, `east`, `west`, `northeast` and `all` with full backward compatibility; regional selection covers every automated profile exactly once and keeps national feeds available in every region. National rankings/map/institution intelligence improvements remain open. The live operator configuration is unchanged (`all`); region values are opt-in via `COLLECTION_REGION` or `npm run collect -- <region>`. JKMSCL's publisher reverted to a template placeholder on 24 October 2026 — collection fails visibly and its 900+ historical observations are retained.
 
 ## Milestone log
 
@@ -85,3 +85,4 @@ Regional scheduling beyond `north`, national rankings/map/institution intelligen
 | 2026-10-24 | West India: GMSCL Gujarat + AIIMS Nagpur assisted; innermost-table selection fix (64 profiles, 114 targets) | 335 |
 | 2026-10-24 | East India: WBMSCL archive (6,820 obs); WB Health + Bihar SHS assisted (65 profiles, 117 targets) | 336 |
 | 2026-10-24 | Northeast: Meghalaya HFW (57 obs); Assam NHM documented as award-side exclusion (66 profiles, 119 targets) | 337 |
+| 2026-10-24 | All-India regional scheduling: seven region values with backward compatibility (five scheduling regressions) | 342 |

@@ -1,6 +1,6 @@
 Latest classification update: [medical tender recognition](MEDICAL_CLASSIFICATION.md) expands equipment vocabulary and lets the worker refresh existing collected notices after alias edits.
 
-Latest coverage update: [Raebareli/Gorakhpur expansion](NORTH_PUBLIC_SOURCES.md) adds eleven profiles, with 49 automatic profiles, 101 registered targets and a 16,656-observation snapshot. Set `COLLECTION_REGION=north` in existing installations to prioritize North before South.
+Latest coverage update: [Raebareli/Gorakhpur expansion](NORTH_PUBLIC_SOURCES.md) adds eleven profiles, with 49 automatic profiles, 101 registered targets and a 16,656-observation snapshot. Set `COLLECTION_REGION` in existing installations to prioritize a region before the national feeds: valid values are `north`, `central`, `south`, `east`, `west`, `northeast` and `all` (default). Each region's bulk queue selects its own automated profiles plus the national feeds; other regional sources remain available individually (`npm run collect -- <source-or-region>`).
 
 > Main-project integration: collected notices now appear automatically in the overview, product, buyer, geography, trend and explorer pages. See [main insights](MAIN_INSIGHTS.md). Item review adds verified detail; it does not block visibility.
 

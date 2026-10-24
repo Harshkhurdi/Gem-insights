@@ -11,23 +11,72 @@ export const NORTH_STATES = [
   "Jammu and Kashmir",
   "Ladakh",
 ] as const;
+export const CENTRAL_STATES = ["Madhya Pradesh", "Chhattisgarh"] as const;
+export const SOUTH_STATES = [
+  "Karnataka",
+  "Tamil Nadu",
+  "Kerala",
+  "Andhra Pradesh",
+  "Telangana",
+  "Puducherry",
+] as const;
+export const EAST_STATES = [
+  "West Bengal",
+  "Bihar",
+  "Jharkhand",
+  "Odisha",
+] as const;
+export const WEST_STATES = [
+  "Maharashtra",
+  "Gujarat",
+  "Goa",
+  "Dadra and Nagar Haveli and Daman and Diu",
+] as const;
+export const NORTHEAST_STATES = [
+  "Assam",
+  "Arunachal Pradesh",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Sikkim",
+  "Tripura",
+] as const;
+export const REGION_STATES = {
+  north: NORTH_STATES,
+  central: CENTRAL_STATES,
+  south: SOUTH_STATES,
+  east: EAST_STATES,
+  west: WEST_STATES,
+  northeast: NORTHEAST_STATES,
+} as const;
+export type CollectionRegion = "all" | keyof typeof REGION_STATES;
+export const COLLECTION_REGIONS = [
+  "all",
+  ...Object.keys(REGION_STATES),
+] as const;
 export function collectionRegion(
   value = process.env.COLLECTION_REGION || "all",
-): "all" | "north" {
-  if (value !== "all" && value !== "north")
-    throw new Error("COLLECTION_REGION must be all or north");
-  return value;
+): CollectionRegion {
+  if (!(COLLECTION_REGIONS as readonly string[]).includes(value))
+    throw new Error(
+      `COLLECTION_REGION must be one of ${COLLECTION_REGIONS.join(", ")}`,
+    );
+  return value as CollectionRegion;
 }
 export function collectionSources(region = collectionRegion()) {
+  const states = region === "all" ? null : REGION_STATES[region];
   return SOURCES.filter(
     (s) =>
       s.adapter &&
-      (region === "all" ||
+      (!states ||
         !s.states.length ||
-        s.states.some((state) => NORTH_STATES.some((n) => n === state))),
+        s.states.some((state) =>
+          (states as readonly string[]).includes(state),
+        )),
   ).sort(
     (a, b) =>
-      (region === "north"
+      (region !== "all"
         ? Number(!a.states.length) - Number(!b.states.length)
         : 0) || Number(a.adapter === "cppp") - Number(b.adapter === "cppp"),
   );
