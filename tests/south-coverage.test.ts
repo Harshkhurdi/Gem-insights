@@ -21,6 +21,8 @@ import {
   tnmscRow,
   gmsclTable,
   gmsclRow,
+  wbmsclTable,
+  wbmsclRow,
 } from "./central-coverage-fixtures";
 const mgl = getSource("aiims-mangalagiri"),
   bib = getSource("aiims-bibinagar"),
@@ -162,8 +164,8 @@ test("CPPP-format Mangalagiri identities group with a reviewed-style CPPP refere
   assert.ok(grouped[0].n >= 1);
 });
 test("south migration registers three profiles and queue counts", async () => {
-  assert.equal(SOURCES.filter((s) => s.adapter).length, 64);
-  assert.equal(SOURCES.length, 114);
+  assert.equal(SOURCES.filter((s) => s.adapter).length, 65);
+  assert.equal(SOURCES.length, 117);
   for (const id of ["aiims-mangalagiri", "aiims-bibinagar", "jipmer"]) {
     const row = (
       await db.query("SELECT adapter,enabled FROM source WHERE id=$1", [id])
@@ -172,7 +174,7 @@ test("south migration registers three profiles and queue counts", async () => {
     assert.equal(row.enabled, true, id);
   }
   await db.query("TRUNCATE job");
-  assert.equal((await new Collection(db).queue()).queued, 64);
+  assert.equal((await new Collection(db).queue()).queued, 65);
 });
 test("TNMSC headerless rows keep native references, official files and no asserted dates", () => {
   const src = getSource("tnmsc");
@@ -270,4 +272,31 @@ test("GMSCL drug-category rows stay visible and layout guards hold", () => {
     pageAllowed("https://gmscl.gujarat.gov.in/other.htm", src),
     false,
   );
+});
+test("WBMSCL keeps native references and explicit publish dates from its single archive table", () => {
+  const src = getSource("wbmscl");
+  const n = parseListing(wbmsclTable(), src).notices[0];
+  assert.equal(n.bidNumber, "WBMSCL/NIT- 837/2026");
+  assert.equal(n.portal, "institution");
+  assert.equal(
+    n.title,
+    "SYNTHETIC Supply and Commissioning of 10 Echocardiography machines",
+  );
+  assert.equal(n.publishedAt, "2026-10-20");
+  assert.equal(n.state, "West Bengal");
+  assert.equal(n.url, "https://www.wbmsc.gov.in/tender/wbmsc-tender-6353.pdf");
+  assert.deepEqual(n.products, ["echo"]);
+  assert.throws(
+    () =>
+      parseListing(
+        wbmsclTable().replace("<th>TENDER NO</th>", "<th>Ref</th>"),
+        src,
+      ),
+    /table missing/,
+  );
+  assert.throws(
+    () => parseListing(wbmsclTable().replace("<td>1</td>", ""), src),
+    /expected four columns/,
+  );
+  assert.equal(pageAllowed("https://www.wbmsc.gov.in/other.php", src), false);
 });

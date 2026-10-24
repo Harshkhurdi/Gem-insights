@@ -162,6 +162,7 @@ export function pageAllowed(url: string, source: SourceDefinition) {
       "hmscl",
       "tnmsc",
       "gmscl",
+      "wbmscl",
     ].includes(source.adapter || "") ||
       u.search === base.search) &&
     (source.adapter !== "rishikesh" ||
@@ -215,6 +216,7 @@ export function noticeKey(
       "jipmer",
       "tnmsc",
       "gmscl",
+      "wbmscl",
     ].includes(source.adapter || "") &&
     url === source.url &&
     title
@@ -301,7 +303,9 @@ export function parseListing(
   const table = $("table")
     .filter((_, el) => {
       const headers = clean(
-        ["kgmu", "kcgmc", "bibinagar", "tnmsc"].includes(source.adapter || "")
+        ["kgmu", "kcgmc", "bibinagar", "tnmsc", "wbmscl"].includes(
+          source.adapter || "",
+        )
           ? $(el).find("tr").first().children("td,th").text()
           : $(el).find("th").text(),
       );
@@ -698,6 +702,38 @@ export function parseListing(
       primary =
         cells
           .eq(subject)
+          .find("a[href]")
+          .toArray()
+          .map((a) => publicLink($(a).attr("href"), pageUrl))
+          .find((u) => !!u && isNoticeAttachment(u)) || source.url;
+    } else if (source.adapter === "wbmscl") {
+      if (cells.length !== 4)
+        throw new Error("WBMSCL row changed; expected four columns");
+      const headerTexts = table
+        .find("tr")
+        .first()
+        .children("td,th")
+        .toArray()
+        .map((c: any) => clean($(c).text()));
+      const at = (label: RegExp) =>
+        headerTexts.findIndex((h: string) => label.test(h));
+      const titleCol = at(/^DESCRIPTION$/),
+        refCol = at(/^TENDER NO$/),
+        publishCol = at(/^PUBLISH DATE$/i);
+      if (titleCol < 0 || refCol < 0 || publishCol < 0)
+        throw new Error("WBMSCL columns changed; identity columns missing");
+      const titleCell = cells.eq(titleCol);
+      title =
+        clean(titleCell.find("a[href]").first().text()) ||
+        clean(titleCell.clone().find("a").remove().end().text());
+      ref = clean(cells.eq(refCol).text()).replace(/\s*\/\s*/g, "/");
+      // The publisher prefixes publish dates with a weekday name.
+      publishedAt = listingDate(
+        clean(cells.eq(publishCol).text()).replace(/^[A-Za-z]+,\s*/, ""),
+      );
+      buyer = source.buyerName || source.name;
+      primary =
+        titleCell
           .find("a[href]")
           .toArray()
           .map((a) => publicLink($(a).attr("href"), pageUrl))

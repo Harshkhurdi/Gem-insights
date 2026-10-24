@@ -141,3 +141,12 @@ export const gmsclRow = (
   `<tr><td>1</td><td>${reference}</td><td>${title}</td><td>${category}</td><td>Regular</td><td>17/10/2026</td><td>${closing}</td><td><a href="${file}">(2 MB)</a></td><td><a href="/Portal/TenderDetails/notice.pdf">Tender Notice</a></td></tr>`;
 export const gmsclTable = (rows = gmsclRow()) =>
   `<table><tr><th>Sr.No</th><th>Tender No.</th><th>Description</th><th>Tender Category</th><th>Tender Type</th><th>Start Date</th><th>Closing Date</th><th>Tender Document</th><th>All Documents</th></tr>${rows}</table>`;
+export const wbmsclRow = (
+  reference = "WBMSCL/NIT- 837/2026",
+  title = "SYNTHETIC Supply and Commissioning of 10 Echocardiography machines",
+  file = "./tender/wbmsc-tender-6353.pdf",
+  published = "Tuesday, October 20, 2026",
+) =>
+  `<tr><td>1</td><td><a href="${file}">${title}</a></td><td>${reference}</td><td>${published}</td></tr>`;
+export const wbmsclTable = (rows = wbmsclRow()) =>
+  `<table><tr><th>SL NO</th><th>DESCRIPTION</th><th>TENDER NO</th><th>PUBLISH DATE</th></tr>${rows}</table>`;
