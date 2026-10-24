@@ -20,7 +20,7 @@ test("registry tracks all 36 states/UTs without equating registration to live co
     assert.ok(
       SOURCES.some((s) => s.portal === "state" && s.states.includes(state)),
     );
-  assert.equal(SOURCES.filter((s) => s.adapter).length, 59);
+  assert.equal(SOURCES.filter((s) => s.adapter).length, 63);
   assert.equal(new Set(SOURCES.map((s) => s.id)).size, SOURCES.length);
   assert.equal(getSource("gem").adapter, null);
   assert.throws(() => getSource("unknown"));

@@ -122,3 +122,12 @@ export const jipmerRow = (
   `<tr><td>1</td><td><a href="${detail}">${title}</a></td><td><a href="${file}">Download (2.15 MB)</a></td><td>-</td><td>${release}</td><td>${last}</td></tr>`;
 export const jipmerTable = (rows = jipmerRow()) =>
   `<table><tr><th>S. No.</th><th>Title</th><th>Downloads</th><th>Tender Notice</th><th>Date of Release</th><th>Last Date</th></tr>${rows}</table>`;
+export const tnmscRow = (
+  ref = "E1481/ANS/RC/TNMSC/ENGG/2026",
+  title = "SYNTHETIC BID OPENING DETAILS for ventilator rate contract",
+  file = "../linkfiles/tender_notifications/NF1807.pdf",
+  nf = "NF1807",
+) =>
+  `<tr><td>1</td><td>${nf}</td><td>${ref}</td><td>16/02/2026</td><td>${title}</td><td>16/10/2026</td><td><a href="${file}">Download</a></td></tr>`;
+export const tnmscTable = (rows = tnmscRow()) =>
+  `<table><tr><th>S.No.</th><th>Ref. Code</th><th>Ref. No.</th><th>Ref. Date</th><th>Title</th><th>Date Of Publish</th><th>Documents</th></tr>${rows}</table>`;

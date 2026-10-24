@@ -17,6 +17,8 @@ import {
   bibTable,
   bibRow,
   jipmerTable,
+  tnmscTable,
+  tnmscRow,
 } from "./central-coverage-fixtures";
 const mgl = getSource("aiims-mangalagiri"),
   bib = getSource("aiims-bibinagar"),
@@ -158,8 +160,8 @@ test("CPPP-format Mangalagiri identities group with a reviewed-style CPPP refere
   assert.ok(grouped[0].n >= 1);
 });
 test("south migration registers three profiles and queue counts", async () => {
-  assert.equal(SOURCES.filter((s) => s.adapter).length, 59);
-  assert.equal(SOURCES.length, 107);
+  assert.equal(SOURCES.filter((s) => s.adapter).length, 63);
+  assert.equal(SOURCES.length, 112);
   for (const id of ["aiims-mangalagiri", "aiims-bibinagar", "jipmer"]) {
     const row = (
       await db.query("SELECT adapter,enabled FROM source WHERE id=$1", [id])
@@ -168,5 +170,47 @@ test("south migration registers three profiles and queue counts", async () => {
     assert.equal(row.enabled, true, id);
   }
   await db.query("TRUNCATE job");
-  assert.equal((await new Collection(db).queue()).queued, 59);
+  assert.equal((await new Collection(db).queue()).queued, 63);
+});
+test("TNMSC headerless rows keep native references, official files and no asserted dates", () => {
+  const src = getSource("tnmsc");
+  const n = parseListing(tnmscTable(), src).notices[0];
+  assert.equal(n.bidNumber, "E1481/ANS/RC/TNMSC/ENGG/2026");
+  assert.equal(n.portal, "institution");
+  assert.equal(
+    n.title,
+    "SYNTHETIC BID OPENING DETAILS for ventilator rate contract",
+  );
+  assert.equal(n.publishedAt, null);
+  assert.equal(n.closingDate, null);
+  assert.equal(n.state, "Tamil Nadu");
+  assert.equal(
+    n.url,
+    "https://tnmsc.tn.gov.in/linkfiles/tender_notifications/NF1807.pdf",
+  );
+  assert.equal(
+    parseListing(
+      tnmscTable(tnmscRow() + tnmscRow("E1482/VEN/RC/TNMSC/ENGG/2026")),
+      src,
+    ).notices.length,
+    2,
+  );
+});
+test("TNMSC layout guards and unrelated tables fail visibly", () => {
+  const src = getSource("tnmsc");
+  assert.throws(
+    () => parseListing(tnmscTable().replace("<td>16/02/2026</td>", ""), src),
+    /expected seven columns/,
+  );
+  assert.throws(
+    () => parseListing("<table><tr><td>menu</td></tr></table>", src),
+    /table missing/,
+  );
+  assert.equal(
+    pageAllowed(
+      "https://tnmsc.tn.gov.in/html/tenders.php?action=5&page=1",
+      src,
+    ),
+    false,
+  );
 });

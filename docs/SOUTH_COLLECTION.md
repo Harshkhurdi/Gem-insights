@@ -1,12 +1,13 @@
 # South India collection — Mangalagiri, Bibinagar, JIPMER
 
-The South rollout begins with three large institutional publishers across Andhra Pradesh, Telangana and Puducherry, taking the registry to **59 automated public listings and 107 registered targets**. All were researched and validated on 24 October 2026.
+The South rollout begins with three large institutional publishers across Andhra Pradesh, Telangana and Puducherry (batch 1) and the Tamil Nadu Medical Services Corporation with its year archives (batch 2), taking the registry to **63 automated public listings and 112 registered targets**. All were researched and validated on 24 October 2026.
 
 | Source | Profile | First live runs (24 Oct 2026) |
 | --- | --- | ---: |
 | AIIMS Mangalagiri | `aiims-mangalagiri` | 993 observations (477 medical, 989 dated) |
 | AIIMS Bibinagar | `aiims-bibinagar` | 460 observations (324 medical) |
 | JIPMER Pondicherry | `jipmer` | 399+ observations and backfilling (257 medical; archive to May 2025) |
+| TNMSC notifications + 3 year archives | `tnmsc`, `tnmsc-archive-2024/25/26` | 151 observations (archive FY2023-24 alone holds 147) |
 
 ## Evidence rules
 
@@ -15,13 +16,18 @@ The South rollout begins with three large institutional publishers across Andhra
 - **JIPMER** publishes explicit Date of Release and Last Date columns; the deep Drupal archive paginates with zero-based numeric pages and only single advancing pages are followed from the saved checkpoint. JIPMER's server omits the intermediate certificate in its TLS chain; the named public Sectigo intermediate is bundled so verification stays fully enabled — a trust-store completion, not a validation bypass.
 - Listing evidence never contributes quantities; the two reviewed Bathinda records still contribute exactly 27 known units, and confirmed-delivery views remain empty.
 
+## Batch 2: TNMSC
+
+- The notification table publishes native `…/TNMSC/…` references, notice descriptions and linked official `linkfiles/` PDFs, including rate-contract, evaluation and cancellation notices; not all rows are open bids.
+- The publisher documents neither of its two date columns (Ref. Date / Date Of Publish); neither is asserted as publication or closing. No publication trends are invented from this source.
+- Publisher year archives are separate profiles (`&dt=YYYY`); parsing follows the published header positions. A second notice category (`action=5`) is not collected yet.
+
 ## Not yet implemented (researched)
 
-- **TNMSC** (Tamil Nadu): tender notification list with native references, PDF downloads and year archives exists at `tnmsc.tn.gov.in/html/tenders.php`; header-less table layout needs its own parser — next batch.
-- **NIMS Hyderabad**: detail links use per-tender encoded ids from a listing page that returns 404 to direct requests — needs source-specific review.
-- **NIMHANS Bengaluru**: tender path not found in the first pass — next batch.
+- **NIMHANS Bengaluru**: the tenders-announcement page is reachable but renders dynamically and currently reports "No Data Found" to direct HTTP; CPPP rate-contract IDs are known to be published there. Registered assisted.
+- **NIMS Hyderabad**: client-side application; the listing route returns 404 to direct requests and detail links use per-tender encoded ids. Registered assisted.
 - Kerala already collects via KMSCL; Karnataka/other southern state portals remain registered NIC targets.
 
 ## Validation
 
-All **331 automated tests pass** (9 new South regressions covering CPPP-format identity grouping, trilingual titles, GeM/native references, compact rows, explicit date semantics, strict pagination and state attribution). Production builds, TypeScript and formatting checks pass; live collection ran against all three publishers.
+All **333 automated tests pass** (11 South regressions covering CPPP-format identity grouping, trilingual titles, GeM/native references, compact rows, explicit date semantics, strict pagination, TNMSC header-position parsing with unasserted undocumented dates, and state attribution). Production builds, TypeScript and formatting checks pass; live collection ran against all three publishers.

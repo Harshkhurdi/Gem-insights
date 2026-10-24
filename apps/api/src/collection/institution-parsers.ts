@@ -125,6 +125,13 @@ export function tableMatches(
         /End Date/.test(headers) &&
         /Subject of Tender/.test(headers)
       );
+    case "tnmsc":
+      return (
+        /Ref\. Code/.test(headers) &&
+        /Ref\. No\./.test(headers) &&
+        /Date Of Publish/i.test(headers) &&
+        /Documents/i.test(headers)
+      );
     case "mangalagiri":
       return (
         /Sl No\.?/.test(headers) &&

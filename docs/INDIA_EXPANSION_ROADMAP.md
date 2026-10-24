@@ -36,8 +36,8 @@ National profiles: CPPP central + state mirror, ICMR, HLL. Remaining northern wo
 | Telangana | AIIMS Bibinagar (460 obs) | NIMS (encoded detail ids) | Partial, new 2026-10-24 |
 | Puducherry | JIPMER (399+ obs, archive backfilling) | — | Partial, new 2026-10-24 |
 | Kerala | KMSCL (earlier) | — | Partial |
-| Tamil Nadu | — | TNMSC (header-less table, next batch) | Not started |
-| Karnataka | — | NIMHANS (tender path unfound in first pass) | Not started |
+| Tamil Nadu | TNMSC notifications + FY2023-24/25/26 archives (151 obs) | second notice category (action=5) | Partial, new 2026-10-24 |
+| Karnataka | — | NIMHANS (dynamic listing, currently empty to HTTP) | Not started |
 
 ## Phase 4 — East, West, Northeast, remaining UTs
 
@@ -55,3 +55,4 @@ Regional scheduling beyond `north`, national rankings/map/institution intelligen
 | 2026-10-23 | Source recovery: AIIMS Jodhpur, SGPGIMS, PHSC ×2, HMSCL; PGIMER recheck documented (54 profiles, 102 targets) | 313 |
 | 2026-10-23 | Central India: AIIMS Bhopal + CGMSCL equipment + cystoscope family; MPPHSCL registered assisted (56 profiles, 105 targets) | 322 |
 | 2026-10-24 | South India batch 1: AIIMS Mangalagiri + AIIMS Bibinagar + JIPMER with TLS chain completion (59 profiles, 107 targets) | 331 |
+| 2026-10-24 | South India batch 2: TNMSC notifications + 3 year archives; NIMHANS/NIMS registered assisted (63 profiles, 112 targets) | 333 |

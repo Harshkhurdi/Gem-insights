@@ -39,6 +39,7 @@ export interface SourceDefinition {
     | "mangalagiri"
     | "bibinagar"
     | "jipmer"
+    | "tnmsc"
     | null;
   buyerName?: string;
   clinicalCategory?: boolean;
@@ -158,6 +159,58 @@ export const SOURCES: SourceDefinition[] = [
       "state",
       [state],
     ),
+  ),
+  ...(
+    [
+      ["tnmsc", "current notifications", "action=4&page=1", "current"],
+      [
+        "tnmsc-archive-2024",
+        "2023-24 archive",
+        "action=4&page=1&dt=2024",
+        "2023-24",
+      ],
+      [
+        "tnmsc-archive-2025",
+        "2024-25 archive",
+        "action=4&page=1&dt=2025",
+        "2024-25",
+      ],
+      [
+        "tnmsc-archive-2026",
+        "2025-26 archive",
+        "action=4&page=1&dt=2026",
+        "2025-26",
+      ],
+    ] as const
+  ).map(([id, label, query]) => ({
+    ...source(
+      id,
+      `TN Medical Services Corporation — ${label}`,
+      `https://tnmsc.tn.gov.in/html/tenders.php?${query}`,
+      "institution",
+      ["Tamil Nadu"],
+      "tnmsc",
+      "Public tender-notification table (published without column headers) with native TNMSC references, notice descriptions and linked original PDFs, including rate-contract, evaluation and cancellation notices; not all rows are open bids. The two undocumented date columns are not asserted as publication/closing. Publisher year archives are collected as separate profiles; a second notice category (action=5) is not collected yet.",
+    ),
+    buyerName: "Tamil Nadu Medical Services Corporation",
+  })),
+  source(
+    "nimhans",
+    "NIMHANS Bengaluru",
+    "https://www.nimhans.ac.in/announcements/tenders-announcement",
+    "institution",
+    ["Karnataka"],
+    null,
+    "Priority southern target. The tenders-announcement page is reachable (checked 24 October 2026) but its listing is rendered dynamically and currently reports No Data Found to direct HTTP; CPPP rate-contract IDs such as 2026_NIMHS_894339_1 are known to be published. Assisted import or an official flat listing is required before automated collection; CPPP provides separate partial coverage.",
+  ),
+  source(
+    "nims",
+    "Nizam's Institute of Medical Sciences",
+    "https://nims.edu.in/",
+    "institution",
+    ["Telangana"],
+    null,
+    "Priority southern target. The public site is a client-side application whose tender detail links use per-tender encoded ids; the listing route returns HTTP 404 to direct requests (checked 24 October 2026). Assisted source review is required; AIIMS Bibinagar provides separate partial Telangana coverage.",
   ),
   {
     ...source(
@@ -648,13 +701,6 @@ export const SOURCES: SourceDefinition[] = [
     "https://hllhites.com/",
     "institution",
     [],
-  ),
-  source(
-    "tnmsc",
-    "Tamil Nadu Medical Services Corporation",
-    "https://www.tnmsc.tn.gov.in/",
-    "institution",
-    ["Tamil Nadu"],
   ),
   source(
     "kmscl",
