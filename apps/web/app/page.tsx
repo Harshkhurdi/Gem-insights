@@ -1825,6 +1825,26 @@ function Dashboard() {
                 </Panel>
                 {f.buyer && (
                   <>
+                    <div className="kpis">
+                      <div className="kpi">
+                        <span>Observed notices</span>
+                        <strong>{number(stats.data?.tenders)}</strong>
+                        <small>
+                          {buyers.data?.find((b: any) => b.id === f.buyer)
+                            ?.name || "Selected institution"}
+                        </small>
+                      </div>
+                      <div className="kpi">
+                        <span>Equipment families</span>
+                        <strong>{number(stats.data?.products)}</strong>
+                        <small>Classified from titles and item records</small>
+                      </div>
+                      <div className="kpi">
+                        <span>Known tender value</span>
+                        <strong>{money(stats.data?.known_value)}</strong>
+                        <small>Explicit source values only</small>
+                      </div>
+                    </div>
                     <Panel title="Product specialization">{productTable}</Panel>
                     <Panel title="Repeat procurement activity">
                       <HistoryChart rows={history.data || []} />

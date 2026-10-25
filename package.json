@@ -19,7 +19,8 @@
     "documents:accuracy": "node --env-file-if-exists=.env --import tsx apps/api/src/documents/evaluate-cli.ts",
     "documents:evaluate": "npm run documents:accuracy",
     "collect": "node --env-file-if-exists=.env --import tsx apps/api/src/collection/cli.ts",
-    "import:discoveries": "node --env-file-if-exists=.env --import tsx apps/api/src/collection/restore-cli.ts"
+    "import:discoveries": "node --env-file-if-exists=.env --import tsx apps/api/src/collection/restore-cli.ts",
+    "review:assist": "node --env-file-if-exists=.env scripts/review-assist.mjs"
   },
   "dependencies": {
     "@nestjs/common": "12.1.2",
