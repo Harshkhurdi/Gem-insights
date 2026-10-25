@@ -327,7 +327,7 @@ export function extractTender(
         continue;
       }
       if (
-        /^(?:Technical Specifications|Specifications?|Specification Name|Consignees|Buyer Added|Additional Terms|Additional Specification Parameters|GeMARPTS)/i.test(
+        /^[^A-Za-z]*(?:Technical Specifications|Specifications?|Specification Name|Consignees|Buyer Added|Additional Terms|Additional Specification Parameters|GeMARPTS)/i.test(
           joined,
         )
       ) {

@@ -374,3 +374,31 @@ test("additional specification parameter rows do not become items", () => {
   assert.equal(r.record.items.length, 1);
   assert.equal(r.record.items[0].name, "SYNTHETIC infusion pump");
 });
+test("spec headers preceded by empty cells still reset table extraction", () => {
+  const rows = [
+    { cells: ["S.No.", "Item Description", "Quantity", "Unit"] },
+    { cells: ["1", "SYNTHETIC infusion pump", "7", "Nos."] },
+    {
+      cells: [
+        "",
+        "Additional Specification Parameters - SYNTHETIC infusion pump",
+        "1",
+      ],
+    },
+  ];
+  const r = extractTender(
+    [
+      {
+        page: 1,
+        text: rows.map((row) => row.cells.join(" ")).join("\n"),
+        method: "embedded",
+        readable: true,
+        rows: rows as any,
+      },
+    ],
+    "https://example.org/synthetic-test.pdf",
+    rules,
+  );
+  assert.equal(r.record.items.length, 1);
+  assert.equal(r.record.items[0].name, "SYNTHETIC infusion pump");
+});
