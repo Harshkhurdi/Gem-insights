@@ -40,7 +40,6 @@ Stop the running app and pull main from the repository root. Keep `COLLECTION_RE
 ```sh
 git pull --ff-only origin main
 npm ci
-docker compose up -d --wait postgres
 npm run build -w @gem/api
 npm run migrate
 npm run import:discoveries
