@@ -296,6 +296,20 @@ export const SOURCES: SourceDefinition[] = [
         "Public drug-tender table from the same publisher layout as the equipment page; the official drug category adds clinical scope to otherwise unclassified titles (as with RMSC drugs). Native references and GeM bid numbers are retained with separator normalization only; no explicit dates; quantities require original review.",
         true,
       ],
+      [
+        "cgmscl-other",
+        "other tenders",
+        "TenderOther.aspx",
+        "Public mixed-category tender table from the same publisher layout; contains general items alongside medical procurement, so title classification decides clinical signals and unrelated rows stay visible only under all-procurement scope. Native references and GeM bid numbers retained with separator normalization only; no explicit dates; quantities require original review.",
+        false,
+      ],
+      [
+        "cgmscl-qc",
+        "quality-control tenders",
+        "TenderQC.aspx",
+        "Public quality-control tender table from the same publisher layout; QC notices can concern testing and reagents rather than equipment purchases, so classification stays title-based and conservative. Native references and GeM bid numbers retained with separator normalization only; no explicit dates; quantities require original review.",
+        false,
+      ],
     ] as const
   ).map(([id, label, path, scopeText, clinicalCategory]) => ({
     ...source(
@@ -650,6 +664,18 @@ export const SOURCES: SourceDefinition[] = [
       "Public notice list with printed titles, notice dates and original PDFs. Lifecycle separation applies at collection: only requested-demand rows (tenders, online tenders, rate inquiries, EOIs and procurement notifications) are collected; award-of-contract rows, e-auction/disposal notices and procured-equipment lists are excluded by their printed titles so they cannot inflate requested-demand signals. Titles without a demand marker stay out rather than being guessed into scope.",
     ),
     buyerName: "VMMC and Safdarjung Hospital",
+  },
+  {
+    ...source(
+      "aiims-guwahati-quotations",
+      "AIIMS Guwahati quotation notices",
+      "https://aiimsguwahati.ac.in/api/fetchContent/quotation",
+      "institution",
+      ["Assam"],
+      "guwahati",
+      "Official public content feed of the institute's quotation notices, in the same JSON structure as the tender feed. Quotations include engineering and construction enquiries alongside procurement; title classification decides clinical signals. Document paths resolve against the site root.",
+    ),
+    buyerName: "AIIMS Guwahati",
   },
   {
     ...source(

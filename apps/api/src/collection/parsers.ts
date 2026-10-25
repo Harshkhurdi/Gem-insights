@@ -1015,12 +1015,16 @@ export function parseListing(
         source.url;
       ref = "";
     } else if (source.adapter === "cgmscl") {
-      if (cells.length !== 4)
-        throw new Error("CGMSCL row changed; expected four columns");
+      // Equipment/drug pages publish four columns; other/quality-control
+      // pages publish six with an explicit Notice Publish Date column.
+      if (cells.length !== 4 && cells.length !== 6)
+        throw new Error("CGMSCL row changed; expected four or six columns");
+      const isWide = cells.length === 6;
       // The reference text is the labelled span; the second column is only a
       // new-item icon and never carries procurement facts.
       title = clean(cells.eq(2).text());
       buyer = source.buyerName || source.name;
+      if (isWide) publishedAt = listingDate(cells.eq(4).text());
       const detail = $(row)
         .attr("onclick")
         ?.match(/AttachmentList\.aspx\?a=\d+/)?.[0];

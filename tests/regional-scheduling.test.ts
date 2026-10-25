@@ -52,7 +52,7 @@ test("every region keeps national feeds while selecting only its own states", ()
       exclude: ["aiims-delhi", "wbmscl", "aiims-bhopal", "meghealth"],
     },
     northeast: {
-      include: ["meghealth", "aiims-guwahati"],
+      include: ["meghealth", "aiims-guwahati", "aiims-guwahati-quotations"],
       exclude: ["aiims-delhi", "wbmscl", "gmscl", "jipmer"],
     },
   };
@@ -98,13 +98,13 @@ test("regional selection covers every automated profile exactly once across regi
 });
 
 test("region counts match the validated registry state", () => {
-  assert.equal(collectionSources("all").length, 69);
+  assert.equal(collectionSources("all").length, 72);
   assert.equal(regionalOf("north").length, 46);
-  assert.equal(regionalOf("central").length, 5);
+  assert.equal(regionalOf("central").length, 7);
   assert.equal(regionalOf("south").length, 8);
   assert.equal(regionalOf("east").length, 3);
   assert.equal(regionalOf("west").length, 1);
-  assert.equal(regionalOf("northeast").length, 2);
+  assert.equal(regionalOf("northeast").length, 3);
 });
 test("collectionTargets resolves regions, single sources and the configured default", () => {
   assert.equal(

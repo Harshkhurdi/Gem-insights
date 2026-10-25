@@ -30,6 +30,9 @@ import {
   guwahatiFeed,
   cgmsclTable,
   cgmsclRow,
+  guwahatiQuotationFeed,
+  cgmsclWideTable,
+  cgmsclWideRow,
 } from "./central-coverage-fixtures";
 const mgl = getSource("aiims-mangalagiri"),
   bib = getSource("aiims-bibinagar"),
@@ -171,8 +174,8 @@ test("CPPP-format Mangalagiri identities group with a reviewed-style CPPP refere
   assert.ok(grouped[0].n >= 1);
 });
 test("south migration registers three profiles and queue counts", async () => {
-  assert.equal(SOURCES.filter((s) => s.adapter).length, 69);
-  assert.equal(SOURCES.length, 120);
+  assert.equal(SOURCES.filter((s) => s.adapter).length, 72);
+  assert.equal(SOURCES.length, 123);
   for (const id of ["aiims-mangalagiri", "aiims-bibinagar", "jipmer"]) {
     const row = (
       await db.query("SELECT adapter,enabled FROM source WHERE id=$1", [id])
@@ -181,7 +184,7 @@ test("south migration registers three profiles and queue counts", async () => {
     assert.equal(row.enabled, true, id);
   }
   await db.query("TRUNCATE job");
-  assert.equal((await new Collection(db).queue()).queued, 69);
+  assert.equal((await new Collection(db).queue()).queued, 72);
 });
 test("TNMSC headerless rows keep native references, official files and no asserted dates", () => {
   const src = getSource("tnmsc");
@@ -449,4 +452,50 @@ test("CGMSCL drug category adds clinical scope to the same publisher layout", ()
     n.url,
     "https://www.cgmsc.gov.in/cgmscl/Home/AttachmentList.aspx?a=1",
   );
+});
+test("Guwahati quotation feed classifies by title and resolves documents at the site root", () => {
+  const src = getSource("aiims-guwahati-quotations");
+  const r = parseListing(guwahatiQuotationFeed(), src);
+  assert.equal(r.notices.length, 2);
+  const beds = r.notices.find((n) => n.title.includes("ICU beds"))!;
+  assert.equal(beds.bidNumber, "5/ICU-BEDS/PUR/AIIMS-GHY/2026-27/01");
+  assert.equal(beds.publishedAt, "2026-12-02");
+  assert.equal(beds.medical, true);
+  assert.equal(
+    beds.url,
+    "https://aiimsguwahati.ac.in/viewfile.aspx?fname=quotationSYNTHETIC.pdf",
+  );
+  const engg = r.notices.find((n) => n.title.includes("soil exploration"))!;
+  assert.equal(engg.bidNumber, "5/SITE-SURVEY/ENGG./AIIMS-GHY/2026-27/02");
+  assert.equal(engg.medical, false);
+});
+test("CGMSCL other and QC categories reuse the publisher layout with conservative classification", () => {
+  for (const id of ["cgmscl-other", "cgmscl-qc"]) {
+    const src = getSource(id);
+    const n = parseListing(
+      cgmsclTable(
+        cgmsclRow(
+          "Bid Number GEM 2026 B 8118999 SYNTHETIC patient monitors supply",
+          "/cgmscl/Home/AttachmentList.aspx?a=9",
+        ),
+      ),
+      src,
+    ).notices[0];
+    assert.equal(n.bidNumber, "GEM/2026/B/8118999");
+    assert.equal(n.medical, true, id);
+    assert.equal(n.state, "Chhattisgarh");
+  }
+});
+test("CGMSCL wide six-column pages assert only their explicit publish dates", () => {
+  const src = getSource("cgmscl-other");
+  const n = parseListing(cgmsclWideTable(), src).notices[0];
+  assert.equal(n.bidNumber, "GEM/2026/B/8118999");
+  assert.equal(n.publishedAt, "2026-10-06");
+  assert.equal(
+    n.url,
+    "https://www.cgmsc.gov.in/cgmscl/Home/AttachmentList.aspx?a=202606000022",
+  );
+  const equipment = parseListing(cgmsclTable(), getSource("cgmscl-equipment"))
+    .notices[0];
+  assert.equal(equipment.publishedAt, null);
 });
