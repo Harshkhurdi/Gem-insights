@@ -26,7 +26,7 @@ National profiles: CPPP central + state mirror, ICMR, HLL. Remaining northern wo
 | State | Implemented | Assisted/Blocked | Status |
 | --- | --- | --- | --- |
 | Madhya Pradesh | AIIMS Bhopal (1,856 obs, history to 2014) | MPPHSCL (session-bound listings); mptenders NIC portal registered | Partial |
-| Chhattisgarh | AIIMS Raipur ×2 (earlier); CGMSCL equipment (989 obs) + CGMSCL drug tenders (735 obs, clinical category) | CGMSCL QC/civil/other pages; state NIC portal registered | Partial, improved 2026-10-24 |
+| Chhattisgarh | AIIMS Raipur ×2 (earlier); CGMSCL equipment (989) + drugs (735) + other (208) + QC (104) | CGMSCL civil works page; state NIC portal registered | Partial, improved 2026-10-24 |
 
 ## Phase 3 — South India (started 2026-10-24)
 
@@ -46,7 +46,7 @@ National profiles: CPPP central + state mirror, ICMR, HLL. Remaining northern wo
 | State | Implemented | Assisted/Blocked | Status |
 | --- | --- | --- | --- |
 | Meghalaya | HFW tender notices (57 obs) | — | Partial, new 2026-10-24 |
-| Assam | AIIMS Guwahati via official JSON content feed (48 obs) | NHM procurement page is award-side purchase orders (excluded by design) | Partial, new 2026-10-24 |
+| Assam | AIIMS Guwahati tender + quotation official JSON feeds (49 obs) | NHM procurement page is award-side purchase orders (excluded by design) | Partial, new 2026-10-24 |
 | Mizoram | — | unstructured attachment list | Not started |
 | Arunachal, Manipur, Nagaland, Sikkim, Tripura | — | unreachable 2026-10-24; NIC portals registered | Not started |
 
@@ -96,3 +96,4 @@ Regional scheduling now supports `north`, `central`, `south`, `east`, `west`, `n
 | 2026-10-24 | Coverage extensions: AIIMS Guwahati official JSON feed + CGMSCL drug category; blocked-target recheck (BFUHS/IGMC/RMLH/UHSR unchanged) (69 profiles, 120 targets) | 347 |
 | 2026-10-24 | Extraction pilot: 6 WBMSCL GeM PDFs through the review flow; corrigendum warning + spec-row leak fixes from real-document feedback | 349 |
 | 2026-10-24 | Health-check fixes: Raipur pre-establishment dates unasserted (5 rows corrected), CLI region resolution fixed and live-verified, JKMSCL paused after publisher reversion | 351 |
+| 2026-10-24 | Expansion: Guwahati quotation feed + CGMSCL other/QC (wide six-column layout with explicit publish dates); region-health panel on Data Coverage (72 profiles, 123 targets) | 354 |

@@ -183,3 +183,32 @@ export const guwahatiFeed = (
       },
     ],
   });
+export const guwahatiQuotationFeed = () =>
+  JSON.stringify({
+    Main: [
+      {
+        ItemID: 10092,
+        ItemTitle:
+          "SYNTHETIC Quotation for supply of ICU beds for the new ward",
+        ItemDescription: "5/ICU-BEDS/PUR/AIIMS-GHY/2026-27/01",
+        Publishdate: "02 Dec 2026",
+        Filepath: "viewfile.aspx?fname=quotationSYNTHETIC.pdf",
+      },
+      {
+        ItemID: 10093,
+        ItemTitle:
+          "SYNTHETIC Quotation for site survey and soil exploration in connection with construction",
+        ItemDescription: "5/SITE-SURVEY/ENGG./AIIMS-GHY/2026-27/02",
+        Publishdate: "20 Nov 2026",
+        Filepath: "viewfile.aspx?fname=enggSYNTHETIC.pdf",
+      },
+    ],
+  });
+export const cgmsclWideRow = (
+  title = "GEM/2026/B/8118999 SYNTHETIC patient monitors supply",
+  detail = "/cgmscl/Home/AttachmentList.aspx?a=202606000022",
+  published = "06/10/2026",
+) =>
+  `<tr onClick="javascript:window.location='&#39;${detail}&#39;';"><td>1</td><td></td><td>${title}</td><td>Bid Document</td><td>${published}</td><td>Open</td></tr>`;
+export const cgmsclWideTable = (rows = cgmsclWideRow()) =>
+  `<table><tr><th scope="col">S.No</th><th scope="col">&nbsp;</th><th align="left" scope="col">Tender Ref.</th><th align="left" scope="col">Document Name</th><th scope="col">Notice Publish Date</th><th align="center" scope="col">Attachments</th></tr>${rows}</table>`;

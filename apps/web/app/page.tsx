@@ -2156,10 +2156,108 @@ function Dashboard() {
     </ThemeProvider>
   );
 }
+const COVERAGE_REGIONS: Array<[string, string[]]> = [
+  [
+    "North",
+    [
+      "Delhi",
+      "Punjab",
+      "Haryana",
+      "Chandigarh",
+      "Himachal Pradesh",
+      "Uttarakhand",
+      "Uttar Pradesh",
+      "Rajasthan",
+      "Jammu and Kashmir",
+      "Ladakh",
+    ],
+  ],
+  ["Central", ["Madhya Pradesh", "Chhattisgarh"]],
+  [
+    "South",
+    [
+      "Karnataka",
+      "Tamil Nadu",
+      "Kerala",
+      "Andhra Pradesh",
+      "Telangana",
+      "Puducherry",
+    ],
+  ],
+  ["East", ["West Bengal", "Bihar", "Jharkhand", "Odisha"]],
+  [
+    "West",
+    [
+      "Maharashtra",
+      "Gujarat",
+      "Goa",
+      "Dadra and Nagar Haveli and Daman and Diu",
+    ],
+  ],
+  [
+    "Northeast",
+    [
+      "Assam",
+      "Arunachal Pradesh",
+      "Manipur",
+      "Meghalaya",
+      "Mizoram",
+      "Nagaland",
+      "Sikkim",
+      "Tripura",
+    ],
+  ],
+];
 function Coverage({ data }: { data: any }) {
   if (!data) return <CircularProgress size={22} />;
+  const sources: any[] = data.sources || [];
+  const regional = COVERAGE_REGIONS.map(([name, states]) => {
+    const own = sources.filter((src) =>
+      (src.states || []).some((st: string) => states.includes(st)),
+    );
+    const automated = own.filter((src) => src.adapter);
+    return {
+      name,
+      automated: automated.length,
+      enabled: automated.filter((src) => src.enabled).length,
+      failing: automated.filter((src) => src.last_error).length,
+    };
+  });
+  const national = sources.filter(
+    (src) => src.adapter && !(src.states || []).length,
+  );
   return (
     <>
+      <Panel
+        title="Collection health by region"
+        sub="Automated sources per region; enabled sources follow the regional scheduling setting. Failing sources keep their last error visible."
+      >
+        <Table heads={["Region", "Automated", "Enabled", "Reporting errors"]}>
+          {regional.map((r) => (
+            <tr key={r.name}>
+              <td>{r.name}</td>
+              <td className="numeric">{r.automated}</td>
+              <td className="numeric">{r.enabled}</td>
+              <td className="numeric">{r.failing || "—"}</td>
+            </tr>
+          ))}
+          <tr>
+            <td>National feeds</td>
+            <td className="numeric">{national.length}</td>
+            <td className="numeric">
+              {national.filter((src) => src.enabled).length}
+            </td>
+            <td className="numeric">
+              {national.filter((src) => src.last_error).length || "—"}
+            </td>
+          </tr>
+        </Table>
+      </Panel>
+      <Alert severity="info">
+        Region scheduling is configured through COLLECTION_REGION; each region's
+        bulk queue selects its own sources plus the national feeds. Paused
+        sources stay listed here with their reason.
+      </Alert>
       {data.dataQuality && (
         <Panel
           title="Document processing and item data quality"

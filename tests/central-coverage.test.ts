@@ -124,7 +124,7 @@ test("CGMSCL native references stay institutional and missing detail links keep 
   );
   assert.throws(
     () => parseListing(cgmsclTable().replace("<td>1</td>", ""), src),
-    /expected four columns/,
+    /expected four or six columns/,
   );
 });
 const url = process.env.TEST_DATABASE_URL;
@@ -188,8 +188,8 @@ test("central migration registers Bhopal enabled and the national queue counts i
   )[0];
   assert.equal(row.adapter, "bhopal");
   assert.equal(row.enabled, true);
-  assert.equal(SOURCES.filter((s) => s.adapter).length, 69);
-  assert.equal(SOURCES.length, 120);
+  assert.equal(SOURCES.filter((s) => s.adapter).length, 72);
+  assert.equal(SOURCES.length, 123);
   const old = process.env.COLLECTION_REGION;
   process.env.COLLECTION_REGION = "north";
   try {
@@ -199,5 +199,5 @@ test("central migration registers Bhopal enabled and the national queue counts i
     else process.env.COLLECTION_REGION = old;
   }
   await db.query("TRUNCATE job");
-  assert.equal((await new Collection(db).queue()).queued, 69);
+  assert.equal((await new Collection(db).queue()).queued, 72);
 });
