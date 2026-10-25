@@ -97,3 +97,4 @@ Regional scheduling now supports `north`, `central`, `south`, `east`, `west`, `n
 | 2026-10-24 | Extraction pilot: 6 WBMSCL GeM PDFs through the review flow; corrigendum warning + spec-row leak fixes from real-document feedback | 349 |
 | 2026-10-24 | Health-check fixes: Raipur pre-establishment dates unasserted (5 rows corrected), CLI region resolution fixed and live-verified, JKMSCL paused after publisher reversion | 351 |
 | 2026-10-24 | Expansion: Guwahati quotation feed + CGMSCL other/QC (wide six-column layout with explicit publish dates); region-health panel on Data Coverage (72 profiles, 123 targets) | 354 |
+| 2026-10-24 | Operator review completed: 2 verified approvals (GEM/2026/B/7898310, GEM/2026/B/8095901 — 1 Digital Radiography System each, WBMSCL), 4 corrigendum rejections with documented verification; verified dataset now 4 tenders / 29 units; favicon added | 354 |
