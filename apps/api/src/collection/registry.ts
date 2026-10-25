@@ -115,7 +115,7 @@ export const SOURCES: SourceDefinition[] = [
     "cppp",
     [],
     "cppp",
-    "Public latest-tender listing only; not a complete archive. No item quantities on listing.",
+    "Public latest-tender listing only; not a complete archive. No item quantities on listing. The portal began returning HTTP 403 to all agents from this environment on 25 October 2026 (previously serving the listing); collection keeps failing visibly with backoff and the 3,549 collected observations are retained until access resumes.",
   ),
   source(
     "cppp-states",
