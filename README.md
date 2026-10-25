@@ -12,7 +12,7 @@ Implemented with Next.js App Router, TypeScript, Material UI, TanStack Query, Ne
 
 ## Run locally
 
-Requirements: Node 22.13+, npm, PostgreSQL 16+; Docker is optional.
+Requirements: Node 22.13+ and PostgreSQL 16+ (any local install works — for example Homebrew's `brew install postgresql@18 && brew services start postgresql@18`). **Docker is not required.**
 
 ```sh
 npm ci
@@ -21,20 +21,18 @@ cp .env.example .env
 
 Set `DATABASE_URL`, `TEST_DATABASE_URL`, `WEB_ORIGIN`, and a random `ADMIN_KEY` of at least 24 characters in `.env`. Do not commit secrets. To generate a key: `openssl rand -hex 32`.
 
-If using Docker, add `POSTGRES_PASSWORD` to `.env`, align `DATABASE_URL`, then run:
+Then bootstrap everything — databases, migrations and the optional historical baseline — with one idempotent command:
 
 ```sh
-docker compose up -d postgres
+npm run setup
+npm run import:verified
+# Optional: load the real collected listing observations into main insights
+npm run import:discoveries
 ```
 
-For an existing PostgreSQL instance, create a new `gem_intelligence` database and an isolated `gem_intelligence_test` database. Set their URLs in `.env`. Then:
+Run the whole application with a single command:
 
 ```sh
-npm run build -w @gem/api
-npm run migrate
-npm run import:verified
-# Optional: load the 16,656 real listing observations into main insights
-npm run import:discoveries
 npm run dev
 ```
 

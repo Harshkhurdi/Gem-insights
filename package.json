@@ -10,6 +10,7 @@
     "build": "npm run build -w @gem/api && npm run build -w @gem/web",
     "typecheck": "tsc -p apps/api/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit",
     "test": "node --env-file-if-exists=.env --import tsx --test --test-concurrency=1 tests/*.test.ts",
+    "setup": "node --env-file-if-exists=.env scripts/setup.mjs",
     "migrate": "node --env-file-if-exists=.env apps/api/dist/apps/api/src/migrate.js",
     "worker": "node --env-file-if-exists=.env apps/api/dist/apps/api/src/worker.js",
     "start:api": "node --env-file-if-exists=.env apps/api/dist/apps/api/src/main.js",
